@@ -1,0 +1,19 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { ScrollToTop } from './components/layout/ScrollToTop'
+import { HomePage } from './pages/HomePage'
+import { ProjectPage } from './pages/ProjectPage'
+import { IsmPage } from './pages/IsmPage'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/projects/:slug" element={<ProjectPage />} />
+        <Route path="/ism" element={<IsmPage />} />
+        <Route path="/ism/:section" element={<IsmPage />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}

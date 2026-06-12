@@ -1,0 +1,302 @@
+@import 'tailwindcss';
+@import './tokens.css';
+@import './metal-panel.css';
+@import './crt-terminal.css';
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-body);
+    background: var(--color-bg);
+    color: var(--color-text);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body.custom-cursor {
+    cursor: none;
+  }
+
+  body.custom-cursor a,
+  body.custom-cursor button,
+  body.custom-cursor [role='button'] {
+    cursor: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-transform: none;
+  }
+
+  a {
+    color: var(--color-accent-soft);
+    text-decoration: none;
+    transition: color 0.25s ease;
+  }
+
+  a:hover {
+    color: #fff;
+  }
+
+  .link-underline {
+    position: relative;
+    display: inline-block;
+  }
+
+  .link-underline::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-soft));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .link-underline:hover::after {
+    transform: scaleX(1);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  .skip-link {
+    position: absolute;
+    top: -100%;
+    left: 1rem;
+    z-index: 100;
+    padding: 0.75rem 1.25rem;
+    background: var(--color-accent);
+    color: #fff;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    transition: top 0.2s ease;
+  }
+
+  .skip-link:focus {
+    top: 1rem;
+  }
+}
+
+@layer components {
+  .page-glow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(99, 102, 241, 0.18), transparent 50%),
+      radial-gradient(ellipse 60% 40% at 85% 20%, rgba(129, 140, 248, 0.1), transparent 45%),
+      radial-gradient(ellipse 50% 30% at 50% 100%, rgba(99, 102, 241, 0.08), transparent 40%);
+  }
+
+  .section-shell {
+    position: relative;
+    min-height: 100vh;
+    padding: var(--section-padding) clamp(1.5rem, 5vw, 4rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  .section-inner {
+    position: relative;
+    z-index: 2;
+    max-width: 1140px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .section-label {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--color-accent-soft);
+    margin-bottom: 0.75rem;
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .glass-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease;
+  }
+
+  .glass-card:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-border-strong);
+  }
+
+  .hero-vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 50%,
+      rgba(6, 6, 10, calc(var(--vignette-opacity) * 0.9)) 100%
+    );
+  }
+
+  .tag-badge {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    border-radius: 999px;
+    color: var(--color-aluminum);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-border);
+  }
+
+  .tag-badge.pop-in {
+    animation: tagPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes tagPop {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .intro-section {
+    min-height: 100vh;
+  }
+
+  .page-deploy {
+    position: relative;
+    z-index: 2;
+  }
+
+  .section-inner.wide--narrow {
+    max-width: 640px;
+  }
+
+  /* Content drifts toward the flight path's waypoint side on wide screens */
+  @media (min-width: 1280px) {
+    .shell-left .section-inner {
+      transform: translateX(-2.5vw);
+    }
+    .shell-right .section-inner {
+      transform: translateX(2.5vw);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tag-badge.pop-in {
+      animation: none;
+    }
+  }
+
+  /* Infinite marquee */
+  .marquee {
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+  }
+
+  .marquee__track {
+    display: flex;
+    width: max-content;
+    animation: marqueeScroll 36s linear infinite;
+  }
+
+  .marquee:hover .marquee__track {
+    animation-play-state: paused;
+  }
+
+  @keyframes marqueeScroll {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Mouse-tracking spotlight on cards */
+  .spotlight-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .spotlight-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      460px circle at var(--mx, 50%) var(--my, 50%),
+      rgba(129, 140, 248, 0.13),
+      transparent 65%
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .spotlight-card:hover::before {
+    opacity: 1;
+  }
+
+  .spotlight-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee__track {
+      animation: none;
+    }
+  }
+}

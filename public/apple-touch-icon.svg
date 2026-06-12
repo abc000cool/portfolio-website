@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Ansh Pathak">
+  <rect width="180" height="180" rx="40" fill="#06060a"/>
+  <defs>
+    <linearGradient id="rocket" x1="62" y1="28" x2="118" y2="112">
+      <stop stop-color="#e0e7ff"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <path
+    d="M90 30 115 104 90 87 65 104Z"
+    fill="url(#rocket)"
+  />
+  <ellipse cx="90" cy="126" rx="18" ry="7.5" fill="#818cf8" opacity="0.7"/>
+  <path
+    d="M39 127c16.5-14 37.5-19.5 51-19.5s34.5 5.5 51 19.5"
+    fill="none"
+    stroke="#4f46e5"
+    stroke-width="5"
+    stroke-linecap="round"
+    opacity="0.45"
+  />
+</svg>

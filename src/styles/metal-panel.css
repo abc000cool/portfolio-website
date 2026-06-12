@@ -1,0 +1,40 @@
+.metal-panel {
+  position: relative;
+  padding: 1.25rem 1.75rem;
+  background: linear-gradient(
+    145deg,
+    #3a4250 0%,
+    #2a3140 30%,
+    #1e2533 70%,
+    #151b28 100%
+  );
+  border: 1px solid rgba(184, 191, 202, 0.25);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.metal-panel::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.metal-panel__rivet {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #8a919c, #4a5060);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.metal-panel__rivet--tl { top: 8px; left: 8px; }
+.metal-panel__rivet--tr { top: 8px; right: 8px; }
+.metal-panel__rivet--bl { bottom: 8px; left: 8px; }
+.metal-panel__rivet--br { bottom: 8px; right: 8px; }

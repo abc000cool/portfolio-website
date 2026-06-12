@@ -1,0 +1,104 @@
+.crt-terminal {
+  position: relative;
+  padding: 2rem;
+  background: #0a1208;
+  border-radius: 12px;
+  border: 3px solid #1a2a18;
+  box-shadow:
+    inset 0 0 60px rgba(61, 255, 138, 0.05),
+    inset 0 0 20px rgba(0, 0, 0, 0.8),
+    0 0 30px rgba(61, 255, 138, 0.1);
+  transform: perspective(800px) rotateX(2deg);
+  overflow: hidden;
+}
+
+.crt-terminal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.crt-terminal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.crt-terminal__content {
+  position: relative;
+  z-index: 3;
+  font-family: var(--font-mono);
+  color: var(--color-phosphor);
+  text-shadow: 0 0 8px rgba(61, 255, 138, 0.6);
+}
+
+.crt-terminal__prompt {
+  color: var(--color-cockpit-amber);
+  margin-right: 0.5rem;
+}
+
+.crt-terminal__cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  background: var(--color-phosphor);
+  vertical-align: text-bottom;
+  animation: crtBlink 1s step-end infinite;
+  box-shadow: 0 0 8px var(--color-phosphor);
+}
+
+@keyframes crtBlink {
+  0%,
+  100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.crt-terminal input,
+.crt-terminal textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(61, 255, 138, 0.3);
+  color: var(--color-phosphor);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+  outline: none;
+}
+
+.crt-terminal input:focus,
+.crt-terminal textarea:focus {
+  border-bottom-color: var(--color-phosphor);
+}
+
+.crt-terminal label {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(61, 255, 138, 0.6);
+  margin-bottom: 0.25rem;
+  margin-top: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crt-terminal__cursor {
+    animation: none;
+  }
+}
