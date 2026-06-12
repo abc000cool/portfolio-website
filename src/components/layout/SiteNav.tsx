@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { portfolio, SECTION_IDS, SECTION_LABELS, type SectionId } from '../../data/portfolio'
-import { projectPages } from '../../data/projectPages'
+import { getProjectsByGroup } from '../../data/projectPages'
 import { scrollToSection } from '../../lib/lenis'
 
 const HOME_SECTIONS = SECTION_IDS.filter(
@@ -195,7 +195,22 @@ export function SiteNav() {
                 </Link>
               )}
             </li>
-            {projectPages.map((p) => (
+            {getProjectsByGroup('selected').map((p) => (
+              <li key={p.slug}>
+                <Link
+                  to={`/projects/${p.slug}`}
+                  className="block px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/[0.05] no-underline"
+                >
+                  {p.title}
+                </Link>
+              </li>
+            ))}
+            <li className="px-4 pt-2 pb-1">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-slate-500">
+                Other projects
+              </span>
+            </li>
+            {getProjectsByGroup('other').map((p) => (
               <li key={p.slug}>
                 <Link
                   to={`/projects/${p.slug}`}

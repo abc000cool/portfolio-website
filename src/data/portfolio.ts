@@ -3,7 +3,7 @@ export interface SocialLink {
   url: string
 }
 
-import { projectPages } from './projectPages'
+import { projectPages, type ProjectGroup } from './projectPages'
 
 export interface Project {
   id: string
@@ -15,15 +15,18 @@ export interface Project {
   details: string
   status?: string
   externalUrl?: string
+  group?: ProjectGroup
 }
 
 export interface Paper {
   id: string
+  slug: string
   title: string
   venue: string
   year: number
   abstract: string
-  pdfUrl: string
+  /** Optional HTML for subscripts/superscripts in abstracts. */
+  abstractHtml?: string
 }
 
 export interface Stat {
@@ -57,7 +60,7 @@ export const portfolio = {
     name: 'Ansh Pathak',
     title: 'Aspiring Aerospace Engineer',
     tagline:
-      'A driven high school junior with a passion for aerospace engineering, quantum mechanics, and innovative solutions. Building the future through STEM, one project at a time.',
+      'A driven high school senior with a passion for aerospace engineering, quantum mechanics, and innovative solutions. Building the future through STEM, one project at a time.',
     school: 'Heritage High School',
     location: 'Frisco, TX',
     email: 'pathakansh10@gmail.com',
@@ -73,7 +76,7 @@ export const portfolio = {
     },
   },
   about: {
-    bio: 'I am a driven and adept junior at Heritage High School with a strong passion for STEM fields, especially aerospace engineering and quantum mechanics. Backed by 7+ years of programming and engineering experience and a demonstrated ability to solve complex problems and create innovative solutions, I actively seek opportunities to pursue professional development, innovate, lead, and apply my skills in real-world projects through hands-on work, rigor, and impactful collaborations.',
+    bio: 'I am a driven and adept senior at Heritage High School with a strong passion for STEM fields, especially aerospace engineering and quantum mechanics. Backed by 7+ years of programming and engineering experience and a demonstrated ability to solve complex problems and create innovative solutions, I actively seek opportunities to pursue professional development, innovate, lead, and apply my skills in real-world projects through hands-on work, rigor, and impactful collaborations.',
     missionStatement:
       'Through my independent study, I wish to litanize my pursuit of knowledge in the broader field of aerospace engineering, and in the specificity of flight mechanics. I want to start with flight mechanics and then observe applications to this field with either optimization or quantum applications. I will gain the skills and learn about the expertise needed to professionally contribute to the industry in my future career through my final project and mentorship.',
     highlights: [
@@ -93,16 +96,38 @@ export const portfolio = {
     details: p.overview,
     status: p.status,
     externalUrl: p.externalUrl,
+    group: p.group ?? 'selected',
   })) as Project[],
   papers: [
     {
       id: 'paper-debris',
-      title: 'SWEEP — Space Waste Electromagnetic Ejection Platform',
-      venue: 'US Patent Holder',
+      slug: 'space-debris-mitigation',
+      title: 'Space Debris Mitigation',
+      venue: 'Pending',
       year: 2026,
       abstract:
-        'Research and spacecraft design addressing space debris in Earth orbit through autonomous capture, debris processing, electromagnetic railgun ejection, and gyroscopic attitude control — enabling sustainable debris removal without traditional propellant expenditure.',
-      pdfUrl: 'https://sweep-feff1.web.app/',
+        "Research on novel approaches to address the growing problem of space debris in Earth's orbit, including spacecraft design and operational algorithms. This work explores active debris removal strategies, mission planning optimization, and the development of practical solutions for space sustainability.",
+    },
+    {
+      id: 'paper-traffic',
+      slug: 'traffic-fluid-dynamics',
+      title: 'Traffic Optimization Through Fluid Dynamics',
+      venue: 'Pending',
+      year: 2026,
+      abstract:
+        'Applies principles of fluid mechanics to model traffic patterns and deliver driving recommendations that dissipate congestion faster. Traffic is treated as fluid flow using computational fluid dynamics and Navier-Stokes-based modeling to identify bottlenecks and predict congestion waves in real time. Adaptive speed guidance is calculated so collective driver behavior can reduce stop-and-go patterns, improve average flow speeds, and lower fuel consumption—with research indicating substantial jam reduction and meaningful speed improvements at modest connected-vehicle penetration rates.',
+    },
+    {
+      id: 'paper-morphing-airfoil',
+      slug: 'morphing-airfoil-qaoa',
+      title:
+        'Probabilistic Optimization of Continuous-Morphing Airfoil Geometries via Gaussian Process Surrogates and QAOA-Based Discrete Sampling',
+      venue: 'Pending',
+      year: 2026,
+      abstract:
+        'Continuously morphing airfoils reshape during flight to match changing aerodynamic conditions, enabling performance that fixed geometry designs fundamentally cannot achieve. We present a four-phase pipeline combining Gaussian Process surrogate modeling with QAOA as a diversity-oriented sampler for morphing airfoil optimization, validated against XFOIL with improved drag and lift over a NACA 2412 baseline.',
+      abstractHtml:
+        'Continuously morphing airfoils reshape during flight to match changing aerodynamic conditions, enabling performance that fixed geometry designs fundamentally cannot achieve. Optimizing them, however, means traversing high-dimensional, non-convex design spaces where classical gradient-based methods fail. We present a four-phase pipeline combining Gaussian Process (GP) surrogate modeling with the Quantum Approximate Optimization Algorithm (QAOA) as a diversity-oriented sampler for morphing airfoil optimization. We generated 1,500 airfoil geometries via B-spline parameterization and compressed them to a six-dimensional latent space using Principal Component Analysis (PCA). GP surrogates (drag C<sub>d</sub> and lift C<sub>l</sub>) were fit with a Matérn 5/2 kernel with Automatic Relevance Determination (ARD). The Upper Confidence Bound (UCB) acquisition landscape was projected onto a 24-qubit Quadratic Unconstrained Binary Optimization (QUBO) formulation via BOX-QUBO weighted regression, with a lift constraint (C<sub>l</sub>&ge;0.60) enforced as a decoupled post-sampling filter rather than a penalty term. QAOA at circuit depths p=1,2,3 was benchmarked against Simulated Annealing (SA), Genetic Algorithm (GA), and random search. Shannon entropy of the QAOA sampling distributions fell from H=2.342 at p=1 to H=2.216 at p=3, a 5.4% reduction confirming the QAOA cooling protocol hypothesis. QAOA at p=2 achieved the best constrained average drag (C<sub>d</sub>=0.00583) with all returned solutions satisfying the lift constraint. Decoupling the lift constraint from QUBO fitting improved model fit from R<sup>2</sup>=0.12 to R<sup>2</sup>=0.43. The best XFOIL-validated airfoil achieved a 9.3% drag reduction and 37% lift improvement over the NACA 2412 baseline at Re=10<sup>6</sup>.',
     },
   ] as Paper[],
   stats: [
@@ -250,12 +275,16 @@ export const SECTION_IDS = [
 
 export type SectionId = (typeof SECTION_IDS)[number]
 
+export function getPaperBySlug(slug: string): Paper | undefined {
+  return portfolio.papers.find((p) => p.slug === slug)
+}
+
 export const SECTION_LABELS: Record<SectionId, string> = {
   intro: 'Home',
   hero: 'Profile',
   about: 'About',
   projects: 'Projects',
-  research: 'Research',
+  research: 'Pending Research',
   ism: 'ISM',
   stats: 'Awards',
   contact: 'Contact',

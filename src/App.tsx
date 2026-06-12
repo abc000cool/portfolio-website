@@ -3,6 +3,7 @@ import { ScrollToTop } from './components/layout/ScrollToTop'
 import { HomePage } from './pages/HomePage'
 import { ProjectPage } from './pages/ProjectPage'
 import { IsmPage } from './pages/IsmPage'
+import { ResearchPaperPage } from './pages/ResearchPaperPage'
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/projects/:slug" element={<ProjectPage />} />
+        <Route path="/research/:slug" element={<ResearchPaperPage />} />
         <Route path="/ism" element={<IsmPage />} />
         <Route path="/ism/:section" element={<IsmPage />} />
       </Routes>

@@ -16,6 +16,8 @@ export interface ProjectDoc {
   url?: string
 }
 
+export type ProjectGroup = 'selected' | 'other'
+
 export interface ProjectPage {
   slug: string
   title: string
@@ -24,6 +26,7 @@ export interface ProjectPage {
   category: string
   tagline: string
   overview: string
+  group?: ProjectGroup
   externalUrl?: string
   specs?: ProjectSpec[]
   sections: ProjectSection[]
@@ -38,7 +41,7 @@ export const projectPages: ProjectPage[] = [
     slug: 'stratos',
     title: 'STRATOS',
     subtitle: 'Simulation of Thrust, Rate-of-climb, Aerodynamics, and Total Operating States',
-    status: 'In Progress',
+    status: 'Completed',
     category: 'ISM Original Work',
     tagline: 'High-Fidelity Aircraft Performance & Envelope Simulation Environment',
     overview:
@@ -72,7 +75,7 @@ export const projectPages: ProjectPage[] = [
       },
       {
         title: 'RS — Report Summarizer',
-        status: 'In Development',
+        status: 'Complete',
         description:
           'Synthesizes all raw data and statistics into written/visual format for end users. Powered by an AI Language Model for near-instantaneous reports once simulation completes.',
       },
@@ -193,7 +196,64 @@ export const projectPages: ProjectPage[] = [
     patchColors: ['#2a1a44', '#ff4d4d', '#e8a317'],
   },
   {
+    slug: 'flowstate',
+    title: 'FlowState',
+    subtitle: 'Traffic Optimization Through Fluid Dynamics',
+    status: 'Completed',
+    category: 'IGSI Research Initiative',
+    tagline: 'Traffic optimization through fluid dynamics',
+    overview:
+      'FlowState applies principles of fluid mechanics to simulate traffic patterns and deliver optimal driving recommendations that dissipate congestion faster. The platform models traffic as fluid flow using computational fluid dynamics and Navier-Stokes-based approaches to predict congestion waves in real time. Adaptive speed guidance helps drivers collectively reduce stop-and-go patterns, improve average flow speeds, and lower fuel consumption per platoon—with research indicating substantial jam reduction at modest connected-vehicle penetration.',
+    externalUrl: 'https://flowstatetraffic.us/',
+    sections: [
+      {
+        title: 'Fluid dynamics modeling',
+        description:
+          'Traffic behaves like fluid flow. Navier-Stokes equations and computational fluid dynamics model vehicle movement patterns to identify bottlenecks and predict congestion propagation with high fidelity.',
+      },
+      {
+        title: 'Real-time simulation',
+        description:
+          'The simulation engine processes traffic data in milliseconds, predicting congestion patterns and calculating optimal speed recommendations before jams fully form.',
+      },
+      {
+        title: 'Adaptive speed guidance',
+        description:
+          'Personalized speed recommendations create wave dissipation effects when adopted collectively, resolving traffic faster than passive routing alone.',
+      },
+      {
+        title: 'Platform integration',
+        description:
+          'Designed for integration with major navigation platforms and fleet systems, enabling deployment without new roadside hardware.',
+      },
+    ],
+    capabilities: [
+      {
+        title: 'Documented impact',
+        items: [
+          '42% jam reduction with JAD at 5% autonomous-vehicle penetration',
+          '5.2 km/h average speed improvement in traffic flow',
+          '5% AV penetration cited as minimum threshold for measurable impact',
+          '20% fuel savings per platoon through smoother flow',
+        ],
+      },
+      {
+        title: 'Core capabilities',
+        items: [
+          'Reduces stop-and-go traffic patterns',
+          'Minimizes fuel consumption and emissions',
+          'Improves overall road capacity',
+          'Works with existing infrastructure',
+          'Scales to metropolitan areas',
+        ],
+      },
+    ],
+    tags: ['Fluid Dynamics', 'Traffic Engineering', 'Simulation', 'Optimization'],
+    patchColors: ['#0f1a2e', '#38bdf8', '#6366f1'],
+  },
+  {
     slug: 'the-resonance-foundation',
+    group: 'other',
     title: 'The Resonance Foundation',
     status: 'Active',
     category: '501(c)(3) Nonprofit',
@@ -220,6 +280,7 @@ export const projectPages: ProjectPage[] = [
     slug: 'data-science-libraries',
     title: 'Data Science Libraries',
     status: 'Completed',
+    group: 'other',
     category: 'Open Source',
     tagline: 'R libraries for Quarto-based data-science education',
     overview:
@@ -253,4 +314,8 @@ export function getProjectBySlug(slug: string): ProjectPage | undefined {
 
 export function resolveProjectSlug(slug: string): string {
   return SLUG_ALIASES[slug] ?? slug
+}
+
+export function getProjectsByGroup(group: ProjectGroup): ProjectPage[] {
+  return projectPages.filter((p) => (p.group ?? 'selected') === group)
 }

@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   motion,
-  useMotionValueEvent,
   useScroll,
   useTransform,
   type MotionValue,
@@ -14,6 +13,30 @@ import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { MissionPatch } from '../components/ui/MissionPatch'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+
+const selectedProjects = portfolio.projects.filter((p) => p.group !== 'other')
+const otherProjects = portfolio.projects.filter((p) => p.group === 'other')
+
+/** Scroll share before any project card appears — title reveals first. */
+const INTRO_END = 0.1
+const REVEAL_END = 0.92
+
+function smoothstep(t: number): number {
+  const x = Math.max(0, Math.min(1, t))
+  return x * x * (3 - 2 * x)
+}
+
+/** Fade in once per card; stays visible after reveal. */
+function revealCardOpacity(progress: number, index: number, total: number): number {
+  const usable = REVEAL_END - INTRO_END
+  const seg = usable / total
+  const start = INTRO_END + index * seg
+  const fadeInEnd = start + seg * 0.38
+
+  if (progress < start) return 0
+  if (progress < fadeInEnd) return smoothstep((progress - start) / (fadeInEnd - start))
+  return 1
+}
 
 function ProjectCard({
   project,
@@ -128,14 +151,47 @@ function ProjectCard({
   )
 }
 
-/** Per-card scrub window — tuned so the first card appears early in the pin. */
-function cardWindow(index: number, total: number) {
-  const segment = 0.92 / Math.max(total, 1)
-  const start = Math.max(0, index * segment * 0.72)
-  return { start, end: start + segment * 0.42 }
+function OtherProjectsGrid() {
+  if (otherProjects.length === 0) return null
+
+  return (
+    <div className="mt-16 pt-12 border-t border-white/[0.06]">
+      <h3 className="font-display text-xl md:text-2xl text-white mb-8">Other projects</h3>
+      <div className="grid md:grid-cols-2 gap-6">
+        {otherProjects.map((project, i) => (
+          <motion.div
+            key={project.id}
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-10% 0px' }}
+            transition={{ duration: 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <ProjectCard project={project} />
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
-function PinnedCard({
+function PinnedHeading({ progress }: { progress: MotionValue<number> }) {
+  const opacity = useTransform(progress, [0, INTRO_END], [0, 1])
+  const y = useTransform(progress, [0, INTRO_END + 0.02], [28, 0])
+  const labelOpacity = useTransform(progress, [0, INTRO_END * 0.7], [0, 1])
+
+  return (
+    <motion.div style={{ opacity, y }} className="mb-10 md:mb-12">
+      <motion.p style={{ opacity: labelOpacity }} className="section-label">
+        Work
+      </motion.p>
+      <div id="projects-heading">
+        <h2 className="section-heading">Selected projects</h2>
+      </div>
+    </motion.div>
+  )
+}
+
+function PinnedRevealCard({
   index,
   total,
   progress,
@@ -144,47 +200,24 @@ function PinnedCard({
   index: number
   total: number
   progress: MotionValue<number>
-  children: ReactNode
+  children: React.ReactNode
 }) {
-  const { start, end } = cardWindow(index, total)
-  const fromX = index % 2 === 0 ? -90 : 90
-
-  const x = useTransform(progress, [start, end], [fromX, 0], { clamp: true })
-  const y = useTransform(progress, [start, end], [48, 0], { clamp: true })
-  const opacity = useTransform(
-    progress,
-    [start, end],
-    [index === 0 ? 0.88 : 0, 1],
-    { clamp: true },
-  )
-
-  // Newly arrived card scales up briefly, recedes when the next one arrives,
-  // then everything settles to 1 once the scene completes.
-  const isLast = index === total - 1
-  const nextStart = cardWindow(index + 1, total).start
-  const scale = useTransform(
-    progress,
-    isLast ? [end, 0.88] : [end, nextStart + 0.06, 0.88],
-    isLast ? [1.04, 1] : [1.04, 0.97, 1],
-    { clamp: true },
-  )
-
-  // Apply opacity manually: Motion's WAAPI scroll-timeline fast path miscomputes
-  // progress inside this sticky/pinned container, so opt out of the style binding.
-  const fadeRef = useRef<HTMLDivElement>(null)
-  useMotionValueEvent(opacity, 'change', (v) => {
-    if (fadeRef.current) fadeRef.current.style.opacity = v.toFixed(3)
+  const opacity = useTransform(progress, (v) => revealCardOpacity(v, index, total))
+  const y = useTransform(progress, (v) => {
+    const start = INTRO_END + index * ((REVEAL_END - INTRO_END) / total)
+    const fadeInEnd = start + ((REVEAL_END - INTRO_END) / total) * 0.38
+    if (v < start) return 36
+    if (v < fadeInEnd) {
+      const t = smoothstep((v - start) / (fadeInEnd - start))
+      return 36 * (1 - t)
+    }
+    return 0
   })
-  useEffect(() => {
-    if (fadeRef.current) fadeRef.current.style.opacity = opacity.get().toFixed(3)
-  }, [opacity])
 
   return (
-    <div ref={fadeRef} style={{ opacity: 0 }}>
-      <motion.div style={{ x, y, scale }} className="h-full">
-        {children}
-      </motion.div>
-    </div>
+    <motion.div style={{ opacity, y }}>
+      {children}
+    </motion.div>
   )
 }
 
@@ -204,6 +237,7 @@ export function ProjectsSection() {
   })
 
   const pinned = !reduced && !isNarrow
+  const selectedCount = selectedProjects.length
 
   const heading = (
     <>
@@ -226,7 +260,7 @@ export function ProjectsSection() {
         <div className="section-inner wide">
           {heading}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {portfolio.projects.map((project, i) => (
+            {selectedProjects.map((project, i) => (
               <motion.div
                 key={project.id}
                 initial={{ opacity: 0, y: 36 }}
@@ -238,6 +272,7 @@ export function ProjectsSection() {
               </motion.div>
             ))}
           </div>
+          <OtherProjectsGrid />
         </div>
       </section>
     )
@@ -254,25 +289,28 @@ export function ProjectsSection() {
       <div
         ref={wrapRef}
         className="relative"
-        style={{ height: `${Math.max(240, portfolio.projects.length * 72)}vh` }}
+        style={{ height: `${Math.max(260, 140 + selectedCount * 52)}vh` }}
       >
         <div className="sticky top-0 flex min-h-screen flex-col justify-center px-[clamp(1.5rem,5vw,4rem)] py-20">
           <div className="section-inner wide w-full">
-            {heading}
-            <div className="grid lg:grid-cols-3 gap-6 items-stretch">
-              {portfolio.projects.map((project, i) => (
-                <PinnedCard
+            <PinnedHeading progress={scrollYProgress} />
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {selectedProjects.map((project, i) => (
+                <PinnedRevealCard
                   key={project.id}
                   index={i}
-                  total={portfolio.projects.length}
+                  total={selectedCount}
                   progress={scrollYProgress}
                 >
                   <ProjectCard project={project} />
-                </PinnedCard>
+                </PinnedRevealCard>
               ))}
             </div>
           </div>
         </div>
+      </div>
+      <div className="section-inner wide px-[clamp(1.5rem,5vw,4rem)] pb-20">
+        <OtherProjectsGrid />
       </div>
     </section>
   )

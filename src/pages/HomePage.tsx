@@ -18,8 +18,6 @@ import { MacbookIntro } from '../components/intro/MacbookIntro'
 
 import { LaunchSequence } from '../components/easter-eggs/LaunchSequence'
 import { HyperspaceWarp } from '../components/easter-eggs/HyperspaceWarp'
-import { MissionBriefing } from '../components/easter-eggs/MissionBriefing'
-
 import { HeroSection } from '../sections/HeroSection'
 import { AboutSection } from '../sections/AboutSection'
 import { ProjectsSection } from '../sections/ProjectsSection'
@@ -83,8 +81,6 @@ export function HomePage() {
   const mainRef = useRef<HTMLElement>(null)
   const [launchActive, setLaunchActive] = useState(false)
   const [warpActive, setWarpActive] = useState(false)
-  const [briefingOpen, setBriefingOpen] = useState(false)
-
   useEffect(() => {
     initLenis(reduced)
 
@@ -155,8 +151,7 @@ export function HomePage() {
               <FlightLogLine />
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <p className="text-sm text-slate-500">
-                  © {new Date().getFullYear()} {portfolio.identity.name} — built from scratch with
-                  React, Three.js & Motion
+                  © {new Date().getFullYear()} {portfolio.identity.name}
                 </p>
                 <div className="flex items-center gap-6">
                   {portfolio.identity.socials.map((s) => (
@@ -164,14 +159,6 @@ export function HomePage() {
                       {s.label}
                     </a>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setBriefingOpen(true)}
-                    className="text-xs text-slate-600 hover:text-slate-400 bg-transparent border-none cursor-pointer transition-colors"
-                    aria-label="About this site"
-                  >
-                    About this site
-                  </button>
                 </div>
               </div>
             </div>
@@ -180,7 +167,6 @@ export function HomePage() {
 
         <LaunchSequence active={launchActive} onComplete={() => setLaunchActive(false)} />
         <HyperspaceWarp active={warpActive} onComplete={() => setWarpActive(false)} />
-        <MissionBriefing open={briefingOpen} onClose={() => setBriefingOpen(false)} />
       </MissionProvider>
     </MotionConfig>
   )

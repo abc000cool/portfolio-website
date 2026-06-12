@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMotionValueEvent, useScroll, type MotionValue } from 'motion/react'
 import { portfolio, type Paper } from '../data/portfolio'
 import { useWaypointReached } from '../context/MissionContext'
@@ -31,48 +32,60 @@ function activePaperIndex(scrollProgress: number, total: number): number {
   return Math.min(total - 1, Math.max(0, Math.floor(scrollProgress * total)))
 }
 
-function PaperContent({
-  paper,
-  variant = 'binder',
-}: {
-  paper: Paper
-  variant?: 'binder' | 'glass'
-}) {
-  const onCream = variant === 'binder'
+const binderFaceClass =
+  'rounded-r-lg border border-white/[0.08] bg-[#f4f0e6] text-[#1a1814] p-6 md:p-8 shadow-[-12px_16px_40px_rgba(0,0,0,0.45)]'
 
+function BinderPaperFace({ paper }: { paper: Paper }) {
   return (
     <>
-      <span
-        className={`font-mono text-xs ${
-          onCream ? 'text-amber-800/90' : 'text-[var(--color-cockpit-amber)]'
-        }`}
-      >
+      <div
+        className="absolute left-0 top-0 bottom-0 w-3 rounded-l-lg"
+        style={{
+          background: 'linear-gradient(90deg, #c4b89a 0%, #e8e0d0 40%, #f4f0e6 100%)',
+        }}
+        aria-hidden="true"
+      />
+      <div className="pl-4">
+        <span className="font-mono text-xs text-amber-800/90">
+          {paper.year} — {paper.venue}
+        </span>
+        <h3 className="text-lg md:text-xl lg:text-[1.35rem] mt-2 mb-5 normal-case tracking-normal leading-snug text-stone-900">
+          {paper.title}
+        </h3>
+        <Link
+          to={`/research/${paper.slug}`}
+          className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-amber-900/80 hover:text-amber-950 no-underline transition-colors"
+        >
+          Read abstract →
+        </Link>
+      </div>
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(0deg, #1a1814 0px, #1a1814 1px, transparent 1px, transparent 28px)',
+        }}
+        aria-hidden="true"
+      />
+    </>
+  )
+}
+
+function PaperSummary({ paper }: { paper: Paper }) {
+  return (
+    <>
+      <span className="font-mono text-xs text-[var(--color-cockpit-amber)]">
         {paper.year} — {paper.venue}
       </span>
-      <h3
-        className={`text-xl md:text-2xl mt-2 mb-4 normal-case tracking-normal leading-snug ${
-          onCream ? 'text-stone-900' : 'text-[var(--color-text)]'
-        }`}
-      >
+      <h3 className="text-xl md:text-2xl mt-2 mb-4 normal-case tracking-normal leading-snug text-[var(--color-text)]">
         {paper.title}
       </h3>
-      <p
-        className={`text-sm md:text-base leading-relaxed mb-6 ${
-          onCream ? 'text-stone-600' : 'text-[var(--color-text-muted)]'
-        }`}
+      <Link
+        to={`/research/${paper.slug}`}
+        className="link-underline text-sm font-medium text-indigo-300 no-underline"
       >
-        {paper.abstract}
-      </p>
-      <a
-        href={paper.pdfUrl}
-        className={`font-mono text-sm uppercase underline underline-offset-4 ${
-          onCream
-            ? 'text-stone-800 decoration-stone-400 hover:text-stone-950'
-            : 'link-underline'
-        }`}
-      >
-        Read Paper →
-      </a>
+        Read abstract →
+      </Link>
     </>
   )
 }
@@ -121,30 +134,10 @@ function BinderPaper({
     >
       {/* Front */}
       <div
-        className="absolute inset-0 rounded-r-lg border border-white/[0.08] bg-[#f4f0e6] text-[#1a1814] p-7 md:p-9 shadow-[-12px_16px_40px_rgba(0,0,0,0.45)]"
+        className={`absolute inset-0 ${binderFaceClass}`}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        <div
-          className="absolute left-0 top-0 bottom-0 w-3 rounded-l-lg"
-          style={{
-            background: 'linear-gradient(90deg, #c4b89a 0%, #e8e0d0 40%, #f4f0e6 100%)',
-          }}
-          aria-hidden="true"
-        />
-        <div className="pl-4 h-full flex flex-col">
-          <div className="flex-1">
-            <PaperContent paper={paper} />
-          </div>
-        </div>
-        {/* Paper lines */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(0deg, #1a1814 0px, #1a1814 1px, transparent 1px, transparent 28px)',
-          }}
-          aria-hidden="true"
-        />
+        <BinderPaperFace paper={paper} />
       </div>
 
       {/* Back */}
@@ -170,9 +163,9 @@ function StaticResearch({ active }: { active: boolean }) {
       aria-labelledby="research-heading"
     >
       <div className="section-inner wide">
-        <p className="section-label">Research</p>
+        <p className="section-label">Pending Research</p>
         <div id="research-heading" className="mb-12">
-          <RedactedHeading active={active}>Research Papers</RedactedHeading>
+          <RedactedHeading active={active}>Pending Research</RedactedHeading>
         </div>
         <ScanWipe active={active}>
           <div className="flex flex-col gap-6 max-w-3xl mx-auto">
@@ -183,7 +176,7 @@ function StaticResearch({ active }: { active: boolean }) {
                 className="p-8 md:p-10 glass-card"
                 style={{ boxShadow: '-8px 8px 30px rgba(0,0,0,0.5)' }}
               >
-                <PaperContent paper={paper} variant="glass" />
+                <PaperSummary paper={paper} />
               </article>
             ))}
           </div>
@@ -232,16 +225,15 @@ export function ResearchSection() {
       >
         <div className="sticky top-0 flex min-h-screen flex-col justify-center px-[clamp(1.5rem,5vw,4rem)] py-20 overflow-visible">
           <div className="section-inner wide w-full overflow-visible">
-            <p className="section-label">Research</p>
+            <p className="section-label">Pending Research</p>
             <div id="research-heading" className="mb-10 max-w-xl">
-              <RedactedHeading active={reached}>Research Papers</RedactedHeading>
+              <RedactedHeading active={reached}>Pending Research</RedactedHeading>
             </div>
 
             <ScanWipe active={reached}>
               <div className="w-full flex justify-end overflow-visible">
-                {/* Binder body — shifted right with left clearance for page arc */}
                 <div
-                  className="relative w-full lg:w-[min(100%,34rem)] xl:w-[min(100%,38rem)] lg:ml-auto lg:mr-[clamp(0rem,4vw,3rem)] min-h-[22rem] md:min-h-[26rem] pl-[clamp(2.5rem,8vw,5.5rem)] overflow-visible"
+                  className="relative w-full lg:w-[min(100%,36rem)] xl:w-[min(100%,40rem)] lg:ml-auto lg:mr-[clamp(0rem,2vw,1.5rem)] pl-[clamp(2.5rem,8vw,5.5rem)] overflow-visible"
                   style={{
                     perspective: '1600px',
                     perspectiveOrigin: '18% 50%',
@@ -258,6 +250,20 @@ export function ResearchSection() {
                     aria-hidden="true"
                   />
 
+                  {/* In-flow sizer — height fits the tallest binder page */}
+                  <div className="grid" aria-hidden="true">
+                    {papers.map((paper) => (
+                      <div
+                        key={`sizer-${paper.id}`}
+                        className="col-start-1 row-start-1 invisible pointer-events-none select-none"
+                      >
+                        <div className={`relative ${binderFaceClass}`}>
+                          <BinderPaperFace paper={paper} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   <div
                     className="absolute left-[calc(clamp(2.5rem,8vw,5.5rem)+1rem)] right-0 top-0 bottom-0 overflow-visible"
                     style={{ transformStyle: 'preserve-3d' }}
@@ -273,7 +279,6 @@ export function ResearchSection() {
                     ))}
                   </div>
 
-                  {/* Stack depth shadow under sheets */}
                   <div
                     className="absolute left-[calc(clamp(2.5rem,8vw,5.5rem)+1.5rem)] right-2 -bottom-2 h-4 rounded-full bg-black/40 blur-md pointer-events-none"
                     aria-hidden="true"
