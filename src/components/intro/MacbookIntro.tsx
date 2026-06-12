@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   motion,
   useMotionValueEvent,
@@ -7,17 +7,14 @@ import {
   type MotionValue,
 } from 'motion/react'
 import { portfolio } from '../../data/portfolio'
+import { useIntroViewport } from '../../hooks/useIntroViewport'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { MacbookScreenContent } from './MacbookScreenContent'
 
 export function MacbookIntro() {
   const ref = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
-  }, [])
+  const { isMobile, displayScale } = useIntroViewport()
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -35,8 +32,6 @@ export function MacbookIntro() {
     clamp: true,
   })
 
-  // State-driven (the hint is position:fixed, where Motion's scroll-timeline
-  // opacity binding miscomputes and keeps it visible forever)
   const [hintVisible, setHintVisible] = useState(true)
   useMotionValueEvent(scrollYProgress, 'change', (v) => setHintVisible(v < 0.05))
 
@@ -67,9 +62,13 @@ export function MacbookIntro() {
     >
       <div
         ref={ref}
-        className="flex min-h-[200vh] shrink-0 flex-col items-center justify-start py-0 md:py-16 scale-[0.48] sm:scale-[0.62] md:scale-100 [perspective:800px]"
+        className="flex min-h-[200vh] shrink-0 flex-col items-center justify-start py-0 md:py-16"
+        style={{
+          scale: displayScale,
+          transformOrigin: 'top center',
+          perspective: '800px',
+        }}
       >
-        {/* Title in document flow — scrolls up and away, never overlays the MacBook */}
         <motion.div
           style={{ translateY: textTranslate, opacity: textOpacity }}
           className="relative z-20 mb-10 md:mb-16 w-full px-6 pt-24 md:pt-28"
