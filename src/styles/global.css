@@ -2,6 +2,7 @@
 @import './tokens.css';
 @import './metal-panel.css';
 @import './crt-terminal.css';
+@import './airfoil-viewer.css';
 
 @layer base {
   *,
