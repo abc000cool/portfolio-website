@@ -198,6 +198,12 @@ export const RESEARCH_AIRFOIL_PROFILES: AirfoilProfile[] = [
   },
 ]
 
+/** Featured research: NACA baseline → QAOA-optimized morph only. */
+export const FEATURED_AIRFOIL_PROFILES: AirfoilProfile[] = [
+  RESEARCH_AIRFOIL_PROFILES[2],
+  RESEARCH_AIRFOIL_PROFILES[3],
+]
+
 export interface MorphState {
   fromIndex: number
   toIndex: number
@@ -208,17 +214,22 @@ export interface MorphState {
   cl: number
   cd: number
   aoa: number
+  profileCount: number
 }
 
-export function getMorphState(scrollProgress: number, profileCount = RESEARCH_AIRFOIL_PROFILES.length): MorphState {
+export function getMorphState(
+  scrollProgress: number,
+  profiles: AirfoilProfile[] = RESEARCH_AIRFOIL_PROFILES,
+): MorphState {
+  const profileCount = profiles.length
   const clamped = Math.max(0, Math.min(1, scrollProgress))
   const scaled = clamped * (profileCount - 1)
   const fromIndex = Math.min(profileCount - 2, Math.floor(scaled))
   const toIndex = fromIndex + 1
   const t = smoothstep(scaled - fromIndex)
 
-  const from = RESEARCH_AIRFOIL_PROFILES[fromIndex]
-  const to = RESEARCH_AIRFOIL_PROFILES[toIndex]
+  const from = profiles[fromIndex]
+  const to = profiles[toIndex]
   const morphedPoints = morphProfiles(from.points, to.points, t)
   const activeIndex = t < 0.5 ? fromIndex : toIndex
   const profile = t < 0.5 ? from : to
@@ -233,6 +244,7 @@ export function getMorphState(scrollProgress: number, profileCount = RESEARCH_AI
     cl: from.cl + (to.cl - from.cl) * t,
     cd: from.cd + (to.cd - from.cd) * t,
     aoa: from.aoa + (to.aoa - from.aoa) * t,
+    profileCount,
   }
 }
 

@@ -279,6 +279,17 @@ export function getPaperBySlug(slug: string): Paper | undefined {
   return portfolio.papers.find((p) => p.slug === slug)
 }
 
+/** Slug for the featured research paper (shown outside the binder with 3D airfoil). */
+export const FEATURED_RESEARCH_SLUG = 'morphing-airfoil-qaoa'
+
+export function getFeaturedResearchPaper(): Paper | undefined {
+  return portfolio.papers.find((p) => p.slug === FEATURED_RESEARCH_SLUG)
+}
+
+export function getBinderPapers(): Paper[] {
+  return portfolio.papers.filter((p) => p.slug !== FEATURED_RESEARCH_SLUG)
+}
+
 export const SECTION_LABELS: Record<SectionId, string> = {
   intro: 'Home',
   hero: 'Profile',

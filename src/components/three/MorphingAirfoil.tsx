@@ -5,10 +5,12 @@ import { useMotionValueEvent, useMotionValue, type MotionValue } from 'motion/re
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import {
+  FEATURED_AIRFOIL_PROFILES,
   RESEARCH_AIRFOIL_PROFILES,
   buildExtrudedAirfoilGeometry,
   buildProfileLinePoints,
   getMorphState,
+  type AirfoilProfile,
   type MorphState,
 } from '../../lib/airfoilGeometry'
 
@@ -18,6 +20,7 @@ const EXTRUSION_DEPTH = 0.38
 interface SceneProps {
   progressRef: React.RefObject<number | null>
   active: boolean
+  profiles: AirfoilProfile[]
 }
 
 function FlowLines({ morphRef }: { morphRef: React.RefObject<MorphState | null> }) {
@@ -284,7 +287,7 @@ function TelemetryPanel({ morphRef }: { morphRef: React.RefObject<MorphState | n
     if (cdRef.current) cdRef.current.textContent = morph.cd.toFixed(3)
     if (aoaRef.current) aoaRef.current.textContent = `${morph.aoa.toFixed(1)}°`
     if (idxRef.current) {
-      idxRef.current.textContent = `${morph.activeIndex + 1}/${RESEARCH_AIRFOIL_PROFILES.length}`
+      idxRef.current.textContent = `${morph.activeIndex + 1}/${morph.profileCount}`
     }
   })
 
@@ -323,11 +326,11 @@ function TelemetryPanel({ morphRef }: { morphRef: React.RefObject<MorphState | n
   )
 }
 
-function AirfoilScene({ progressRef, active }: SceneProps) {
-  const morphRef = useRef<MorphState | null>(getMorphState(progressRef.current ?? 0))
+function AirfoilScene({ progressRef, active, profiles }: SceneProps) {
+  const morphRef = useRef<MorphState | null>(getMorphState(progressRef.current ?? 0, profiles))
 
   useFrame(() => {
-    morphRef.current = getMorphState(progressRef.current ?? 0)
+    morphRef.current = getMorphState(progressRef.current ?? 0, profiles)
   })
 
   return (
@@ -366,6 +369,8 @@ export interface MorphingAirfoilProps {
   progress?: MotionValue<number>
   active?: boolean
   className?: string
+  /** `featured` morphs NACA 2412 → optimized; `full` cycles all research profiles. */
+  variant?: 'featured' | 'full'
 }
 
 export function MorphingAirfoil({
@@ -373,12 +378,14 @@ export function MorphingAirfoil({
   progress,
   active = true,
   className = '',
+  variant = 'featured',
 }: MorphingAirfoilProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isVisible = useIntersectionPause(containerRef)
   const progressRef = useRef(scrollProgress)
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
+  const profiles = variant === 'featured' ? FEATURED_AIRFOIL_PROFILES : RESEARCH_AIRFOIL_PROFILES
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
@@ -398,7 +405,7 @@ export function MorphingAirfoil({
           frameloop={isVisible && active ? 'always' : 'demand'}
         >
           <Suspense fallback={null}>
-            <AirfoilScene progressRef={progressRef} active={isVisible && active} />
+            <AirfoilScene progressRef={progressRef} active={isVisible && active} profiles={profiles} />
           </Suspense>
         </Canvas>
         <div className="airfoil-viewer__legend">
