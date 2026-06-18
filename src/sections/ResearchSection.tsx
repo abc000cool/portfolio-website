@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMotionValueEvent, useScroll, type MotionValue } from 'motion/react'
 import { portfolio, type Paper } from '../data/portfolio'
@@ -7,6 +7,15 @@ import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+
+const MorphingAirfoil = lazy(() =>
+  import('../components/three/MorphingAirfoil').then((m) => ({ default: m.MorphingAirfoil })),
+)
+
+function paperIndexToProgress(index: number, total: number): number {
+  if (total <= 1) return 0
+  return index / (total - 1)
+}
 
 /** Taller pin = more scroll per page flip. */
 const PIN_HEIGHT_VH = 360
@@ -154,6 +163,35 @@ function BinderPaper({
 }
 
 function StaticResearch({ active }: { active: boolean }) {
+  const papers = portfolio.papers
+  const [paperProgress, setPaperProgress] = useState(0)
+  const observerRef = useRef<IntersectionObserver | null>(null)
+
+  useEffect(() => {
+    const cards = papers
+      .map((paper) => document.getElementById(`paper-panel-${paper.id}`))
+      .filter((el): el is HTMLElement => el !== null)
+
+    if (cards.length === 0) return
+
+    observerRef.current?.disconnect()
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
+        if (visible.length === 0) return
+        const id = visible[0].target.id.replace('paper-panel-', '')
+        const index = papers.findIndex((paper) => paper.id === id)
+        if (index >= 0) setPaperProgress(paperIndexToProgress(index, papers.length))
+      },
+      { threshold: [0.25, 0.5, 0.75], rootMargin: '-20% 0px -20% 0px' },
+    )
+
+    cards.forEach((card) => observerRef.current?.observe(card))
+    return () => observerRef.current?.disconnect()
+  }, [papers])
+
   return (
     <section
       id="research"
@@ -168,8 +206,17 @@ function StaticResearch({ active }: { active: boolean }) {
           <RedactedHeading active={active}>Pending Research</RedactedHeading>
         </div>
         <ScanWipe active={active}>
+          <div className="mb-10 research-airfoil-panel">
+            <Suspense fallback={<div className="airfoil-viewer h-[280px] md:h-[360px]" />}>
+              <MorphingAirfoil
+                scrollProgress={paperProgress}
+                active={active}
+                className="h-[280px] md:h-[360px]"
+              />
+            </Suspense>
+          </div>
           <div className="flex flex-col gap-6 max-w-3xl mx-auto">
-            {portfolio.papers.map((paper) => (
+            {papers.map((paper) => (
               <article
                 key={paper.id}
                 id={`paper-panel-${paper.id}`}
@@ -231,7 +278,18 @@ export function ResearchSection() {
             </div>
 
             <ScanWipe active={reached}>
-              <div className="w-full flex justify-end overflow-visible">
+              <div className="grid gap-10 xl:gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] items-center overflow-visible">
+                <div className="research-airfoil-panel order-2 lg:order-1">
+                  <Suspense fallback={<div className="airfoil-viewer h-[420px]" />}>
+                    <MorphingAirfoil
+                      progress={scrollYProgress}
+                      active={reached}
+                      className="h-[420px] xl:h-[460px]"
+                    />
+                  </Suspense>
+                </div>
+
+                <div className="w-full flex justify-end overflow-visible order-1 lg:order-2">
                 <div
                   className="relative w-full lg:w-[min(100%,36rem)] xl:w-[min(100%,40rem)] lg:ml-auto lg:mr-[clamp(0rem,2vw,1.5rem)] pl-[clamp(2.5rem,8vw,5.5rem)] overflow-visible"
                   style={{
@@ -283,6 +341,7 @@ export function ResearchSection() {
                     className="absolute left-[calc(clamp(2.5rem,8vw,5.5rem)+1.5rem)] right-2 -bottom-2 h-4 rounded-full bg-black/40 blur-md pointer-events-none"
                     aria-hidden="true"
                   />
+                </div>
                 </div>
               </div>
             </ScanWipe>

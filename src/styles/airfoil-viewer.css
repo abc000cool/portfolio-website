@@ -1,0 +1,142 @@
+.airfoil-viewer {
+  width: 100%;
+  min-height: 280px;
+}
+
+.airfoil-viewer__frame {
+  position: relative;
+  height: 100%;
+  min-height: inherit;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99, 102, 241, 0.12), transparent 65%),
+    linear-gradient(165deg, rgba(12, 12, 20, 0.95) 0%, rgba(6, 6, 10, 0.88) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 20px 50px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.airfoil-viewer__frame canvas {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: inherit;
+}
+
+.airfoil-viewer__legend {
+  position: absolute;
+  bottom: 0.85rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+
+.airfoil-viewer__legend-item {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.airfoil-viewer__legend-item--lift::before {
+  content: '';
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.35rem;
+  border-radius: 999px;
+  background: #86efac;
+  vertical-align: middle;
+}
+
+.airfoil-viewer__legend-item--drag::before {
+  content: '';
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.35rem;
+  border-radius: 999px;
+  background: #c9a962;
+  vertical-align: middle;
+}
+
+.airfoil-viewer__legend-item--flow::before {
+  content: '→';
+  margin-right: 0.25rem;
+  color: #818cf8;
+}
+
+.airfoil-telemetry {
+  width: 11.5rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  background: rgba(6, 6, 10, 0.82);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.airfoil-telemetry__label {
+  margin: 0 0 0.35rem;
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(129, 140, 248, 0.9);
+}
+
+.airfoil-telemetry__profile {
+  margin: 0 0 0.55rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: #e2e8f0;
+}
+
+.airfoil-telemetry__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem 0.65rem;
+  margin: 0;
+}
+
+.airfoil-telemetry__grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.airfoil-telemetry__grid dt {
+  margin: 0;
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.airfoil-telemetry__grid dd {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.research-airfoil-panel {
+  min-height: 320px;
+}
+
+@media (min-width: 1024px) {
+  .airfoil-viewer {
+    min-height: 420px;
+  }
+
+  .research-airfoil-panel {
+    min-height: 460px;
+  }
+}
