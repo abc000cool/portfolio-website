@@ -240,19 +240,29 @@ function ResearchBinder({
 }
 
 function FeaturedResearch({ paper, active }: { paper: Paper; active: boolean }) {
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const morphWrapRef = useRef<HTMLDivElement>(null)
+  const scrollZoneRef = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
 
   const { scrollYProgress } = useScroll({
-    target: morphWrapRef,
-    offset: ['start end', 'end start'],
+    target: scrollZoneRef,
+    offset: ['start start', 'end end'],
   })
+
+  const viewer = (
+    <Suspense fallback={<div className="airfoil-viewer h-[300px] md:h-[380px] lg:h-[420px]" />}>
+      <MorphingAirfoil
+        variant="featured"
+        progress={reduced ? undefined : scrollYProgress}
+        scrollProgress={reduced ? 1 : 0}
+        active={active}
+        className="h-[300px] md:h-[380px] lg:h-[420px]"
+      />
+    </Suspense>
+  )
 
   return (
     <div
       id="featured-research"
-      ref={sectionRef}
       className="featured-research"
       aria-labelledby="featured-research-heading"
     >
@@ -268,60 +278,75 @@ function FeaturedResearch({ paper, active }: { paper: Paper; active: boolean }) 
           </p>
         </div>
 
-        <div ref={morphWrapRef} className="featured-research__body">
-          <ScanWipe active={active}>
-            <div className="featured-research__grid">
-              <article className="featured-research__card glass-card p-6 md:p-8 lg:p-10">
-                <span className="font-mono text-xs text-[var(--color-cockpit-amber)]">
-                  {paper.year} — {paper.venue}
-                </span>
-                <h4 className="font-display text-xl md:text-2xl text-white mt-3 mb-4 leading-snug tracking-tight">
-                  {paper.title}
-                </h4>
-                <p className="text-sm text-slate-400 leading-relaxed mb-6">{paper.abstract}</p>
-
-                <div className="featured-research__metrics">
-                  <div className="featured-research__metric">
-                    <span className="featured-research__metric-value">9.3%</span>
-                    <span className="featured-research__metric-label">Drag reduction vs NACA 2412</span>
-                  </div>
-                  <div className="featured-research__metric">
-                    <span className="featured-research__metric-value">37%</span>
-                    <span className="featured-research__metric-label">Lift improvement</span>
-                  </div>
-                  <div className="featured-research__metric">
-                    <span className="featured-research__metric-value">QAOA</span>
-                    <span className="featured-research__metric-label">Discrete sampling at p=2</span>
+        {reduced ? (
+          <div className="featured-research__body">
+            <ScanWipe active={active}>
+              <div className="featured-research__grid">
+                <FeaturedResearchCard paper={paper} />
+                <div className="featured-research__viewer">
+                  {viewer}
+                  <p className="featured-research__viewer-hint font-mono text-[10px] uppercase tracking-widest text-slate-500 text-center mt-3">
+                    Optimized morph profile
+                  </p>
+                </div>
+              </div>
+            </ScanWipe>
+          </div>
+        ) : (
+          <div ref={scrollZoneRef} className="featured-research__scroll-zone">
+            <div className="featured-research__sticky">
+              <ScanWipe active={active}>
+                <div className="featured-research__grid w-full">
+                  <FeaturedResearchCard paper={paper} />
+                  <div className="featured-research__viewer">
+                    {viewer}
+                    <p className="featured-research__viewer-hint font-mono text-[10px] uppercase tracking-widest text-slate-500 text-center mt-3">
+                      Scroll to morph baseline → optimized
+                    </p>
                   </div>
                 </div>
-
-                <Link
-                  to={`/research/${paper.slug}`}
-                  className="inline-flex items-center gap-2 mt-8 px-5 py-2.5 rounded-full font-mono text-xs uppercase tracking-widest text-white bg-indigo-500/20 border border-indigo-400/40 hover:bg-indigo-500/30 transition-colors no-underline"
-                >
-                  Read full abstract →
-                </Link>
-              </article>
-
-              <div className="featured-research__viewer">
-                <Suspense fallback={<div className="airfoil-viewer h-[320px] md:h-[420px] lg:h-[480px]" />}>
-                  <MorphingAirfoil
-                    variant="featured"
-                    progress={reduced ? undefined : scrollYProgress}
-                    scrollProgress={reduced ? 1 : 0}
-                    active={active}
-                    className="h-[320px] md:h-[420px] lg:h-[480px]"
-                  />
-                </Suspense>
-                <p className="featured-research__viewer-hint font-mono text-[10px] uppercase tracking-widest text-slate-500 text-center mt-3">
-                  Scroll to morph baseline → optimized
-                </p>
-              </div>
+              </ScanWipe>
             </div>
-          </ScanWipe>
-        </div>
+          </div>
+        )}
       </div>
     </div>
+  )
+}
+
+function FeaturedResearchCard({ paper }: { paper: Paper }) {
+  return (
+    <article className="featured-research__card glass-card p-6 md:p-8 lg:p-10">
+      <span className="font-mono text-xs text-[var(--color-cockpit-amber)]">
+        {paper.year} — {paper.venue}
+      </span>
+      <h4 className="font-display text-xl md:text-2xl text-white mt-3 mb-4 leading-snug tracking-tight">
+        {paper.title}
+      </h4>
+      <p className="text-sm text-slate-400 leading-relaxed mb-6">{paper.abstract}</p>
+
+      <div className="featured-research__metrics">
+        <div className="featured-research__metric">
+          <span className="featured-research__metric-value">9.3%</span>
+          <span className="featured-research__metric-label">Drag reduction vs NACA 2412</span>
+        </div>
+        <div className="featured-research__metric">
+          <span className="featured-research__metric-value">37%</span>
+          <span className="featured-research__metric-label">Lift improvement</span>
+        </div>
+        <div className="featured-research__metric">
+          <span className="featured-research__metric-value">QAOA</span>
+          <span className="featured-research__metric-label">Discrete sampling at p=2</span>
+        </div>
+      </div>
+
+      <Link
+        to={`/research/${paper.slug}`}
+        className="inline-flex items-center gap-2 mt-8 px-5 py-2.5 rounded-full font-mono text-xs uppercase tracking-widest text-white bg-indigo-500/20 border border-indigo-400/40 hover:bg-indigo-500/30 transition-colors no-underline"
+      >
+        Read full abstract →
+      </Link>
+    </article>
   )
 }
 
