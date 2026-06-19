@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useScroll } from 'motion/react'
 import {
@@ -11,6 +11,7 @@ import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { useInView, prefetchResearchViewers } from '../hooks/useInView'
 
 const MorphingAirfoil = lazy(() =>
   import('../components/three/MorphingAirfoil').then((m) => ({ default: m.MorphingAirfoil })),
@@ -35,18 +36,17 @@ function ResearchViewer({
   scrollProgress?: ReturnType<typeof useScroll>['scrollYProgress']
   staticProgress?: number
 }) {
-  const progress = scrollProgress
   const fallback =
     staticProgress ?? (config.viewer === 'airfoil' ? 1 : 0.4)
 
-  const viewer = (
+  return (
     <Suspense fallback={<div className={`research-viewer ${VIEWER_HEIGHT}`} />}>
       {(() => {
         switch (config.viewer) {
           case 'debris':
             return (
               <SpaceDebrisOrbit
-                progress={progress}
+                progress={scrollProgress}
                 scrollProgress={fallback}
                 active={active}
                 className={VIEWER_HEIGHT}
@@ -57,7 +57,7 @@ function ResearchViewer({
             return (
               <MorphingAirfoil
                 variant="featured"
-                progress={progress}
+                progress={scrollProgress}
                 scrollProgress={fallback}
                 active={active}
                 className={VIEWER_HEIGHT}
@@ -66,7 +66,7 @@ function ResearchViewer({
           case 'flowstate':
             return (
               <FlowStateTraffic
-                progress={progress}
+                progress={scrollProgress}
                 scrollProgress={fallback}
                 active={active}
                 className={VIEWER_HEIGHT}
@@ -79,22 +79,21 @@ function ResearchViewer({
       </p>
     </Suspense>
   )
-
-  return viewer
 }
 
 function ResearchShowcaseBlock({
   config,
-  active,
+  headingActive,
   index,
 }: {
   config: ResearchShowcaseConfig
-  active: boolean
+  headingActive: boolean
   index: number
 }) {
   const paper = getResearchShowcasePaper(config.paperSlug)
   const scrollZoneRef = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
+  const blockInView = useInView(scrollZoneRef, { threshold: 0, rootMargin: '0px 0px -10% 0px' })
 
   const { scrollYProgress } = useScroll({
     target: scrollZoneRef,
@@ -107,6 +106,9 @@ function ResearchShowcaseBlock({
   const gridClass = reverse
     ? 'research-showcase__grid research-showcase__grid--reverse'
     : 'research-showcase__grid'
+
+  /** Viewport visibility drives 3D — mission waypoint lags far behind visual scroll. */
+  const viewerActive = blockInView || headingActive
 
   const card = (
     <article className="research-showcase__card glass-card p-6 md:p-8 lg:p-10">
@@ -152,7 +154,7 @@ function ResearchShowcaseBlock({
     <div className="research-showcase__viewer">
       <ResearchViewer
         config={config}
-        active={active}
+        active={viewerActive}
         scrollProgress={reduced ? undefined : scrollYProgress}
         staticProgress={reduced ? (config.viewer === 'airfoil' ? 1 : 0.45) : 0}
       />
@@ -174,7 +176,7 @@ function ResearchShowcaseBlock({
     >
       {reduced ? (
         <div className="research-showcase__body">
-          <ScanWipe active={active}>{content}</ScanWipe>
+          <ScanWipe active={headingActive}>{content}</ScanWipe>
         </div>
       ) : (
         <div
@@ -183,7 +185,7 @@ function ResearchShowcaseBlock({
           style={{ height: `${config.scrollHeightVh}vh` }}
         >
           <div className="research-showcase__sticky">
-            <ScanWipe active={active}>{content}</ScanWipe>
+            <ScanWipe>{content}</ScanWipe>
           </div>
         </div>
       )}
@@ -193,9 +195,19 @@ function ResearchShowcaseBlock({
 
 export function ResearchSection() {
   const reached = useWaypointReached('research')
+  const sectionRef = useRef<HTMLElement>(null)
+  const sectionNear = useInView(sectionRef, {
+    threshold: 0,
+    rootMargin: '0px 0px 40% 0px',
+  })
+
+  useEffect(() => {
+    if (sectionNear) prefetchResearchViewers()
+  }, [sectionNear])
 
   return (
     <section
+      ref={sectionRef}
       id="research"
       data-mission-waypoint
       data-waypoint-side="left"
@@ -205,7 +217,7 @@ export function ResearchSection() {
       <div className="section-inner wide">
         <p className="section-label">Research</p>
         <div id="research-heading" className="mb-10 md:mb-14 max-w-2xl">
-          <RedactedHeading active={reached}>Research</RedactedHeading>
+          <RedactedHeading active={reached || sectionNear}>Research</RedactedHeading>
           <p className="text-slate-400 mt-4 leading-relaxed">
             Scroll through each project to explore interactive 3D visualizations — from orbital
             debris capture to morphing airfoil optimization and fluid-dynamics traffic flow.
@@ -217,7 +229,7 @@ export function ResearchSection() {
             <ResearchShowcaseBlock
               key={config.id}
               config={config}
-              active={reached}
+              headingActive={reached || sectionNear}
               index={index}
             />
           ))}
