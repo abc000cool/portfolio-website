@@ -35,8 +35,8 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     paperSlug: 'space-debris-mitigation',
     viewer: 'debris',
     scrollHeightVh: 240,
-    linkTo: '/research/space-debris-mitigation',
-    linkLabel: 'Read full abstract →',
+    linkTo: '/projects/sweep',
+    linkLabel: 'Explore SWEEP project →',
     viewerHint: 'Scroll to run debris survey → capture → ejection sequence',
     conferenceBadge: {
       conference: 'AAS',
