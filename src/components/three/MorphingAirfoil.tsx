@@ -1,34 +1,63 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Grid, Html, Line } from '@react-three/drei'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Grid, Line } from '@react-three/drei'
 import { useMotionValueEvent, useMotionValue, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import {
+  CHORD_LENGTH,
   FEATURED_AIRFOIL_PROFILES,
   RESEARCH_AIRFOIL_PROFILES,
-  buildExtrudedAirfoilGeometry,
+  SPAN_DEPTH,
+  buildAirfoilSolidGeometry,
   buildProfileLinePoints,
   getMorphState,
+  smoothstep,
   type AirfoilProfile,
   type MorphState,
 } from '../../lib/airfoilGeometry'
 
-const FLOW_LINES = 7
-const EXTRUSION_DEPTH = 0.38
+const FLOW_LINES = 5
 
 interface SceneProps {
   progressRef: React.RefObject<number | null>
   active: boolean
   profiles: AirfoilProfile[]
+  onMorphChange?: (morph: MorphState) => void
+}
+
+function CameraRig({ progressRef }: { progressRef: React.RefObject<number | null> }) {
+  const { camera } = useThree()
+  const lookAt = useMemo(() => new THREE.Vector3(0, 0, 0), [])
+
+  useFrame(() => {
+    const p = smoothstep(progressRef.current ?? 0)
+    const angle = THREE.MathUtils.lerp(-0.28, 0.38, p)
+    const radius = THREE.MathUtils.lerp(4.6, 3.9, p)
+    const elevation = THREE.MathUtils.lerp(0.05, 0.42, p)
+
+    camera.position.set(
+      Math.sin(angle) * radius,
+      elevation,
+      Math.cos(angle) * radius,
+    )
+    camera.lookAt(lookAt)
+  })
+
+  return null
 }
 
 function FlowLines({ morphRef }: { morphRef: React.RefObject<MorphState | null> }) {
   const lines = useMemo(() => {
     const result: [THREE.Vector3, THREE.Vector3][] = []
+    const yMin = -0.55
+    const yMax = 0.55
     for (let i = 0; i < FLOW_LINES; i++) {
-      const y = -1.2 + (i / (FLOW_LINES - 1)) * 2.4
-      result.push([new THREE.Vector3(-3.2, y, 0), new THREE.Vector3(3.2, y, 0)])
+      const y = yMin + (i / (FLOW_LINES - 1)) * (yMax - yMin)
+      result.push([
+        new THREE.Vector3(-CHORD_LENGTH * 1.35, y, 0),
+        new THREE.Vector3(CHORD_LENGTH * 1.35, y, 0),
+      ])
     }
     return result
   }, [])
@@ -39,9 +68,11 @@ function FlowLines({ morphRef }: { morphRef: React.RefObject<MorphState | null> 
     const cl = morphRef.current?.cl ?? 0.5
     lineRefs.current.forEach((group, i) => {
       if (!group) return
-      const y = -1.2 + (i / (FLOW_LINES - 1)) * 2.4
-      const deflect = cl * 0.08 * (1 - Math.abs(y) / 1.4)
-      group.position.set(0, deflect * 0.35, 0)
+      const yMin = -0.55
+      const yMax = 0.55
+      const y = yMin + (i / (FLOW_LINES - 1)) * (yMax - yMin)
+      const deflect = cl * 0.04 * (1 - Math.abs(y) / 0.6)
+      group.position.set(0, deflect, 0)
     })
   })
 
@@ -53,7 +84,7 @@ function FlowLines({ morphRef }: { morphRef: React.RefObject<MorphState | null> 
             points={points}
             color="#6366f1"
             transparent
-            opacity={0.12 + (i % 2) * 0.04}
+            opacity={0.1 + (i % 2) * 0.03}
             lineWidth={1}
           />
         </group>
@@ -63,34 +94,32 @@ function FlowLines({ morphRef }: { morphRef: React.RefObject<MorphState | null> 
 }
 
 function AeroVectors({ morphRef }: { morphRef: React.RefObject<MorphState | null> }) {
-  const groupRef = useRef<THREE.Group>(null)
   const liftLine = useMemo(() => {
     const geom = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(0, 0.6, 0),
     ])
     return new THREE.Line(geom, new THREE.LineBasicMaterial({ color: '#86efac' }))
   }, [])
   const dragLine = useMemo(() => {
     const geom = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(-1, 0, 0),
+      new THREE.Vector3(-0.6, 0, 0),
     ])
     return new THREE.Line(geom, new THREE.LineBasicMaterial({ color: '#c9a962' }))
   }, [])
   const liftTip = useMemo(() => {
-    const mesh = new THREE.Mesh(
-      new THREE.ConeGeometry(0.06, 0.14, 8),
+    return new THREE.Mesh(
+      new THREE.ConeGeometry(0.035, 0.08, 8),
       new THREE.MeshBasicMaterial({ color: '#86efac' }),
     )
-    return mesh
   }, [])
   const dragTip = useMemo(() => {
     const mesh = new THREE.Mesh(
-      new THREE.ConeGeometry(0.06, 0.14, 8),
+      new THREE.ConeGeometry(0.035, 0.08, 8),
       new THREE.MeshBasicMaterial({ color: '#c9a962' }),
     )
-    mesh.rotation.z = -Math.PI / 2
+    mesh.rotation.z = Math.PI / 2
     return mesh
   }, [])
 
@@ -110,8 +139,8 @@ function AeroVectors({ morphRef }: { morphRef: React.RefObject<MorphState | null
   useFrame(() => {
     const morph = morphRef.current
     if (!morph) return
-    const liftLen = 0.55 + morph.cl * 0.55
-    const dragLen = 0.45 + morph.cd * 2.2
+    const liftLen = 0.35 + morph.cl * 0.35
+    const dragLen = 0.25 + morph.cd * 1.4
 
     const liftPos = liftLine.geometry.getAttribute('position') as THREE.BufferAttribute
     liftPos.setXYZ(1, 0, liftLen, 0)
@@ -125,7 +154,7 @@ function AeroVectors({ morphRef }: { morphRef: React.RefObject<MorphState | null
   })
 
   return (
-    <group ref={groupRef} position={[0.15, 0.05, 0]}>
+    <group position={[CHORD_LENGTH * 0.08, 0, SPAN_DEPTH * 0.6]}>
       <primitive object={liftLine} />
       <primitive object={liftTip} />
       <primitive object={dragLine} />
@@ -138,16 +167,16 @@ function ChordAxis() {
   return (
     <Line
       points={[
-        [-1.35, -0.02, 0],
-        [1.35, -0.02, 0],
+        [-CHORD_LENGTH * 0.52, -0.02, 0],
+        [CHORD_LENGTH * 0.52, -0.02, 0],
       ]}
       color="#94a3b8"
       transparent
-      opacity={0.35}
+      opacity={0.3}
       lineWidth={1}
       dashed
-      dashSize={0.08}
-      gapSize={0.06}
+      dashSize={0.06}
+      gapSize={0.05}
     />
   )
 }
@@ -155,10 +184,13 @@ function ChordAxis() {
 function AirfoilBody({
   morphRef,
   active,
+  progressRef,
 }: {
   morphRef: React.RefObject<MorphState | null>
   active: boolean
+  progressRef: React.RefObject<number | null>
 }) {
+  const groupRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.Mesh>(null)
   const wireRef = useRef<THREE.LineSegments>(null)
   const geomRef = useRef<THREE.BufferGeometry | null>(null)
@@ -174,7 +206,7 @@ function AirfoilBody({
 
   useEffect(() => () => disposeGeometry(), [])
 
-  useFrame((state) => {
+  useFrame(() => {
     if (!active) return
 
     const morph = morphRef.current
@@ -184,44 +216,40 @@ function AirfoilBody({
     if (key !== lastKey.current) {
       lastKey.current = key
       disposeGeometry()
-      geomRef.current = buildExtrudedAirfoilGeometry(
-        morph.morphedPoints,
-        EXTRUSION_DEPTH,
-        morph.cl,
-      )
-      edgesRef.current = new THREE.EdgesGeometry(geomRef.current, 18)
+      geomRef.current = buildAirfoilSolidGeometry(morph.morphedPoints, SPAN_DEPTH, morph.cl)
+      edgesRef.current = new THREE.EdgesGeometry(geomRef.current, 12)
 
       if (meshRef.current) meshRef.current.geometry = geomRef.current
       if (wireRef.current) wireRef.current.geometry = edgesRef.current
     }
 
-    const t = state.clock.elapsedTime
-    if (meshRef.current) {
-      meshRef.current.rotation.y = Math.sin(t * 0.35) * 0.12
-      meshRef.current.rotation.z = Math.sin(t * 0.22) * 0.03
+    const p = smoothstep(progressRef.current ?? 0)
+    if (groupRef.current) {
+      groupRef.current.rotation.z = THREE.MathUtils.lerp(0, THREE.MathUtils.degToRad(4), p)
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(0, 0.12, p)
     }
   })
 
   const initialGeom = useMemo(
-    () => buildExtrudedAirfoilGeometry(RESEARCH_AIRFOIL_PROFILES[0].points, EXTRUSION_DEPTH, 0.12),
+    () => buildAirfoilSolidGeometry(FEATURED_AIRFOIL_PROFILES[0].points, SPAN_DEPTH, 0.82),
     [],
   )
-  const initialEdges = useMemo(() => new THREE.EdgesGeometry(initialGeom, 18), [initialGeom])
+  const initialEdges = useMemo(() => new THREE.EdgesGeometry(initialGeom, 12), [initialGeom])
 
   return (
-    <group>
-      <mesh ref={meshRef} geometry={initialGeom} castShadow receiveShadow>
+    <group ref={groupRef}>
+      <mesh ref={meshRef} geometry={initialGeom}>
         <meshPhysicalMaterial
           vertexColors
-          metalness={0.35}
-          roughness={0.28}
-          clearcoat={0.65}
-          clearcoatRoughness={0.2}
+          metalness={0.2}
+          roughness={0.35}
+          clearcoat={0.5}
+          clearcoatRoughness={0.25}
           side={THREE.DoubleSide}
         />
       </mesh>
       <lineSegments ref={wireRef} geometry={initialEdges}>
-        <lineBasicMaterial color="#e2e8f0" transparent opacity={0.55} />
+        <lineBasicMaterial color="#e2e8f0" transparent opacity={0.4} />
       </lineSegments>
       <ProfileOutline morphRef={morphRef} active={active} />
     </group>
@@ -239,9 +267,12 @@ function ProfileOutline({
     const geom = new THREE.BufferGeometry()
     geom.setAttribute(
       'position',
-      new THREE.BufferAttribute(buildProfileLinePoints(RESEARCH_AIRFOIL_PROFILES[0].points), 3),
+      new THREE.BufferAttribute(buildProfileLinePoints(FEATURED_AIRFOIL_PROFILES[0].points), 3),
     )
-    return new THREE.Line(geom, new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85 }))
+    return new THREE.Line(
+      geom,
+      new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.7 }),
+    )
   }, [])
   const lastKey = useRef('')
 
@@ -259,7 +290,7 @@ function ProfileOutline({
     if (key === lastKey.current) return
     lastKey.current = key
 
-    const pts = buildProfileLinePoints(morph.morphedPoints, EXTRUSION_DEPTH / 2 + 0.02)
+    const pts = buildProfileLinePoints(morph.morphedPoints, SPAN_DEPTH * 0.51)
     const posAttr = lineObj.geometry.getAttribute('position') as THREE.BufferAttribute
     if (posAttr.count * 3 !== pts.length) {
       lineObj.geometry.setAttribute('position', new THREE.BufferAttribute(pts, 3))
@@ -272,95 +303,73 @@ function ProfileOutline({
   return <primitive object={lineObj} />
 }
 
-function TelemetryPanel({ morphRef }: { morphRef: React.RefObject<MorphState | null> }) {
-  const labelRef = useRef<HTMLSpanElement>(null)
-  const clRef = useRef<HTMLSpanElement>(null)
-  const cdRef = useRef<HTMLSpanElement>(null)
-  const aoaRef = useRef<HTMLSpanElement>(null)
-  const idxRef = useRef<HTMLSpanElement>(null)
-
-  useFrame(() => {
-    const morph = morphRef.current
-    if (!morph) return
-    if (labelRef.current) labelRef.current.textContent = morph.profile.label
-    if (clRef.current) clRef.current.textContent = morph.cl.toFixed(2)
-    if (cdRef.current) cdRef.current.textContent = morph.cd.toFixed(3)
-    if (aoaRef.current) aoaRef.current.textContent = `${morph.aoa.toFixed(1)}°`
-    if (idxRef.current) {
-      idxRef.current.textContent = `${morph.activeIndex + 1}/${morph.profileCount}`
-    }
-  })
-
-  return (
-    <Html
-      position={[-2.1, 1.55, 0]}
-      transform
-      occlude={false}
-      style={{ pointerEvents: 'none', userSelect: 'none' }}
-    >
-      <div className="airfoil-telemetry">
-        <p className="airfoil-telemetry__label">Aero telemetry</p>
-        <p className="airfoil-telemetry__profile">
-          <span ref={labelRef}>{RESEARCH_AIRFOIL_PROFILES[0].label}</span>
-        </p>
-        <dl className="airfoil-telemetry__grid">
-          <div>
-            <dt>C<sub>L</sub></dt>
-            <dd ref={clRef}>0.12</dd>
-          </div>
-          <div>
-            <dt>C<sub>D</sub></dt>
-            <dd ref={cdRef}>0.420</dd>
-          </div>
-          <div>
-            <dt>AoA</dt>
-            <dd ref={aoaRef}>0.0°</dd>
-          </div>
-          <div>
-            <dt>Profile</dt>
-            <dd ref={idxRef}>1/4</dd>
-          </div>
-        </dl>
-      </div>
-    </Html>
-  )
-}
-
-function AirfoilScene({ progressRef, active, profiles }: SceneProps) {
+function AirfoilScene({ progressRef, active, profiles, onMorphChange }: SceneProps) {
   const morphRef = useRef<MorphState | null>(getMorphState(progressRef.current ?? 0, profiles))
 
   useFrame(() => {
-    morphRef.current = getMorphState(progressRef.current ?? 0, profiles)
+    const morph = getMorphState(progressRef.current ?? 0, profiles)
+    morphRef.current = morph
+    onMorphChange?.(morph)
   })
 
   return (
     <>
-      <ambientLight intensity={0.45} />
-      <directionalLight position={[4, 6, 5]} intensity={1.1} color="#f8fafc" />
-      <directionalLight position={[-3, 2, -4]} intensity={0.35} color="#818cf8" />
-      <pointLight position={[0, -2, 3]} intensity={0.25} color="#c9a962" />
+      <ambientLight intensity={0.55} />
+      <directionalLight position={[5, 4, 6]} intensity={1.0} color="#f8fafc" />
+      <directionalLight position={[-4, 1, 3]} intensity={0.3} color="#818cf8" />
+      <pointLight position={[0, -1, 4]} intensity={0.15} color="#c9a962" />
 
-      <group position={[0, -0.05, 0]}>
+      <CameraRig progressRef={progressRef} />
+
+      <group position={[0, 0, 0]}>
         <Grid
-          args={[8, 8]}
-          cellSize={0.4}
-          cellThickness={0.35}
-          sectionSize={1.6}
-          sectionThickness={0.8}
-          fadeDistance={12}
-          fadeStrength={1.5}
-          cellColor="#334155"
-          sectionColor="#475569"
-          position={[0, -0.55, 0]}
-          rotation={[0, 0, 0]}
+          args={[10, 6]}
+          cellSize={0.5}
+          cellThickness={0.3}
+          sectionSize={1.5}
+          sectionThickness={0.6}
+          fadeDistance={14}
+          fadeStrength={1.8}
+          cellColor="#2d3748"
+          sectionColor="#3d4a5c"
+          position={[0, -0.65, 0]}
+          rotation={[Math.PI / 2, 0, 0]}
         />
         <FlowLines morphRef={morphRef} />
         <ChordAxis />
-        <AirfoilBody morphRef={morphRef} active={active} />
+        <AirfoilBody morphRef={morphRef} active={active} progressRef={progressRef} />
         <AeroVectors morphRef={morphRef} />
-        <TelemetryPanel morphRef={morphRef} />
       </group>
     </>
+  )
+}
+
+function TelemetryOverlay({ morph }: { morph: MorphState | null }) {
+  if (!morph) return null
+
+  return (
+    <div className="airfoil-viewer__telemetry">
+      <p className="airfoil-viewer__telemetry-label">Aero telemetry</p>
+      <p className="airfoil-viewer__telemetry-profile">{morph.profile.label}</p>
+      <dl className="airfoil-viewer__telemetry-grid">
+        <div>
+          <dt>C<sub>L</sub></dt>
+          <dd>{morph.cl.toFixed(2)}</dd>
+        </div>
+        <div>
+          <dt>C<sub>D</sub></dt>
+          <dd>{morph.cd.toFixed(3)}</dd>
+        </div>
+        <div>
+          <dt>AoA</dt>
+          <dd>{morph.aoa.toFixed(1)}°</dd>
+        </div>
+        <div>
+          <dt>Profile</dt>
+          <dd>{morph.activeIndex + 1}/{morph.profileCount}</dd>
+        </div>
+      </dl>
+    </div>
   )
 }
 
@@ -369,7 +378,6 @@ export interface MorphingAirfoilProps {
   progress?: MotionValue<number>
   active?: boolean
   className?: string
-  /** `featured` morphs NACA 2412 → optimized; `full` cycles all research profiles. */
   variant?: 'featured' | 'full'
 }
 
@@ -386,6 +394,9 @@ export function MorphingAirfoil({
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
   const profiles = variant === 'featured' ? FEATURED_AIRFOIL_PROFILES : RESEARCH_AIRFOIL_PROFILES
+  const [morph, setMorph] = useState<MorphState | null>(() =>
+    getMorphState(scrollProgress, profiles),
+  )
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
@@ -393,27 +404,53 @@ export function MorphingAirfoil({
 
   useMotionValueEvent(source, 'change', (v) => {
     progressRef.current = v
+    setMorph(getMorphState(v, profiles))
   })
+
+  useEffect(() => {
+    if (!progress) {
+      progressRef.current = scrollProgress
+      setMorph(getMorphState(scrollProgress, profiles))
+    }
+  }, [progress, scrollProgress, profiles])
+
+  const morphProgress = Math.round((progressRef.current ?? scrollProgress) * 100)
 
   return (
     <div ref={containerRef} className={`airfoil-viewer ${className}`} aria-hidden="true">
       <div className="airfoil-viewer__frame">
         <Canvas
-          camera={{ position: [0, 0.35, 4.8], fov: 42 }}
-          dpr={[1, 1.75]}
+          camera={{ position: [0, 0.1, 4.6], fov: 38, near: 0.1, far: 50 }}
+          dpr={[1, 1.5]}
           gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
           frameloop={isVisible && active ? 'always' : 'demand'}
+          style={{ background: 'transparent' }}
         >
           <Suspense fallback={null}>
-            <AirfoilScene progressRef={progressRef} active={isVisible && active} profiles={profiles} />
+            <AirfoilScene
+              progressRef={progressRef}
+              active={isVisible && active}
+              profiles={profiles}
+              onMorphChange={setMorph}
+            />
           </Suspense>
         </Canvas>
+
+        <TelemetryOverlay morph={morph} />
+
+        <div className="airfoil-viewer__morph-bar" aria-hidden="true">
+          <div
+            className="airfoil-viewer__morph-bar-fill"
+            style={{ width: `${morphProgress}%` }}
+          />
+        </div>
+
         <div className="airfoil-viewer__legend">
           <span className="airfoil-viewer__legend-item airfoil-viewer__legend-item--lift">
-            C<sub>L</sub> lift
+            C<sub>L</sub>
           </span>
           <span className="airfoil-viewer__legend-item airfoil-viewer__legend-item--drag">
-            C<sub>D</sub> drag
+            C<sub>D</sub>
           </span>
           <span className="airfoil-viewer__legend-item airfoil-viewer__legend-item--flow">
             Flow →

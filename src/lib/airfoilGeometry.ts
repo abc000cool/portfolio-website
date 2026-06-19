@@ -3,22 +3,23 @@ import * as THREE from 'three'
 export interface AirfoilProfile {
   id: string
   label: string
-  /** Closed loop: upper surface LE→TE, then lower TE→LE. Normalized chord 0–1, thickness on Y. */
+  /** Closed loop: upper surface LE→TE, then lower TE→LE. Chord on X, thickness on Y. */
   points: Float32Array
-  /** Approximate aerodynamic coefficients for HUD readout. */
   cl: number
   cd: number
   aoa: number
 }
 
-const PROFILE_RESOLUTION = 96
+const PROFILE_RESOLUTION = 128
+/** World-space chord length — thickness preserves real t/c ratio. */
+const CHORD_LENGTH = 3.2
+const SPAN_DEPTH = 0.14
 
 function smoothstep(t: number): number {
   const x = Math.max(0, Math.min(1, t))
   return x * x * (3 - 2 * x)
 }
 
-/** Cosine-spaced x stations for better LE/TE resolution. */
 function cosineSpacing(n: number): number[] {
   const xs: number[] = []
   for (let i = 0; i < n; i++) {
@@ -48,8 +49,8 @@ function camberLine(x: number, m: number, p: number): { yc: number; dyc: number 
   return { yc, dyc }
 }
 
-/** Standard NACA 4-digit airfoil as a closed polygon. */
-export function naca4Profile(m: number, p: number, t: number, resolution = PROFILE_RESOLUTION): Float32Array {
+/** Build NACA 4-digit coordinates in unit chord space (x: 0→1). */
+function naca4Unit(m: number, p: number, t: number, resolution = PROFILE_RESOLUTION): Float32Array {
   const half = Math.floor(resolution / 2)
   const xs = cosineSpacing(half + 1)
   const upper: [number, number][] = []
@@ -71,11 +72,52 @@ export function naca4Profile(m: number, p: number, t: number, resolution = PROFI
   for (let i = lower.length - 2; i >= 0; i--) {
     points.push(lower[i])
   }
-
-  return centerAndScale(flattenPoints(points), 2.4)
+  return flattenPoints(points)
 }
 
-/** Blunt reentry-style body — maps to space-debris research. */
+function flattenPoints(points: [number, number][]): Float32Array {
+  const out = new Float32Array(points.length * 2)
+  points.forEach(([x, y], i) => {
+    out[i * 2] = x
+    out[i * 2 + 1] = y
+  })
+  return out
+}
+
+/**
+ * Scale to world chord while preserving thickness-to-chord ratio.
+ * Profile is centered on origin with chord along X.
+ */
+function toWorldCoords(unitPoints: Float32Array, chord = CHORD_LENGTH): Float32Array {
+  const count = unitPoints.length / 2
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  for (let i = 0; i < count; i++) {
+    const x = unitPoints[i * 2]
+    const y = unitPoints[i * 2 + 1]
+    minX = Math.min(minX, x)
+    maxX = Math.max(maxX, x)
+    minY = Math.min(minY, y)
+    maxY = Math.max(maxY, y)
+  }
+  const cx = (minX + maxX) / 2
+  const cy = (minY + maxY) / 2
+  const chordLen = maxX - minX || 1
+  const scale = chord / chordLen
+  const out = new Float32Array(unitPoints.length)
+  for (let i = 0; i < count; i++) {
+    out[i * 2] = (unitPoints[i * 2] - cx) * scale
+    out[i * 2 + 1] = (unitPoints[i * 2 + 1] - cy) * scale
+  }
+  return out
+}
+
+export function naca4Profile(m: number, p: number, t: number, resolution = PROFILE_RESOLUTION): Float32Array {
+  return toWorldCoords(naca4Unit(m, p, t, resolution))
+}
+
 export function bluntBodyProfile(resolution = PROFILE_RESOLUTION): Float32Array {
   const points: [number, number][] = []
   const n = resolution
@@ -87,10 +129,9 @@ export function bluntBodyProfile(resolution = PROFILE_RESOLUTION): Float32Array 
     const y = bluntness * Math.sin(angle)
     points.push([x, y])
   }
-  return centerAndScale(flattenPoints(points), 2.2)
+  return toWorldCoords(flattenPoints(points), 2.8)
 }
 
-/** Streamlined low-drag teardrop — maps to fluid-dynamics research. */
 export function streamlineProfile(resolution = PROFILE_RESOLUTION): Float32Array {
   const points: [number, number][] = []
   const n = resolution
@@ -105,62 +146,25 @@ export function streamlineProfile(resolution = PROFILE_RESOLUTION): Float32Array
       (1 - 0.15 * Math.cos(2 * Math.PI * x))
     points.push([x, thickness])
   }
-  return centerAndScale(flattenPoints(points), 2.5)
+  return toWorldCoords(flattenPoints(points), 3.0)
 }
 
-/** High-performance morphing target — refined LE, aft-loaded camber. */
 export function optimizedMorphProfile(resolution = PROFILE_RESOLUTION): Float32Array {
-  const base = naca4Profile(0.024, 0.42, 0.11, resolution)
-  const morphed = new Float32Array(base.length)
-  const count = base.length / 2
+  const unit = naca4Unit(0.024, 0.42, 0.11, resolution)
+  const morphed = new Float32Array(unit.length)
+  const count = unit.length / 2
   for (let i = 0; i < count; i++) {
-    const x = base[i * 2]
-    const y = base[i * 2 + 1]
-    const upper = y >= 0
-    const leFactor = Math.exp(-((x + 0.5) ** 2) / 0.08)
-    const teFactor = Math.exp(-((x - 0.45) ** 2) / 0.12)
-    const camberBoost = upper ? 0.06 * teFactor : -0.02 * teFactor
-    const leRefine = upper ? 0.04 * leFactor : -0.03 * leFactor
+    const x = unit[i * 2]
+    const y = unit[i * 2 + 1]
+    const upper = y >= 0.02
+    const leFactor = Math.exp(-((x - 0) ** 2) / 0.012)
+    const teFactor = Math.exp(-((x - 1) ** 2) / 0.02)
+    const camberBoost = upper ? 0.018 * teFactor : -0.006 * teFactor
+    const leRefine = upper ? 0.012 * leFactor : -0.008 * leFactor
     morphed[i * 2] = x
-    morphed[i * 2 + 1] = y * 0.92 + camberBoost + leRefine
+    morphed[i * 2 + 1] = y * 0.94 + camberBoost + leRefine
   }
-  return centerAndScale(morphed, 2.6)
-}
-
-function flattenPoints(points: [number, number][]): Float32Array {
-  const out = new Float32Array(points.length * 2)
-  points.forEach(([x, y], i) => {
-    out[i * 2] = x
-    out[i * 2 + 1] = y
-  })
-  return out
-}
-
-/** Center at origin and scale to target chord span. */
-function centerAndScale(points: Float32Array, chord: number): Float32Array {
-  let minX = Infinity
-  let maxX = -Infinity
-  let minY = Infinity
-  let maxY = -Infinity
-  const count = points.length / 2
-  for (let i = 0; i < count; i++) {
-    const x = points[i * 2]
-    const y = points[i * 2 + 1]
-    minX = Math.min(minX, x)
-    maxX = Math.max(maxX, x)
-    minY = Math.min(minY, y)
-    maxY = Math.max(maxY, y)
-  }
-  const cx = (minX + maxX) / 2
-  const cy = (minY + maxY) / 2
-  const span = Math.max(maxX - minX, maxY - minY) || 1
-  const scale = chord / span
-  const out = new Float32Array(points.length)
-  for (let i = 0; i < count; i++) {
-    out[i * 2] = (points[i * 2] - cx) * scale
-    out[i * 2 + 1] = (points[i * 2 + 1] - cy) * scale
-  }
-  return out
+  return toWorldCoords(morphed)
 }
 
 export const RESEARCH_AIRFOIL_PROFILES: AirfoilProfile[] = [
@@ -198,7 +202,6 @@ export const RESEARCH_AIRFOIL_PROFILES: AirfoilProfile[] = [
   },
 ]
 
-/** Featured research: NACA baseline → QAOA-optimized morph only. */
 export const FEATURED_AIRFOIL_PROFILES: AirfoilProfile[] = [
   RESEARCH_AIRFOIL_PROFILES[2],
   RESEARCH_AIRFOIL_PROFILES[3],
@@ -258,11 +261,10 @@ export function morphProfiles(a: Float32Array, b: Float32Array, t: number): Floa
   return out
 }
 
-/** Pseudo pressure coefficient for vertex coloring (visual, not CFD). */
 export function pseudoCp(x: number, y: number, cl: number): number {
   const upper = y >= 0
-  const le = Math.exp(-((x + 1.1) ** 2) / 0.35)
-  const suction = upper ? -0.8 * (1 - Math.abs(x) * 0.3) - cl * 0.15 : 0.4 * (1 - Math.abs(x) * 0.2)
+  const le = Math.exp(-((x + CHORD_LENGTH * 0.5) ** 2) / 0.45)
+  const suction = upper ? -0.8 * (1 - Math.abs(x) * 0.12) - cl * 0.15 : 0.4 * (1 - Math.abs(x) * 0.08)
   return suction + le * (upper ? -0.5 : 0.3)
 }
 
@@ -276,9 +278,13 @@ export function cpToColor(cp: number): THREE.Color {
   return color
 }
 
-export function buildExtrudedAirfoilGeometry(
+/**
+ * Thin wing section: profile in XY (chord × thickness), span along Z.
+ * Camera should face the cross-section (look along ±Z).
+ */
+export function buildAirfoilSolidGeometry(
   profilePoints: Float32Array,
-  depth = 0.35,
+  span = SPAN_DEPTH,
   cl = 0.5,
 ): THREE.BufferGeometry {
   const count = profilePoints.length / 2
@@ -290,23 +296,20 @@ export function buildExtrudedAirfoilGeometry(
   shape.closePath()
 
   const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth,
-    bevelEnabled: true,
-    bevelThickness: 0.02,
-    bevelSize: 0.015,
-    bevelSegments: 3,
-    curveSegments: 24,
+    depth: span,
+    bevelEnabled: false,
+    curveSegments: 64,
+    steps: 1,
   })
 
-  geometry.center()
-  geometry.rotateX(-Math.PI / 2)
+  geometry.translate(0, 0, -span / 2)
 
   const pos = geometry.getAttribute('position') as THREE.BufferAttribute
   const colors = new Float32Array(pos.count * 3)
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i)
-    const z = pos.getZ(i)
-    const c = cpToColor(pseudoCp(x, z, cl))
+    const y = pos.getY(i)
+    const c = cpToColor(pseudoCp(x, y, cl))
     colors[i * 3] = c.r
     colors[i * 3 + 1] = c.g
     colors[i * 3 + 2] = c.b
@@ -316,13 +319,19 @@ export function buildExtrudedAirfoilGeometry(
   return geometry
 }
 
-export function buildProfileLinePoints(profilePoints: Float32Array, y = 0): Float32Array {
+/** Edge highlight along the cross-section profile at mid-span. */
+export function buildProfileLinePoints(profilePoints: Float32Array, z = 0): Float32Array {
   const count = profilePoints.length / 2
   const line = new Float32Array(count * 3)
   for (let i = 0; i < count; i++) {
     line[i * 3] = profilePoints[i * 2]
-    line[i * 3 + 1] = y
-    line[i * 3 + 2] = profilePoints[i * 2 + 1]
+    line[i * 3 + 1] = profilePoints[i * 2 + 1]
+    line[i * 3 + 2] = z
   }
   return line
 }
+
+/** @deprecated Use buildAirfoilSolidGeometry */
+export const buildExtrudedAirfoilGeometry = buildAirfoilSolidGeometry
+
+export { CHORD_LENGTH, SPAN_DEPTH, smoothstep }
