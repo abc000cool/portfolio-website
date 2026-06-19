@@ -1,8 +1,17 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useState, type RefObject } from 'react'
 
 const DEFAULT_OPTIONS: IntersectionObserverInit = {
   threshold: 0.06,
   rootMargin: '0px 0px -8% 0px',
+}
+
+function optionsKey(options?: IntersectionObserverInit): string {
+  if (!options) return ''
+  return JSON.stringify({
+    root: options.root ?? null,
+    rootMargin: options.rootMargin ?? '',
+    threshold: options.threshold ?? 0,
+  })
 }
 
 /**
@@ -14,20 +23,20 @@ export function useInView(
   options?: IntersectionObserverInit,
 ): boolean {
   const [inView, setInView] = useState(false)
-  const optionsRef = useRef(options)
-  optionsRef.current = options
+  const optsKey = optionsKey(options)
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
 
+    const parsed = optsKey ? (JSON.parse(optsKey) as IntersectionObserverInit) : {}
     const observer = new IntersectionObserver(
       ([entry]) => setInView(entry.isIntersecting),
-      { ...DEFAULT_OPTIONS, ...optionsRef.current },
+      { ...DEFAULT_OPTIONS, ...parsed },
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [ref])
+  }, [ref, optsKey])
 
   return inView
 }

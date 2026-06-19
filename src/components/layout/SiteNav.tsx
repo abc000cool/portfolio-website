@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { portfolio, SECTION_IDS, SECTION_LABELS, type SectionId } from '../../data/portfolio'
 import { getProjectsByGroup } from '../../data/projectPages'
 import { scrollToSection } from '../../lib/lenis'
+import { MobileNav } from './MobileNav'
 
 const HOME_SECTIONS = SECTION_IDS.filter(
   (id) => id !== 'intro' && id !== 'hero' && id !== 'projects' && id !== 'ism',
@@ -96,9 +97,7 @@ export function SiteNav() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [isHome])
 
-  useEffect(() => {
-    if (!isHome) setScrolled(true)
-  }, [isHome])
+  const navSolid = !isHome || scrolled
 
   const goSection = (id: SectionId) => {
     if (isHome) scrollToSection(id)
@@ -118,7 +117,7 @@ export function SiteNav() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled || !isHome
+        navSolid
           ? 'py-2.5 bg-[rgba(6,6,10,0.7)] backdrop-blur-2xl border-b border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.35)]'
           : 'py-5 bg-transparent'
       }`}
@@ -239,22 +238,25 @@ export function SiteNav() {
           </li>
         </ul>
 
-        {isHome ? (
-          <button
-            type="button"
-            onClick={() => scrollToSection('contact')}
-            className="hidden md:inline-flex items-center px-4 py-1.5 text-[13px] font-medium text-slate-900 bg-white rounded-full border-none cursor-pointer hover:bg-indigo-100 transition-colors"
-          >
-            Connect
-          </button>
-        ) : (
-          <Link
-            to="/#contact"
-            className="hidden md:inline-flex items-center px-4 py-1.5 text-[13px] font-medium text-slate-900 bg-white rounded-full no-underline hover:bg-indigo-100 transition-colors"
-          >
-            Connect
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {isHome ? (
+            <button
+              type="button"
+              onClick={() => scrollToSection('contact')}
+              className="hidden md:inline-flex items-center px-4 py-1.5 text-[13px] font-medium text-slate-900 bg-white rounded-full border-none cursor-pointer hover:bg-indigo-100 transition-colors"
+            >
+              Connect
+            </button>
+          ) : (
+            <Link
+              to="/#contact"
+              className="hidden md:inline-flex items-center px-4 py-1.5 text-[13px] font-medium text-slate-900 bg-white rounded-full no-underline hover:bg-indigo-100 transition-colors"
+            >
+              Connect
+            </Link>
+          )}
+          <MobileNav isHome={isHome} activeId={activeId} />
+        </div>
       </div>
     </motion.nav>
   )
