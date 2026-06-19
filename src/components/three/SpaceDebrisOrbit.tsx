@@ -4,6 +4,7 @@ import { Line } from '@react-three/drei'
 import { useMotionValueEvent, useMotionValue, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
+import { useMotionProgressRef } from '../../hooks/useMotionProgressRef'
 import { smoothstep } from '../../lib/airfoilGeometry'
 import {
   ConferenceBadgeOverlay,
@@ -229,13 +230,10 @@ function EjectionTrail({ progressRef }: { progressRef: React.RefObject<number | 
 
 function DebrisScene({
   progressRef,
-  active,
 }: {
   progressRef: React.RefObject<number | null>
   active: boolean
 }) {
-  if (!active) return null
-
   return (
     <>
       <ambientLight intensity={0.4} />
@@ -281,26 +279,25 @@ export function SpaceDebrisOrbit({
 }: SpaceDebrisOrbitProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isVisible = useIntersectionPause(containerRef)
-  const progressRef = useRef(scrollProgress)
+  const progressRef = useMotionProgressRef(progress, scrollProgress)
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
-  const [liveProgress, setLiveProgress] = useState(scrollProgress)
+  const [liveProgress, setLiveProgress] = useState(() => progress?.get() ?? scrollProgress)
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
   }, [progress, scrollProgress, fallbackProgress])
 
+  useEffect(() => {
+    const v = progress?.get() ?? scrollProgress
+    progressRef.current = v
+    setLiveProgress(v)
+  }, [progress, scrollProgress, progressRef])
+
   useMotionValueEvent(source, 'change', (v) => {
     progressRef.current = v
     setLiveProgress(v)
   })
-
-  useEffect(() => {
-    if (!progress) {
-      progressRef.current = scrollProgress
-      setLiveProgress(scrollProgress)
-    }
-  }, [progress, scrollProgress])
 
   const telemetry = getTelemetry(liveProgress)
 

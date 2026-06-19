@@ -4,6 +4,7 @@ import { Grid, Line } from '@react-three/drei'
 import { useMotionValueEvent, useMotionValue, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
+import { useMotionProgressRef } from '../../hooks/useMotionProgressRef'
 import {
   CHORD_LENGTH,
   FEATURED_AIRFOIL_PROFILES,
@@ -390,31 +391,33 @@ export function MorphingAirfoil({
 }: MorphingAirfoilProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isVisible = useIntersectionPause(containerRef)
-  const progressRef = useRef(scrollProgress)
+  const progressRef = useMotionProgressRef(progress, scrollProgress)
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
   const profiles = variant === 'featured' ? FEATURED_AIRFOIL_PROFILES : RESEARCH_AIRFOIL_PROFILES
   const [morph, setMorph] = useState<MorphState | null>(() =>
-    getMorphState(scrollProgress, profiles),
+    getMorphState(progress?.get() ?? scrollProgress, profiles),
   )
+  const [liveProgress, setLiveProgress] = useState(() => progress?.get() ?? scrollProgress)
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
   }, [progress, scrollProgress, fallbackProgress])
 
+  useEffect(() => {
+    const v = progress?.get() ?? scrollProgress
+    progressRef.current = v
+    setLiveProgress(v)
+    setMorph(getMorphState(v, profiles))
+  }, [progress, scrollProgress, profiles, progressRef])
+
   useMotionValueEvent(source, 'change', (v) => {
     progressRef.current = v
+    setLiveProgress(v)
     setMorph(getMorphState(v, profiles))
   })
 
-  useEffect(() => {
-    if (!progress) {
-      progressRef.current = scrollProgress
-      setMorph(getMorphState(scrollProgress, profiles))
-    }
-  }, [progress, scrollProgress, profiles])
-
-  const morphProgress = Math.round((progressRef.current ?? scrollProgress) * 100)
+  const morphProgress = Math.round(liveProgress * 100)
 
   return (
     <div ref={containerRef} className={`airfoil-viewer ${className}`} aria-hidden="true">
