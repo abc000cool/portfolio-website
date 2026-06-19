@@ -3,6 +3,7 @@
 @import './metal-panel.css';
 @import './crt-terminal.css';
 @import './airfoil-viewer.css';
+@import './site-nav.css';
 
 @layer base {
   *,

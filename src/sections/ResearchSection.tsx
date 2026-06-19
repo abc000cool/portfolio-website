@@ -12,6 +12,9 @@ import { ScanWipe } from '../components/ui/ScanWipe'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useInView, prefetchResearchViewers } from '../hooks/useInView'
+import { useMediaQuery } from '../hooks/useMediaQuery'
+
+const MOBILE_SCROLL_SCALE = 0.55
 
 const MorphingAirfoil = lazy(() =>
   import('../components/three/MorphingAirfoil').then((m) => ({ default: m.MorphingAirfoil })),
@@ -93,6 +96,7 @@ function ResearchShowcaseBlock({
   const paper = getResearchShowcasePaper(config.paperSlug)
   const scrollZoneRef = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
+  const isMobile = useMediaQuery('(max-width: 767px)')
   const blockInView = useInView(scrollZoneRef, { threshold: 0, rootMargin: '0px 0px -10% 0px' })
 
   const { scrollYProgress } = useScroll({
@@ -106,6 +110,9 @@ function ResearchShowcaseBlock({
   const gridClass = reverse
     ? 'research-showcase__grid research-showcase__grid--reverse'
     : 'research-showcase__grid'
+  const scrollHeightVh = isMobile
+    ? Math.round(config.scrollHeightVh * MOBILE_SCROLL_SCALE)
+    : config.scrollHeightVh
 
   /** Viewport visibility drives 3D — mission waypoint lags far behind visual scroll. */
   const viewerActive = blockInView || headingActive
@@ -182,7 +189,7 @@ function ResearchShowcaseBlock({
         <div
           ref={scrollZoneRef}
           className="research-showcase__scroll-zone"
-          style={{ height: `${config.scrollHeightVh}vh` }}
+          style={{ height: `${scrollHeightVh}vh` }}
         >
           <div className="research-showcase__sticky">
             <ScanWipe>{content}</ScanWipe>
