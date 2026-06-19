@@ -103,7 +103,7 @@ export const portfolio = {
       id: 'paper-debris',
       slug: 'space-debris-mitigation',
       title: 'Space Debris Mitigation',
-      venue: 'Pending',
+      venue: 'AAS 248 — Pasadena, CA',
       year: 2026,
       abstract:
         "Research on novel approaches to address the growing problem of space debris in Earth's orbit, including spacecraft design and operational algorithms. This work explores active debris removal strategies, mission planning optimization, and the development of practical solutions for space sustainability.",
@@ -286,7 +286,8 @@ export function getFeaturedResearchPaper(): Paper | undefined {
   return portfolio.papers.find((p) => p.slug === FEATURED_RESEARCH_SLUG)
 }
 
-export function getBinderPapers(): Paper[] {
+/** @deprecated Binder removed — use RESEARCH_SHOWCASE from researchShowcase.ts */
+export function getBinderPapers() {
   return portfolio.papers.filter((p) => p.slug !== FEATURED_RESEARCH_SLUG)
 }
 
@@ -295,7 +296,7 @@ export const SECTION_LABELS: Record<SectionId, string> = {
   hero: 'Profile',
   about: 'About',
   projects: 'Projects',
-  research: 'Pending Research',
+  research: 'Research',
   ism: 'ISM',
   stats: 'Awards',
   contact: 'Contact',
