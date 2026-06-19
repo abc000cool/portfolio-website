@@ -26,6 +26,7 @@ import { IsmSection } from '../sections/IsmSection'
 import { StatsSection } from '../sections/StatsSection'
 import { ContactSection } from '../sections/ContactSection'
 import { portfolio } from '../data/portfolio'
+import { externalLinkRel } from '../lib/externalLink'
 
 function ParallaxBack() {
   return (
@@ -155,7 +156,12 @@ export function HomePage() {
                 </p>
                 <div className="flex items-center gap-6">
                   {portfolio.identity.socials.map((s) => (
-                    <a key={s.label} href={s.url} className="link-underline text-sm text-slate-400">
+                    <a
+                      key={s.label}
+                      href={s.url}
+                      rel={externalLinkRel(s.url)}
+                      className="link-underline text-sm text-slate-400"
+                    >
                       {s.label}
                     </a>
                   ))}

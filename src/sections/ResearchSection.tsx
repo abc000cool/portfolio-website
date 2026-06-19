@@ -1,161 +1,220 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { useMotionValueEvent, useScroll, type MotionValue } from 'motion/react'
-import { portfolio, type Paper } from '../data/portfolio'
+import { useScroll } from 'motion/react'
+import {
+  RESEARCH_SHOWCASE,
+  getResearchShowcasePaper,
+  type ResearchShowcaseConfig,
+} from '../data/researchShowcase'
 import { useWaypointReached } from '../context/MissionContext'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { useInView, prefetchResearchViewers } from '../hooks/useInView'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 
-/** Taller pin = more scroll per page flip. */
-const PIN_HEIGHT_VH = 360
-/** Fraction of each segment held flat before / after the flip motion. */
-const FLIP_HOLD = 0.18
+const MOBILE_SCROLL_SCALE = 0.55
 
-function smoothstep(t: number): number {
-  return t * t * (3 - 2 * t)
-}
+const MorphingAirfoil = lazy(() =>
+  import('../components/three/MorphingAirfoil').then((m) => ({ default: m.MorphingAirfoil })),
+)
+const SpaceDebrisOrbit = lazy(() =>
+  import('../components/three/SpaceDebrisOrbit').then((m) => ({ default: m.SpaceDebrisOrbit })),
+)
+const FlowStateTraffic = lazy(() =>
+  import('../components/three/FlowStateTraffic').then((m) => ({ default: m.FlowStateTraffic })),
+)
 
-/** Maps scroll progress to 0–1 flip amount for a given paper index. */
-function paperFlipT(scrollProgress: number, index: number, total: number): number {
-  const segment = 1 / total
-  const segStart = index * segment
-  const flipStart = segStart + segment * FLIP_HOLD
-  const flipEnd = segStart + segment * (1 - FLIP_HOLD)
-  if (scrollProgress <= flipStart) return 0
-  if (scrollProgress >= flipEnd) return 1
-  return smoothstep((scrollProgress - flipStart) / (flipEnd - flipStart))
-}
+const VIEWER_HEIGHT = 'h-[300px] md:h-[380px] lg:h-[420px]'
 
-function activePaperIndex(scrollProgress: number, total: number): number {
-  return Math.min(total - 1, Math.max(0, Math.floor(scrollProgress * total)))
-}
+function ResearchViewer({
+  config,
+  active,
+  scrollProgress,
+  staticProgress = 0,
+}: {
+  config: ResearchShowcaseConfig
+  active: boolean
+  scrollProgress?: ReturnType<typeof useScroll>['scrollYProgress']
+  staticProgress?: number
+}) {
+  const fallback =
+    staticProgress ?? (config.viewer === 'airfoil' ? 1 : 0.4)
 
-const binderFaceClass =
-  'rounded-r-lg border border-white/[0.08] bg-[#f4f0e6] text-[#1a1814] p-6 md:p-8 shadow-[-12px_16px_40px_rgba(0,0,0,0.45)]'
-
-function BinderPaperFace({ paper }: { paper: Paper }) {
   return (
-    <>
-      <div
-        className="absolute left-0 top-0 bottom-0 w-3 rounded-l-lg"
-        style={{
-          background: 'linear-gradient(90deg, #c4b89a 0%, #e8e0d0 40%, #f4f0e6 100%)',
-        }}
-        aria-hidden="true"
-      />
-      <div className="pl-4">
-        <span className="font-mono text-xs text-amber-800/90">
-          {paper.year} — {paper.venue}
-        </span>
-        <h3 className="text-lg md:text-xl lg:text-[1.35rem] mt-2 mb-5 normal-case tracking-normal leading-snug text-stone-900">
-          {paper.title}
-        </h3>
-        <Link
-          to={`/research/${paper.slug}`}
-          className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-amber-900/80 hover:text-amber-950 no-underline transition-colors"
-        >
-          Read abstract →
-        </Link>
-      </div>
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(0deg, #1a1814 0px, #1a1814 1px, transparent 1px, transparent 28px)',
-        }}
-        aria-hidden="true"
-      />
-    </>
+    <Suspense fallback={<div className={`research-viewer ${VIEWER_HEIGHT}`} />}>
+      {(() => {
+        switch (config.viewer) {
+          case 'debris':
+            return (
+              <SpaceDebrisOrbit
+                progress={scrollProgress}
+                scrollProgress={fallback}
+                active={active}
+                className={VIEWER_HEIGHT}
+                showConferenceBadge
+              />
+            )
+          case 'airfoil':
+            return (
+              <MorphingAirfoil
+                variant="featured"
+                progress={scrollProgress}
+                scrollProgress={fallback}
+                active={active}
+                className={VIEWER_HEIGHT}
+              />
+            )
+          case 'flowstate':
+            return (
+              <FlowStateTraffic
+                progress={scrollProgress}
+                scrollProgress={fallback}
+                active={active}
+                className={VIEWER_HEIGHT}
+              />
+            )
+        }
+      })()}
+      <p className="research-showcase__viewer-hint font-mono text-[10px] uppercase tracking-widest text-slate-500 text-center mt-3">
+        {config.viewerHint}
+      </p>
+    </Suspense>
   )
 }
 
-function PaperSummary({ paper }: { paper: Paper }) {
-  return (
-    <>
+function ResearchShowcaseBlock({
+  config,
+  headingActive,
+  index,
+}: {
+  config: ResearchShowcaseConfig
+  headingActive: boolean
+  index: number
+}) {
+  const paper = getResearchShowcasePaper(config.paperSlug)
+  const scrollZoneRef = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
+  const isMobile = useMediaQuery('(max-width: 767px)')
+  const blockInView = useInView(scrollZoneRef, { threshold: 0, rootMargin: '0px 0px -10% 0px' })
+
+  const { scrollYProgress } = useScroll({
+    target: scrollZoneRef,
+    offset: ['start start', 'end end'],
+  })
+
+  if (!paper) return null
+
+  const reverse = config.reverseLayout ?? index % 2 === 1
+  const gridClass = reverse
+    ? 'research-showcase__grid research-showcase__grid--reverse'
+    : 'research-showcase__grid'
+  const scrollHeightVh = isMobile
+    ? Math.round(config.scrollHeightVh * MOBILE_SCROLL_SCALE)
+    : config.scrollHeightVh
+
+  /** Viewport visibility drives 3D — mission waypoint lags far behind visual scroll. */
+  const viewerActive = blockInView || headingActive
+
+  const card = (
+    <article className="research-showcase__card glass-card p-6 md:p-8 lg:p-10">
+      {config.conferenceBadge && (
+        <div className="research-showcase__conference-card-badge" role="note">
+          <span className="research-showcase__conference-card-kicker">Presented at</span>
+          <span className="research-showcase__conference-card-title">
+            {config.conferenceBadge.conference} {config.conferenceBadge.number}
+          </span>
+          <span className="research-showcase__conference-card-location">
+            {config.conferenceBadge.location}
+          </span>
+        </div>
+      )}
+
       <span className="font-mono text-xs text-[var(--color-cockpit-amber)]">
         {paper.year} — {paper.venue}
       </span>
-      <h3 className="text-xl md:text-2xl mt-2 mb-4 normal-case tracking-normal leading-snug text-[var(--color-text)]">
+      <h3 className="font-display text-xl md:text-2xl text-white mt-3 mb-4 leading-snug tracking-tight">
         {paper.title}
       </h3>
+      <p className="text-sm text-slate-400 leading-relaxed mb-6">{paper.abstract}</p>
+
+      <div className="research-showcase__metrics">
+        {config.metrics.map((metric) => (
+          <div key={metric.label} className="research-showcase__metric">
+            <span className="research-showcase__metric-value">{metric.value}</span>
+            <span className="research-showcase__metric-label">{metric.label}</span>
+          </div>
+        ))}
+      </div>
+
       <Link
-        to={`/research/${paper.slug}`}
-        className="link-underline text-sm font-medium text-indigo-300 no-underline"
+        to={config.linkTo}
+        className="inline-flex items-center gap-2 mt-8 px-5 py-2.5 rounded-full font-mono text-xs uppercase tracking-widest text-white bg-indigo-500/20 border border-indigo-400/40 hover:bg-indigo-500/30 transition-colors no-underline"
       >
-        Read abstract →
+        {config.linkLabel}
       </Link>
-    </>
+    </article>
   )
-}
 
-function BinderPaper({
-  paper,
-  index,
-  total,
-  progress,
-}: {
-  paper: Paper
-  index: number
-  total: number
-  progress: MotionValue<number>
-}) {
-  const sheetRef = useRef<HTMLDivElement>(null)
+  const viewer = (
+    <div className="research-showcase__viewer">
+      <ResearchViewer
+        config={config}
+        active={viewerActive}
+        scrollProgress={reduced ? undefined : scrollYProgress}
+        staticProgress={reduced ? (config.viewer === 'airfoil' ? 1 : 0.45) : 0}
+      />
+    </div>
+  )
 
-  const applyTransform = (v: number) => {
-    const el = sheetRef.current
-    if (!el) return
-
-    const t = paperFlipT(v, index, total)
-    const rotateY = -168 * t
-    const active = activePaperIndex(v, total)
-
-    el.style.transform = `rotateY(${rotateY}deg)`
-    el.style.zIndex = String(
-      index === active ? 50 : t >= 1 ? index : total - index + 5,
-    )
-  }
-
-  useMotionValueEvent(progress, 'change', applyTransform)
-
-  useEffect(() => {
-    applyTransform(progress.get())
-  }, [progress, index, total])
+  const content = (
+    <div className={gridClass}>
+      {card}
+      {viewer}
+    </div>
+  )
 
   return (
     <div
-      ref={sheetRef}
-      className="absolute inset-0"
-      style={{
-        transformStyle: 'preserve-3d',
-        transformOrigin: 'left center',
-      }}
+      id={config.id}
+      className="research-showcase-block"
+      aria-labelledby={`${config.id}-title`}
     >
-      {/* Front */}
-      <div
-        className={`absolute inset-0 ${binderFaceClass}`}
-        style={{ backfaceVisibility: 'hidden' }}
-      >
-        <BinderPaperFace paper={paper} />
-      </div>
-
-      {/* Back */}
-      <div
-        className="absolute inset-0 rounded-r-lg bg-[#e0d8c8] border border-[#c4b89a]/40"
-        style={{
-          backfaceVisibility: 'hidden',
-          transform: 'rotateY(180deg)',
-        }}
-        aria-hidden="true"
-      />
+      {reduced ? (
+        <div className="research-showcase__body">
+          <ScanWipe active={headingActive}>{content}</ScanWipe>
+        </div>
+      ) : (
+        <div
+          ref={scrollZoneRef}
+          className="research-showcase__scroll-zone"
+          style={{ height: `${scrollHeightVh}vh` }}
+        >
+          <div className="research-showcase__sticky">
+            <ScanWipe>{content}</ScanWipe>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function StaticResearch({ active }: { active: boolean }) {
+export function ResearchSection() {
+  const reached = useWaypointReached('research')
+  const sectionRef = useRef<HTMLElement>(null)
+  const sectionNear = useInView(sectionRef, {
+    threshold: 0,
+    rootMargin: '0px 0px 40% 0px',
+  })
+
+  useEffect(() => {
+    if (sectionNear) prefetchResearchViewers()
+  }, [sectionNear])
+
   return (
     <section
+      ref={sectionRef}
       id="research"
       data-mission-waypoint
       data-waypoint-side="left"
@@ -163,130 +222,24 @@ function StaticResearch({ active }: { active: boolean }) {
       aria-labelledby="research-heading"
     >
       <div className="section-inner wide">
-        <p className="section-label">Pending Research</p>
-        <div id="research-heading" className="mb-12">
-          <RedactedHeading active={active}>Pending Research</RedactedHeading>
+        <p className="section-label">Research</p>
+        <div id="research-heading" className="mb-10 md:mb-14 max-w-2xl">
+          <RedactedHeading active={reached || sectionNear}>Research</RedactedHeading>
+          <p className="text-slate-400 mt-4 leading-relaxed">
+            Scroll through each project to explore interactive 3D visualizations — from orbital
+            debris capture to morphing airfoil optimization and fluid-dynamics traffic flow.
+          </p>
         </div>
-        <ScanWipe active={active}>
-          <div className="flex flex-col gap-6 max-w-3xl mx-auto">
-            {portfolio.papers.map((paper) => (
-              <article
-                key={paper.id}
-                id={`paper-panel-${paper.id}`}
-                className="p-8 md:p-10 glass-card"
-                style={{ boxShadow: '-8px 8px 30px rgba(0,0,0,0.5)' }}
-              >
-                <PaperSummary paper={paper} />
-              </article>
-            ))}
-          </div>
-        </ScanWipe>
-      </div>
-    </section>
-  )
-}
 
-export function ResearchSection() {
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const reached = useWaypointReached('research')
-  const reduced = useReducedMotion()
-  const [isNarrow, setIsNarrow] = useState(false)
-
-  const papers = portfolio.papers
-  const n = papers.length
-
-  useEffect(() => {
-    setIsNarrow(window.innerWidth < 1024)
-  }, [])
-
-  const { scrollYProgress } = useScroll({
-    target: wrapRef,
-    offset: ['start start', 'end end'],
-  })
-
-  const pinned = !reduced && !isNarrow && n >= 2
-
-  if (!pinned) {
-    return <StaticResearch active={reached} />
-  }
-
-  return (
-    <section
-      id="research"
-      data-mission-waypoint
-      data-waypoint-side="left"
-      className="relative shell-right overflow-visible"
-      aria-labelledby="research-heading"
-    >
-      <div
-        ref={wrapRef}
-        className="relative"
-        style={{ height: `${PIN_HEIGHT_VH}vh` }}
-      >
-        <div className="sticky top-0 flex min-h-screen flex-col justify-center px-[clamp(1.5rem,5vw,4rem)] py-20 overflow-visible">
-          <div className="section-inner wide w-full overflow-visible">
-            <p className="section-label">Pending Research</p>
-            <div id="research-heading" className="mb-10 max-w-xl">
-              <RedactedHeading active={reached}>Pending Research</RedactedHeading>
-            </div>
-
-            <ScanWipe active={reached}>
-              <div className="w-full flex justify-end overflow-visible">
-                <div
-                  className="relative w-full lg:w-[min(100%,36rem)] xl:w-[min(100%,40rem)] lg:ml-auto lg:mr-[clamp(0rem,2vw,1.5rem)] pl-[clamp(2.5rem,8vw,5.5rem)] overflow-visible"
-                  style={{
-                    perspective: '1600px',
-                    perspectiveOrigin: '18% 50%',
-                  }}
-                >
-                  {/* Binder spine */}
-                  <div
-                    className="absolute left-[clamp(2.5rem,8vw,5.5rem)] top-2 bottom-2 w-5 rounded-l-md z-[60] pointer-events-none"
-                    style={{
-                      background:
-                        'linear-gradient(90deg, #2a2520 0%, #4a4035 35%, #3d352c 70%, #2a2520 100%)',
-                      boxShadow: 'inset -2px 0 6px rgba(0,0,0,0.5)',
-                    }}
-                    aria-hidden="true"
-                  />
-
-                  {/* In-flow sizer — height fits the tallest binder page */}
-                  <div className="grid" aria-hidden="true">
-                    {papers.map((paper) => (
-                      <div
-                        key={`sizer-${paper.id}`}
-                        className="col-start-1 row-start-1 invisible pointer-events-none select-none"
-                      >
-                        <div className={`relative ${binderFaceClass}`}>
-                          <BinderPaperFace paper={paper} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div
-                    className="absolute left-[calc(clamp(2.5rem,8vw,5.5rem)+1rem)] right-0 top-0 bottom-0 overflow-visible"
-                    style={{ transformStyle: 'preserve-3d' }}
-                  >
-                    {papers.map((paper, i) => (
-                      <BinderPaper
-                        key={paper.id}
-                        paper={paper}
-                        index={i}
-                        total={n}
-                        progress={scrollYProgress}
-                      />
-                    ))}
-                  </div>
-
-                  <div
-                    className="absolute left-[calc(clamp(2.5rem,8vw,5.5rem)+1.5rem)] right-2 -bottom-2 h-4 rounded-full bg-black/40 blur-md pointer-events-none"
-                    aria-hidden="true"
-                  />
-                </div>
-              </div>
-            </ScanWipe>
-          </div>
+        <div className="research-showcase-list">
+          {RESEARCH_SHOWCASE.map((config, index) => (
+            <ResearchShowcaseBlock
+              key={config.id}
+              config={config}
+              headingActive={reached || sectionNear}
+              index={index}
+            />
+          ))}
         </div>
       </div>
     </section>

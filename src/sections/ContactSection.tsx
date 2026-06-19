@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { portfolio } from '../data/portfolio'
+import { externalLinkRel } from '../lib/externalLink'
 import { useWaypointReached } from '../context/MissionContext'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
@@ -106,6 +107,7 @@ export function ContactSection() {
                     <a
                       key={s.label}
                       href={s.url}
+                      rel={externalLinkRel(s.url)}
                       className="font-mono text-xs uppercase tracking-wider underline underline-offset-4 decoration-[rgba(134,239,172,0.4)] hover:decoration-[var(--color-phosphor)] transition-colors"
                     >
                       {s.label}
