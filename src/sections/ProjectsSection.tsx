@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   AnimatePresence,
   motion,
@@ -13,6 +13,7 @@ import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { MissionPatch } from '../components/ui/MissionPatch'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 
 const selectedProjects = portfolio.projects.filter((p) => p.group !== 'other')
 const otherProjects = portfolio.projects.filter((p) => p.group === 'other')
@@ -225,11 +226,7 @@ export function ProjectsSection() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const reached = useWaypointReached('projects')
   const reduced = useReducedMotion()
-  const [isNarrow, setIsNarrow] = useState(false)
-
-  useEffect(() => {
-    setIsNarrow(window.innerWidth < 1024)
-  }, [])
+  const isNarrow = useMediaQuery('(max-width: 1023px)')
 
   const { scrollYProgress } = useScroll({
     target: wrapRef,

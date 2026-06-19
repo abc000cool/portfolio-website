@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { portfolio } from '../../data/portfolio'
+import { externalLinkRel } from '../../lib/externalLink'
 import { Starfield } from './Starfield'
 import { AtmosphereDescent } from './AtmosphereDescent'
 import { SiteNav } from './SiteNav'
@@ -41,7 +42,12 @@ export function SubpageShell({
           </p>
           <div className="flex items-center gap-6">
             {portfolio.identity.socials.map((s) => (
-              <a key={s.label} href={s.url} className="link-underline text-sm text-slate-400">
+              <a
+                key={s.label}
+                href={s.url}
+                rel={externalLinkRel(s.url)}
+                className="link-underline text-sm text-slate-400"
+              >
                 {s.label}
               </a>
             ))}
