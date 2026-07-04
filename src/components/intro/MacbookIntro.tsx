@@ -30,8 +30,8 @@ export function MacbookIntro() {
   })
 
   const lidEnd = isMobile ? 0.42 : 0.3
-  const fadeStart = isMobile ? 0.48 : 0.5
-  const fadeMid = isMobile ? 0.62 : 0.72
+  const fadeStart = isMobile ? 0.16 : 0.5
+  const fadeMid = isMobile ? 0.28 : 0.72
   const translateEnd = isMobile ? 0.9 : 1
   const translateMax = isMobile ? 360 : 1500
   const peakLidScale = isMobile ? 1 : 1.5
@@ -58,7 +58,22 @@ export function MacbookIntro() {
     [1, 0, 0],
     { clamp: true },
   )
-  const laptopLift = useTransform(scrollYProgress, [fadeStart, fadeMid], [0, isMobile ? 24 : 0])
+  const laptopLift = useTransform(scrollYProgress, [fadeStart, fadeMid], [0, isMobile ? -16 : 0])
+
+  const laptopWrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isMobile) return
+    const apply = (v: number) => {
+      const fade = 1 - Math.min(1, Math.max(0, (v - fadeStart) / (fadeMid - fadeStart)))
+      if (laptopWrapRef.current) {
+        laptopWrapRef.current.style.opacity = String(fade)
+        laptopWrapRef.current.style.pointerEvents = fade < 0.05 ? 'none' : ''
+      }
+    }
+    apply(scrollYProgress.get())
+    return scrollYProgress.on('change', apply)
+  }, [isMobile, scrollYProgress, fadeStart, fadeMid])
 
   const hintRef = useRef<HTMLParagraphElement>(null)
   const [hintVisible, setHintVisible] = useState(true)
@@ -106,46 +121,50 @@ export function MacbookIntro() {
         <IntroTitle compact={isMobile} />
       </motion.div>
 
-      <motion.div
-        style={{ opacity: laptopOpacity, translateY: laptopLift }}
-        className="relative z-10 flex flex-col items-center w-full"
-      >
-        {!touch && (
-          <motion.div
-            style={{ opacity: glowOpacity }}
-            className={`pointer-events-none absolute top-40 rounded-full bg-indigo-500/25 ${isMobile ? 'h-[14rem] w-[22rem] blur-[40px]' : 'h-[26rem] w-[46rem] blur-[120px]'}`}
-            aria-hidden="true"
-          />
-        )}
-
-        {touch || isMobile ? (
+      {isMobile ? (
+        <div
+          ref={laptopWrapRef}
+          style={{ opacity: 1 }}
+          className="relative z-10 flex flex-col items-center w-full"
+        >
           <MobileMacbook progress={scrollYProgress} />
-        ) : (
-          <>
-            <DesktopLid
-              scaleX={scaleX}
-              scaleY={scaleY}
-              rotate={rotate}
-              translate={translate}
-              backShellOpacity={backShellOpacity}
-              progress={scrollYProgress}
+        </div>
+      ) : (
+        <motion.div
+          style={{ opacity: laptopOpacity, translateY: laptopLift }}
+          className="relative z-10 flex flex-col items-center w-full"
+        >
+          {!touch && (
+            <motion.div
+              style={{ opacity: glowOpacity }}
+              className="pointer-events-none absolute top-40 rounded-full bg-indigo-500/25 h-[26rem] w-[46rem] blur-[120px]"
+              aria-hidden="true"
             />
+          )}
 
-            <div className="relative -z-10 h-[22rem] w-[min(92vw,32rem)] overflow-hidden rounded-2xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10">
-              <div className="relative h-10 w-full">
-                <div className="absolute inset-x-0 mx-auto h-4 w-[80%] rounded-b-lg bg-[#050507]" />
-              </div>
-              <div className="relative flex">
-                <SpeakerGrid />
-                <Keypad />
-                <SpeakerGrid />
-              </div>
-              <Trackpad />
-              <div className="absolute inset-x-0 bottom-0 mx-auto h-2 w-20 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-[#23232b] to-[#060608]" />
+          <DesktopLid
+            scaleX={scaleX}
+            scaleY={scaleY}
+            rotate={rotate}
+            translate={translate}
+            backShellOpacity={backShellOpacity}
+            progress={scrollYProgress}
+          />
+
+          <div className="relative -z-10 h-[22rem] w-[min(92vw,32rem)] overflow-hidden rounded-2xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10">
+            <div className="relative h-10 w-full">
+              <div className="absolute inset-x-0 mx-auto h-4 w-[80%] rounded-b-lg bg-[#050507]" />
             </div>
-          </>
-        )}
-      </motion.div>
+            <div className="relative flex">
+              <SpeakerGrid />
+              <Keypad />
+              <SpeakerGrid />
+            </div>
+            <Trackpad />
+            <div className="absolute inset-x-0 bottom-0 mx-auto h-2 w-20 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-[#23232b] to-[#060608]" />
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 
@@ -226,13 +245,12 @@ function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
     const apply = (v: number) => {
       const closedT = 1 - Math.min(1, v / 0.12)
       const openT = Math.min(1, Math.max(0, (v - 0.02) / 0.1))
-      const liftT = Math.min(1, Math.max(0, (v - 0.22) / 0.55))
       const scale = 1 + Math.min(0.03, Math.max(0, (v - 0.22) / 0.16) * 0.03)
 
       if (closedRef.current) closedRef.current.style.opacity = String(closedT)
       if (openRef.current) openRef.current.style.opacity = String(openT)
       if (unitRef.current) {
-        unitRef.current.style.transform = `translateY(${liftT * 360}px) scale(${scale})`
+        unitRef.current.style.transform = `scale(${scale})`
       }
     }
     apply(progress.get())
@@ -244,7 +262,7 @@ function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
       ref={unitRef}
       className="relative w-[min(88vw,19.5rem)] will-change-transform"
       data-testid="mobile-lid"
-      style={{ transform: 'translateY(0px) scale(1)' }}
+      style={{ transform: 'scale(1)' }}
     >
       {/* Screen lid */}
       <div
