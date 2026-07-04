@@ -6,9 +6,10 @@ const CHART_POINTS = '0,38 14,34 28,30 42,31 56,24 70,20 84,14 100,10'
 
 interface MacbookScreenContentProps {
   progress?: MotionValue<number>
+  compact?: boolean
 }
 
-export function MacbookScreenContent({ progress }: MacbookScreenContentProps) {
+export function MacbookScreenContent({ progress, compact = false }: MacbookScreenContentProps) {
   const fallback = useMotionValue(0)
   const [launch, setLaunch] = useState(false)
 
@@ -16,6 +17,74 @@ export function MacbookScreenContent({ progress }: MacbookScreenContentProps) {
     const next = v >= 0.48
     setLaunch((prev) => (prev === next ? prev : next))
   })
+
+  if (compact) {
+    return (
+      <div className="relative h-full w-full bg-[#07070d] text-left overflow-hidden select-none">
+        <div className="flex items-center gap-1 px-2 py-1 border-b border-white/[0.06] bg-[#0b0b13]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#ff5f57]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#febc2e]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#28c840]" />
+          <span className="ml-1.5 text-[7px] text-slate-500 font-mono truncate">
+            {launch ? 'launch active' : 'mission-control'}
+          </span>
+        </div>
+
+        <div className="p-2.5 flex flex-col gap-2 h-[calc(100%-1.25rem)]">
+          <div>
+            <p className="text-[7px] uppercase tracking-widest text-indigo-400/90 mb-0.5">
+              Mission dashboard
+            </p>
+            <h2 className="font-display text-[11px] text-white font-semibold leading-tight truncate">
+              {portfolio.identity.name}
+            </h2>
+            <p className="text-[8px] text-slate-500 truncate">{portfolio.identity.title}</p>
+          </div>
+
+          <div className="flex-1 min-h-0 rounded border border-white/[0.06] bg-white/[0.02] p-1.5">
+            <svg viewBox="0 0 100 42" preserveAspectRatio="none" className="w-full h-full">
+              <defs>
+                <linearGradient id="chart-fill-mobile" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#818cf8" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#818cf8" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <polygon points={`0,42 ${CHART_POINTS} 100,42`} fill="url(#chart-fill-mobile)" />
+              <polyline
+                points={CHART_POINTS}
+                fill="none"
+                stroke="#a5b4fc"
+                strokeWidth="1"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5">
+            {portfolio.stats.slice(0, 2).map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded border border-white/[0.06] bg-white/[0.03] px-1.5 py-1 text-center"
+              >
+                <p className="text-[9px] font-semibold text-white leading-none">
+                  {stat.display ?? stat.value}
+                </p>
+                <p className="text-[6px] text-slate-500 mt-0.5 leading-tight">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {launch && (
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center py-1 bg-indigo-600/25 border-t border-indigo-400/30">
+            <span className="text-[7px] font-mono tracking-widest text-indigo-200 uppercase">
+              Launch sequence
+            </span>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="relative h-full w-full bg-[#07070d] text-left overflow-hidden select-none">
