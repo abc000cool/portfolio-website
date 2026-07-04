@@ -1,30 +1,33 @@
 import { motion } from 'motion/react'
+import { useLightExperience } from '../../hooks/useTouchDevice'
+import { EARLY_VIEWPORT, revealHidden, revealVisible } from '../../lib/revealMotion'
 
 interface RedactedHeadingProps {
   children: string
   as?: 'h2' | 'h3'
   className?: string
-  /** When provided, reveal is driven externally (mission waypoint arrival) instead of viewport. */
+  /** When provided, reveal is driven externally instead of viewport. */
   active?: boolean
 }
 
-const hidden = { opacity: 0, y: 36, filter: 'blur(10px)' }
-const visible = { opacity: 1, y: 0, filter: 'blur(0px)' }
-
 export function RedactedHeading(props: RedactedHeadingProps) {
   const { children, as: Tag = 'h2', className = '', active } = props
+  const light = useLightExperience()
+
+  const hidden = revealHidden(light)
+  const visible = revealVisible(light)
 
   const reveal =
     active !== undefined
       ? { animate: active ? visible : hidden }
-      : { whileInView: visible, viewport: { once: true, margin: '-12% 0px' } }
+      : { whileInView: visible, viewport: EARLY_VIEWPORT }
 
   return (
     <motion.div
       className={className}
       initial={hidden}
       {...reveal}
-      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: light ? 0.55 : 0.9, ease: [0.22, 1, 0.36, 1] }}
     >
       <Tag className="section-heading">{children}</Tag>
     </motion.div>

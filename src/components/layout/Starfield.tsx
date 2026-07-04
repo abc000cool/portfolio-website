@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
-import { useTouchDevice } from '../../hooks/useTouchDevice'
+import { useLightExperience } from '../../hooks/useTouchDevice'
 
 interface Star {
   x: number
@@ -15,17 +15,18 @@ export function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isVisible = useIntersectionPause(canvasRef)
   const reduced = useReducedMotion()
-  const touch = useTouchDevice()
+  const light = useLightExperience()
   const mouseRef = useRef({ x: 0.5, y: 0.5 })
 
   useEffect(() => {
+    if (light) return
     const canvas = canvasRef.current
     if (!canvas) return
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const starCount = reduced ? 30 : touch ? 40 : 90
+    const starCount = reduced ? 30 : 90
 
     const resize = () => {
       canvas.width = window.innerWidth
@@ -48,7 +49,7 @@ export function Starfield() {
         y: e.clientY / window.innerHeight,
       }
     }
-    if (!touch) window.addEventListener('mousemove', onMove)
+    window.addEventListener('mousemove', onMove)
 
     let animId = 0
     let shootingStar: { x: number; y: number; len: number; life: number } | null = null
@@ -74,7 +75,7 @@ export function Starfield() {
         ctx.fill()
       }
 
-      if (!reduced && !touch && Math.random() < 0.0008 && !shootingStar) {
+      if (!reduced && Math.random() < 0.0008 && !shootingStar) {
         shootingStar = {
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height * 0.5,
@@ -108,9 +109,24 @@ export function Starfield() {
     return () => {
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', resize)
-      if (!touch) window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mousemove', onMove)
     }
-  }, [isVisible, reduced, touch])
+  }, [isVisible, reduced, light])
+
+  if (light && !reduced) {
+    return (
+      <div
+        className="fixed inset-0 pointer-events-none opacity-60"
+        style={{
+          zIndex: 'var(--z-starfield)',
+          backgroundImage:
+            'radial-gradient(1px 1px at 20% 30%, rgba(232,236,244,0.35), transparent), radial-gradient(1px 1px at 60% 70%, rgba(232,236,244,0.25), transparent), radial-gradient(1px 1px at 80% 20%, rgba(232,236,244,0.2), transparent)',
+          backgroundSize: '200px 200px, 280px 280px, 240px 240px',
+        }}
+        aria-hidden="true"
+      />
+    )
+  }
 
   return (
     <canvas

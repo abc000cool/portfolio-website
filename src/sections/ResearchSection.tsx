@@ -12,7 +12,7 @@ import { sectionShellClass } from '../lib/waypointLayout'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useInView, prefetchResearchViewers } from '../hooks/useInView'
 import { useMediaQuery } from '../hooks/useMediaQuery'
-import { useIsPhoneLayout } from '../hooks/useTouchDevice'
+import { useIsMobileLayout } from '../hooks/useTouchDevice'
 import { useSectionReveal } from '../hooks/useSectionReveal'
 
 const MOBILE_SCROLL_SCALE = 0.55
@@ -133,7 +133,8 @@ function ResearchShowcaseBlock({
   const scrollZoneRef = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
   const isMobile = useMediaQuery('(max-width: 767px)')
-  const blockInView = useInView(scrollZoneRef, { threshold: 0, rootMargin: '0px 0px -10% 0px' })
+  const blockInView = useInView(scrollZoneRef, { threshold: 0, rootMargin: '0px 0px 40% 0px' })
+  const blockActive = headingActive || blockInView
 
   const { scrollYProgress } = useScroll({
     target: scrollZoneRef,
@@ -150,8 +151,7 @@ function ResearchShowcaseBlock({
     ? Math.round(config.scrollHeightVh * MOBILE_SCROLL_SCALE)
     : config.scrollHeightVh
 
-  /** Viewport visibility drives 3D — mission waypoint lags far behind visual scroll. */
-  const viewerActive = blockInView || headingActive
+  const viewerActive = blockActive
 
   const card = (
     <article className="research-showcase__card glass-card p-6 md:p-8 lg:p-10">
@@ -228,7 +228,7 @@ function ResearchShowcaseBlock({
           style={{ height: `${scrollHeightVh}vh` }}
         >
           <div className="research-showcase__sticky">
-            <ScanWipe>{content}</ScanWipe>
+            <ScanWipe active={blockActive}>{content}</ScanWipe>
           </div>
         </div>
       )}
@@ -239,15 +239,15 @@ function ResearchShowcaseBlock({
 export function ResearchSection() {
   const sectionRef = useRef<HTMLElement>(null)
   const active = useSectionReveal('research', sectionRef)
-  const isPhone = useIsPhoneLayout()
+  const isMobile = useIsMobileLayout()
   const sectionNear = useInView(sectionRef, {
     threshold: 0,
     rootMargin: '0px 0px 40% 0px',
   })
 
   useEffect(() => {
-    if (sectionNear && !isPhone) prefetchResearchViewers()
-  }, [sectionNear, isPhone])
+    if (sectionNear && !isMobile) prefetchResearchViewers()
+  }, [sectionNear, isMobile])
 
   return (
     <section
@@ -263,13 +263,13 @@ export function ResearchSection() {
         <div id="research-heading" className="mb-10 md:mb-14 max-w-2xl">
           <RedactedHeading active={active}>Research</RedactedHeading>
           <p className="text-slate-400 mt-4 leading-relaxed">
-            {isPhone
+            {isMobile
               ? 'Pending research across orbital debris mitigation, morphing airfoil optimization, and fluid-dynamics traffic modeling.'
               : 'Scroll through each project to explore interactive 3D visualizations — from orbital debris capture to morphing airfoil optimization and fluid-dynamics traffic flow.'}
           </p>
         </div>
 
-        {isPhone ? (
+        {isMobile ? (
           <ScanWipe active={active}>
             <div className="flex flex-col gap-6">
               {RESEARCH_SHOWCASE.map((config) => (

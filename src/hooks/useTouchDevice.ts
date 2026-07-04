@@ -26,3 +26,9 @@ export function usePreferNativeScroll(): boolean {
   const touch = useTouchDevice()
   return touch || detectSafari()
 }
+
+/** Lighter visuals + fewer scroll-driven effects (mobile, tablet, Safari). */
+export function useLightExperience(): boolean {
+  const mobile = useIsMobileLayout()
+  return usePreferNativeScroll() || mobile
+}

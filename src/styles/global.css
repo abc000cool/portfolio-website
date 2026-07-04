@@ -236,11 +236,11 @@
 
   /* Content drifts toward the flight path's waypoint side on wide screens */
   @media (min-width: 1280px) {
-    .shell-left .section-inner {
-      transform: translateX(-2.5vw);
+    .shell-left .section-inner:not(.section-inner--no-drift) {
+      padding-right: 2.5vw;
     }
-    .shell-right .section-inner {
-      transform: translateX(2.5vw);
+    .shell-right .section-inner:not(.section-inner--no-drift) {
+      padding-left: 2.5vw;
     }
   }
 

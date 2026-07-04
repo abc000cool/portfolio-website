@@ -1,10 +1,11 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import { useMotionValueEvent, useMotionValue, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import { useMotionProgressRef } from '../../hooks/useMotionProgressRef'
+import { useThrottledMotionValue } from '../../hooks/useThrottledMotionValue'
 import { smoothstep } from '../../lib/airfoilGeometry'
 import { ResearchViewerFrame, ViewerTelemetry } from '../research/ResearchViewerFrame'
 
@@ -242,21 +243,18 @@ export function FlowStateTraffic({
   const progressRef = useMotionProgressRef(progress, scrollProgress)
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
-  const [liveProgress, setLiveProgress] = useState(() => progress?.get() ?? scrollProgress)
+  const liveProgress = useThrottledMotionValue(source, 150)
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
   }, [progress, scrollProgress, fallbackProgress])
 
   useEffect(() => {
-    const v = progress?.get() ?? scrollProgress
-    progressRef.current = v
-    setLiveProgress(v)
+    progressRef.current = progress?.get() ?? scrollProgress
   }, [progress, scrollProgress, progressRef])
 
   useMotionValueEvent(source, 'change', (v) => {
     progressRef.current = v
-    setLiveProgress(v)
   })
 
   const telemetry = getTelemetry(liveProgress)

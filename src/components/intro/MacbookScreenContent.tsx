@@ -13,7 +13,8 @@ export function MacbookScreenContent({ progress }: MacbookScreenContentProps) {
   const [launch, setLaunch] = useState(false)
 
   useMotionValueEvent(progress ?? fallback, 'change', (v) => {
-    setLaunch(v >= 0.48)
+    const next = v >= 0.48
+    setLaunch((prev) => (prev === next ? prev : next))
   })
 
   return (

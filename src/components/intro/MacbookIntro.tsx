@@ -9,13 +9,16 @@ import {
 import { portfolio } from '../../data/portfolio'
 import { useIntroViewport } from '../../hooks/useIntroViewport'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { useLightExperience } from '../../hooks/useTouchDevice'
 import { MacbookScreenContent } from './MacbookScreenContent'
 
 export function MacbookIntro() {
   const ref = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
+  const light = useLightExperience()
   const { isMobile, displayScale } = useIntroViewport()
-  const translateMax = isMobile ? 900 : 1500
+  const translateMax = isMobile ? 700 : 1500
+  const hintRef = useRef<HTMLParagraphElement>(null)
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -34,7 +37,13 @@ export function MacbookIntro() {
   })
 
   const [hintVisible, setHintVisible] = useState(true)
-  useMotionValueEvent(scrollYProgress, 'change', (v) => setHintVisible(v < 0.05))
+  useMotionValueEvent(scrollYProgress, 'change', (v) => {
+    if (light) {
+      if (hintRef.current) hintRef.current.style.opacity = v < 0.05 ? '1' : '0'
+      return
+    }
+    setHintVisible(v < 0.05)
+  })
 
   if (reduced) {
     return (
@@ -63,7 +72,7 @@ export function MacbookIntro() {
     >
       <div
         ref={ref}
-        className={`flex shrink-0 flex-col items-center justify-start py-0 md:py-16 ${isMobile ? 'min-h-[140vh]' : 'min-h-[200vh]'}`}
+        className={`flex shrink-0 flex-col items-center justify-start py-0 md:py-16 ${isMobile ? 'min-h-[120vh]' : 'min-h-[200vh]'}`}
         style={{
           scale: displayScale,
           transformOrigin: 'top center',
@@ -111,8 +120,9 @@ export function MacbookIntro() {
       </div>
 
       <p
+        ref={hintRef}
         className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 text-xs text-slate-500 m-0 transition-opacity duration-500 ${
-          hintVisible ? 'opacity-100' : 'opacity-0'
+          light ? '' : hintVisible ? 'opacity-100' : 'opacity-0'
         }`}
         aria-hidden="true"
       >

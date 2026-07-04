@@ -78,23 +78,32 @@ export function SiteNav() {
   useEffect(() => {
     if (!isHome) return
 
+    let raf = 0
     const onScroll = () => {
-      setScrolled(window.scrollY > 24)
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        const y = window.scrollY
+        setScrolled(y > 24)
 
-      const probe = window.scrollY + window.innerHeight * 0.4
-      let current: string = SECTION_IDS[0]
-      for (const id of SECTION_IDS) {
-        const el = document.getElementById(id)
-        if (!el) continue
-        const top = el.getBoundingClientRect().top + window.scrollY
-        if (top <= probe) current = id
-      }
-      setActiveId(current)
+        const probe = y + window.innerHeight * 0.4
+        let current: string = SECTION_IDS[0]
+        for (const id of SECTION_IDS) {
+          const el = document.getElementById(id)
+          if (!el) continue
+          const top = el.getBoundingClientRect().top + y
+          if (top <= probe) current = id
+        }
+        setActiveId(current)
+      })
     }
 
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
   }, [isHome])
 
   const navSolid = !isHome || scrolled
