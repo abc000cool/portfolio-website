@@ -9,10 +9,14 @@ import {
 import { portfolio } from '../../data/portfolio'
 import { useIntroViewport } from '../../hooks/useIntroViewport'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
-import { useLightExperience } from '../../hooks/useTouchDevice'
+import {
+  useIsPhoneLayout,
+  useLightExperience,
+  useTouchDevice,
+} from '../../hooks/useTouchDevice'
 import { MacbookScreenContent } from './MacbookScreenContent'
 
-/** Phone-only intro — screen-first laptop, lid rotate only, no keyboard chrome. */
+/** Phone — static open laptop (no 3D; iOS Safari breaks rotateX). Scroll fades into hero. */
 function MobileMacbookIntro({
   scrollRef,
   scrollYProgress,
@@ -20,43 +24,24 @@ function MobileMacbookIntro({
   scrollRef: React.RefObject<HTMLDivElement | null>
   scrollYProgress: MotionValue<number>
 }) {
-  const rotate = useTransform(scrollYProgress, [0, 0.45], [-78, 0])
-  const textTranslate = useTransform(scrollYProgress, [0, 0.25], [0, -80])
-  const textOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
-  const laptopOpacity = useTransform(scrollYProgress, [0.46, 0.68], [1, 0], { clamp: true })
+  const fade = useTransform(scrollYProgress, [0.55, 0.82], [1, 0], { clamp: true })
+  const lift = useTransform(scrollYProgress, [0, 0.82], [0, -32])
 
   return (
-    <div ref={scrollRef} className="relative h-[200vh]">
-      <div className="sticky top-0 flex min-h-[100dvh] flex-col items-center pt-[max(4.5rem,10vh)] px-4">
+    <div ref={scrollRef} className="relative h-[150vh]">
+      <div className="sticky top-0 flex min-h-[100svh] flex-col items-center justify-center px-5 pt-14 pb-10">
         <motion.div
-          style={{ translateY: textTranslate, opacity: textOpacity }}
-          className="relative z-20 mb-8 w-full max-w-lg"
+          style={{ opacity: fade, y: lift }}
+          className="flex w-full max-w-md flex-col items-center gap-7"
         >
           <IntroTitle compact />
-        </motion.div>
 
-        <motion.div style={{ opacity: laptopOpacity }} className="relative z-10 w-full flex justify-center">
-          <div className="w-[min(86vw,17.5rem)] [perspective:900px]">
-            <div className="h-5 rounded-t-lg bg-[#08080c] ring-1 ring-white/10 mx-1" aria-hidden="true" />
-
-            <motion.div
-              style={{
-                rotateX: rotate,
-                transformOrigin: 'bottom center',
-              }}
-              className="relative -mt-px"
-            >
-              <div className="rounded-xl bg-[#08080c] p-1.5 ring-1 ring-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
-                <div className="aspect-[16/10] w-full rounded-lg overflow-hidden bg-[#16161d]">
-                  <MacbookScreenContent compact progress={scrollYProgress} />
-                </div>
+          <div className="w-full max-w-[18rem]">
+            <div className="rounded-2xl border border-white/10 bg-[#0a0a10] p-2 shadow-2xl">
+              <div className="aspect-[16/10] w-full rounded-xl overflow-hidden bg-[#16161d]">
+                <MacbookScreenContent compact />
               </div>
-            </motion.div>
-
-            <div
-              className="mx-auto mt-1.5 h-2 w-[94%] rounded-b-md bg-gradient-to-b from-[#21212a] to-[#0c0c12] ring-1 ring-white/10"
-              aria-hidden="true"
-            />
+            </div>
           </div>
         </motion.div>
       </div>
@@ -69,9 +54,12 @@ export function MacbookIntro() {
   const mobileRef = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
   const light = useLightExperience()
-  const { isMobile, displayScale } = useIntroViewport()
+  const touch = useTouchDevice()
+  const phoneLayout = useIsPhoneLayout()
+  const phone = touch || phoneLayout
+  const { displayScale } = useIntroViewport()
 
-  const scrollTarget = isMobile ? mobileRef : desktopRef
+  const scrollTarget = phone ? mobileRef : desktopRef
   const { scrollYProgress } = useScroll({
     target: scrollTarget,
     offset: ['start start', 'end start'],
@@ -123,7 +111,7 @@ export function MacbookIntro() {
       className="relative"
       aria-label="Introduction"
     >
-      {isMobile ? (
+      {phone ? (
         <MobileMacbookIntro scrollRef={mobileRef} scrollYProgress={scrollYProgress} />
       ) : (
         <div
@@ -176,6 +164,7 @@ export function MacbookIntro() {
         </div>
       )}
 
+      {!phone && (
       <p
         ref={hintRef}
         className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 text-xs text-slate-500 m-0 transition-opacity duration-500 ${
@@ -188,6 +177,7 @@ export function MacbookIntro() {
         </span>
         Scroll to open
       </p>
+      )}
     </section>
   )
 }

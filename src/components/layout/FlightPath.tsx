@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { ScrollTrigger } from '../../lib/scrollTrigger'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
-import { useLightExperience } from '../../hooks/useTouchDevice'
+import { useLightExperience, useTouchDevice } from '../../hooks/useTouchDevice'
 import { useMissionPath } from '../../hooks/useMissionPath'
 import {
   computeWaypointArcLengths,
@@ -25,6 +25,7 @@ export function FlightPath({ containerRef }: FlightPathProps) {
   const dotRefs = useRef<(SVGGElement | null)[]>([])
   const reduced = useReducedMotion()
   const light = useLightExperience()
+  const touch = useTouchDevice()
   const { pathD, waypoints, height, width, ready } = useMissionPath(containerRef)
   const [progress, setProgress] = useState(0)
   const [arcLengths, setArcLengths] = useState<number[]>([])
@@ -41,7 +42,7 @@ export function FlightPath({ containerRef }: FlightPathProps) {
     const trail = trailRef.current
     const rocket = rocketRef.current
     const length = pathLengthRef.current
-    if (!path || !rocket || length === 0) return
+    if (!path || length === 0) return
 
     const drawn = length * p
     path.style.strokeDasharray = `${drawn} ${length}`
@@ -52,6 +53,8 @@ export function FlightPath({ containerRef }: FlightPathProps) {
       trail.style.strokeDasharray = `${trailLen} ${length}`
       trail.style.strokeDashoffset = '0'
     }
+
+    if (!rocket) return
 
     const tip = Math.max(0, Math.min(length, drawn))
     const point = path.getPointAtLength(tip)
@@ -255,7 +258,7 @@ export function FlightPath({ containerRef }: FlightPathProps) {
         style={{ strokeDasharray: '0 1', strokeDashoffset: 0 }}
       />
 
-      <g ref={rocketRef}>
+      <g ref={rocketRef} style={{ display: touch ? 'none' : undefined }}>
         <RocketShip />
       </g>
     </svg>
