@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   motion,
   useMotionValueEvent,
@@ -29,34 +29,24 @@ export function MacbookIntro() {
     offset: ['start start', 'end start'],
   })
 
-  // Phone: finish lid open + fade inside sticky pin before scroll track ends
-  const lidEnd = isMobile ? 0.36 : 0.3
-  const fadeStart = isMobile ? 0.4 : 0.5
-  const fadeMid = isMobile ? 0.58 : 0.72
-  const translateEnd = isMobile ? 0.88 : 1
-  const translateMax = isMobile ? 420 : 1500
+  const lidEnd = isMobile ? 0.42 : 0.3
+  const fadeStart = isMobile ? 0.48 : 0.5
+  const fadeMid = isMobile ? 0.62 : 0.72
+  const translateEnd = isMobile ? 0.9 : 1
+  const translateMax = isMobile ? 360 : 1500
   const peakLidScale = isMobile ? 1 : 1.5
 
-  // iOS Safari: no rotateX — scaleY simulates the lid opening on touch
-  const scaleX = useTransform(
-    scrollYProgress,
-    [0, lidEnd],
-    touch ? [1.08, 1] : [1.2, peakLidScale],
-  )
-  const scaleY = useTransform(
-    scrollYProgress,
-    [0, lidEnd],
-    touch ? [0.42, 1] : [0.6, peakLidScale],
-  )
+  const scaleX = useTransform(scrollYProgress, [0, lidEnd], [1.2, peakLidScale])
+  const scaleY = useTransform(scrollYProgress, [0, lidEnd], [0.6, peakLidScale])
   const translate = useTransform(scrollYProgress, [0, translateEnd], [0, translateMax])
   const rotate = useTransform(
     scrollYProgress,
     [0.1, 0.12, lidEnd],
     isMobile ? [-14, -14, 0] : [-28, -28, 0],
   )
-  const backShellOpacity = useTransform(scrollYProgress, [0, touch ? 0.18 : 0.12], [1, 0])
-  const textTranslate = useTransform(scrollYProgress, [0, isMobile ? 0.28 : 0.35], [0, -160])
-  const textOpacity = useTransform(scrollYProgress, [0, isMobile ? 0.22 : 0.28], [1, 0])
+  const backShellOpacity = useTransform(scrollYProgress, [0, touch ? 0.22 : 0.12], [1, 0])
+  const textTranslate = useTransform(scrollYProgress, [0, isMobile ? 0.32 : 0.35], [0, -120])
+  const textOpacity = useTransform(scrollYProgress, [0, isMobile ? 0.26 : 0.28], [1, 0])
   const glowOpacity = useTransform(
     scrollYProgress,
     [0, 0.25, isMobile ? 0.45 : 0.55],
@@ -64,10 +54,11 @@ export function MacbookIntro() {
   )
   const laptopOpacity = useTransform(
     scrollYProgress,
-    [fadeStart, fadeMid, isMobile ? 0.82 : 1],
+    [fadeStart, fadeMid, isMobile ? 0.88 : 1],
     [1, 0, 0],
     { clamp: true },
   )
+  const laptopLift = useTransform(scrollYProgress, [fadeStart, fadeMid], [0, isMobile ? 24 : 0])
 
   const hintRef = useRef<HTMLParagraphElement>(null)
   const [hintVisible, setHintVisible] = useState(true)
@@ -99,21 +90,25 @@ export function MacbookIntro() {
   const laptopScene = (
     <div
       className="flex w-full flex-col items-center"
-      style={{
-        scale: displayScale,
-        transformOrigin: 'top center',
-      }}
+      style={
+        isMobile
+          ? undefined
+          : {
+              scale: displayScale,
+              transformOrigin: 'top center',
+            }
+      }
     >
       <motion.div
         style={{ translateY: textTranslate, opacity: textOpacity }}
-        className="relative z-20 mb-8 md:mb-16 w-full px-6 pt-20 md:pt-28"
+        className={`relative z-20 w-full px-5 ${isMobile ? 'mb-4 pt-16' : 'mb-8 md:mb-16 px-6 pt-20 md:pt-28'}`}
       >
         <IntroTitle compact={isMobile} />
       </motion.div>
 
       <motion.div
-        style={{ opacity: laptopOpacity }}
-        className="relative z-10 flex flex-col items-center"
+        style={{ opacity: laptopOpacity, translateY: laptopLift }}
+        className="relative z-10 flex flex-col items-center w-full"
       >
         {!touch && (
           <motion.div
@@ -123,27 +118,38 @@ export function MacbookIntro() {
           />
         )}
 
-        <Lid
-          scaleX={scaleX}
-          scaleY={scaleY}
-          rotate={rotate}
-          translate={translate}
-          backShellOpacity={backShellOpacity}
-          progress={scrollYProgress}
-          flat={touch}
-        />
+        {touch || isMobile ? (
+          <MobileLid
+            progress={scrollYProgress}
+            translate={translate}
+            backShellOpacity={backShellOpacity}
+          />
+        ) : (
+          <DesktopLid
+            scaleX={scaleX}
+            scaleY={scaleY}
+            rotate={rotate}
+            translate={translate}
+            backShellOpacity={backShellOpacity}
+            progress={scrollYProgress}
+          />
+        )}
 
-        <div className="relative -z-10 h-[22rem] w-[min(92vw,32rem)] overflow-hidden rounded-2xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10">
-          <div className="relative h-10 w-full">
-            <div className="absolute inset-x-0 mx-auto h-4 w-[80%] rounded-b-lg bg-[#050507]" />
+        <div
+          className={`relative -z-10 overflow-hidden rounded-2xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10 ${
+            isMobile ? 'h-[11.5rem] w-[min(90vw,20rem)]' : 'h-[22rem] w-[min(92vw,32rem)]'
+          }`}
+        >
+          <div className="relative h-7 w-full">
+            <div className="absolute inset-x-0 mx-auto h-3 w-[80%] rounded-b-lg bg-[#050507]" />
           </div>
           <div className="relative flex">
-            <SpeakerGrid />
+            <SpeakerGrid compact={isMobile} />
             <Keypad compact={isMobile} />
-            <SpeakerGrid />
+            <SpeakerGrid compact={isMobile} />
           </div>
-          <Trackpad />
-          <div className="absolute inset-x-0 bottom-0 mx-auto h-2 w-20 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-[#23232b] to-[#060608]" />
+          <Trackpad compact={isMobile} />
+          <div className="absolute inset-x-0 bottom-0 mx-auto h-1.5 w-16 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-[#23232b] to-[#060608]" />
         </div>
       </motion.div>
     </div>
@@ -157,17 +163,16 @@ export function MacbookIntro() {
       className="relative z-20 isolate"
       aria-label="Introduction"
     >
-      {/* Scroll track — no transforms on this wrapper (keeps sticky working on iOS) */}
       <div
         ref={ref}
         className={
           isMobile
-            ? 'relative h-[180vh]'
+            ? 'relative h-[170vh]'
             : 'flex min-h-[200vh] shrink-0 flex-col items-center justify-start py-0 md:py-16 [perspective:800px]'
         }
       >
         {isMobile ? (
-          <div className="sticky top-0 flex min-h-[100svh] flex-col items-center justify-start overflow-hidden pt-2">
+          <div className="sticky top-0 flex min-h-[100svh] max-h-[100svh] flex-col items-center justify-center overflow-hidden px-3">
             {laptopScene}
           </div>
         ) : (
@@ -194,35 +199,99 @@ export function MacbookIntro() {
 function IntroTitle({ compact = false }: { compact?: boolean }) {
   return (
     <div className="text-center max-w-3xl mx-auto">
-      <p className="section-label mb-3">Aerospace Engineering Portfolio</p>
+      <p className={`section-label ${compact ? 'mb-2' : 'mb-3'}`}>Aerospace Engineering Portfolio</p>
       <p
-        className={`font-display font-semibold tracking-tight text-white mb-3 md:mb-5 ${compact ? 'text-3xl sm:text-4xl' : 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl'}`}
+        className={`font-display font-semibold tracking-tight text-white ${compact ? 'text-[1.65rem] leading-tight mb-2' : 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-3 md:mb-5'}`}
       >
         {portfolio.identity.name}
       </p>
       <h1
-        className={`font-display font-semibold tracking-tight leading-[1.05] text-white ${compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl md:text-6xl lg:text-7xl'}`}
+        className={`font-display font-semibold tracking-tight leading-[1.05] text-white ${compact ? 'text-xl' : 'text-3xl sm:text-4xl md:text-6xl lg:text-7xl'}`}
       >
         Engineering flight,
         <span className="block bg-gradient-to-r from-indigo-300 via-violet-300 to-indigo-200 bg-clip-text text-transparent pb-1">
           one mission at a time.
         </span>
       </h1>
-      <p className="mt-4 md:mt-5 text-base md:text-lg text-slate-400 max-w-xl mx-auto leading-relaxed">
-        {portfolio.identity.tagline}
-      </p>
+      {!compact && (
+        <p className="mt-4 md:mt-5 text-base md:text-lg text-slate-400 max-w-xl mx-auto leading-relaxed">
+          {portfolio.identity.tagline}
+        </p>
+      )}
     </div>
   )
 }
 
-function Lid({
+/** iOS-safe lid: screen stays 16:10; only the cover scales away from the bottom hinge. */
+function MobileLid({
+  progress,
+  translate,
+  backShellOpacity,
+}: {
+  progress: MotionValue<number>
+  translate: MotionValue<number>
+  backShellOpacity: MotionValue<number>
+}) {
+  const coverRef = useRef<HTMLDivElement>(null)
+  const screenScale = useTransform(progress, [0.35, 0.52], [1, 1.04])
+
+  useEffect(() => {
+    const updateCover = (v: number) => {
+      const cover = coverRef.current
+      if (!cover) return
+      const t = Math.min(1, Math.max(0, v / 0.3))
+      cover.style.transform = `scaleY(${1 - t})`
+    }
+    updateCover(progress.get())
+    const unsub = progress.on('change', updateCover)
+    return unsub
+  }, [progress])
+
+  return (
+    <motion.div
+      style={{ translateY: translate }}
+      className="relative w-[min(90vw,20rem)]"
+      data-testid="mobile-lid"
+    >
+      <motion.div style={{ opacity: backShellOpacity }} className="relative z-0 mb-1" aria-hidden="true">
+        <div className="h-8 w-full rounded-t-xl bg-[#08080c] ring-1 ring-white/10 flex items-center justify-center">
+          <LidLogo size={22} />
+        </div>
+      </motion.div>
+
+      <motion.div
+        style={{ scale: screenScale }}
+        className="relative z-10 rounded-xl bg-[#08080c] p-1.5 ring-1 ring-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
+        data-testid="mobile-screen-frame"
+      >
+        <div className="relative aspect-[16/10] w-full rounded-lg overflow-hidden bg-[#16161d]">
+          <MacbookScreenContent progress={progress} compact />
+
+          <div
+            ref={coverRef}
+            className="absolute inset-0 z-20 flex items-center justify-center bg-[#08080c] [transform-origin:bottom_center]"
+            data-testid="mobile-lid-cover"
+            style={{ transform: 'scaleY(1)' }}
+          >
+            <div
+              style={{ boxShadow: '0px 2px 0px 2px #16161d inset' }}
+              className="absolute inset-0 rounded-lg bg-[#08080c]"
+            />
+            <LidLogo size={28} />
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function DesktopLid({
   scaleX,
   scaleY,
   rotate,
   translate,
   backShellOpacity,
   progress,
-  flat = false,
 }: {
   scaleX: MotionValue<number>
   scaleY: MotionValue<number>
@@ -230,45 +299,23 @@ function Lid({
   translate: MotionValue<number>
   backShellOpacity: MotionValue<number>
   progress: MotionValue<number>
-  flat?: boolean
 }) {
-  const lidWidth = 'min(92vw, 32rem)'
-
   return (
-    <div
-      className={`relative ${flat ? '' : '[perspective:800px]'}`}
-      style={{ width: lidWidth, minHeight: flat ? '11rem' : '24rem' }}
-    >
-      <motion.div
-        style={{ opacity: backShellOpacity }}
-        className="relative z-0"
-      >
+    <div className="relative [perspective:800px]" style={{ width: 'min(92vw, 32rem)', minHeight: '24rem' }}>
+      <motion.div style={{ opacity: backShellOpacity }} className="relative z-0">
         <div
-          style={
-            flat
-              ? undefined
-              : {
-                  transform: 'perspective(800px) rotateX(-25deg) translateZ(0px)',
-                  transformOrigin: 'bottom',
-                  transformStyle: 'preserve-3d',
-                }
-          }
+          style={{
+            transform: 'perspective(800px) rotateX(-25deg) translateZ(0px)',
+            transformOrigin: 'bottom',
+            transformStyle: 'preserve-3d',
+          }}
           className="relative h-[10rem] md:h-[12rem] w-full rounded-2xl bg-[#08080c] p-2 ring-1 ring-white/10"
         >
           <div
             style={{ boxShadow: '0px 2px 0px 2px #16161d inset' }}
             className="absolute inset-0 flex items-center justify-center rounded-lg bg-[#08080c]"
           >
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-              <path d="M18 4 L23 20 L18 17 L13 20 Z" fill="url(#lid-logo)" />
-              <ellipse cx="18" cy="26" rx="4" ry="2" fill="#6366f1" opacity="0.6" />
-              <defs>
-                <linearGradient id="lid-logo" x1="13" y1="4" x2="23" y2="20">
-                  <stop stopColor="#c7d2fe" />
-                  <stop offset="1" stopColor="#818cf8" />
-                </linearGradient>
-              </defs>
-            </svg>
+            <LidLogo />
           </div>
         </div>
       </motion.div>
@@ -277,36 +324,50 @@ function Lid({
         style={{
           scaleX,
           scaleY,
-          ...(flat ? {} : { rotateX: rotate }),
+          rotateX: rotate,
           translateY: translate,
-          transformStyle: flat ? undefined : 'preserve-3d',
+          transformStyle: 'preserve-3d',
           transformOrigin: 'top center',
-          WebkitTransformStyle: flat ? undefined : 'preserve-3d',
         }}
-        className="absolute left-0 right-0 top-0 z-10 h-[11rem] sm:h-80 md:h-96 w-full rounded-2xl bg-[#08080c] p-2 ring-1 ring-white/10 [transform:translateZ(0)]"
+        className="absolute left-0 right-0 top-0 z-10 h-80 md:h-96 w-full rounded-2xl bg-[#08080c] p-2 ring-1 ring-white/10"
       >
         <div className="absolute inset-0 rounded-lg bg-[#16161d]" />
         <div className="absolute inset-2 overflow-hidden rounded-lg">
-          <MacbookScreenContent progress={progress} compact={flat} />
+          <MacbookScreenContent progress={progress} />
         </div>
       </motion.div>
     </div>
   )
 }
 
-function Trackpad() {
+function LidLogo({ size = 36 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" aria-hidden="true">
+      <path d="M18 4 L23 20 L18 17 L13 20 Z" fill="url(#lid-logo)" />
+      <ellipse cx="18" cy="26" rx="4" ry="2" fill="#6366f1" opacity="0.6" />
+      <defs>
+        <linearGradient id="lid-logo" x1="13" y1="4" x2="23" y2="20">
+          <stop stopColor="#c7d2fe" />
+          <stop offset="1" stopColor="#818cf8" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
+function Trackpad({ compact = false }: { compact?: boolean }) {
   return (
     <div
-      className="mx-auto my-1 h-32 w-[40%] rounded-xl"
+      className={`mx-auto rounded-xl ${compact ? 'my-0.5 h-14 w-[42%]' : 'my-1 h-32 w-[40%]'}`}
       style={{ boxShadow: '0px 0px 1px 1px #ffffff10 inset' }}
     />
   )
 }
 
-function SpeakerGrid() {
+function SpeakerGrid({ compact = false }: { compact?: boolean }) {
   return (
     <div
-      className="mx-auto mt-2 h-40 w-[10%] overflow-hidden"
+      className={`mx-auto overflow-hidden ${compact ? 'mt-1 h-24 w-[10%]' : 'mt-2 h-40 w-[10%]'}`}
       style={{
         backgroundImage: 'radial-gradient(circle, #ffffff14 0.5px, transparent 0.5px)',
         backgroundSize: '3px 3px',
@@ -341,7 +402,7 @@ function Keypad({ compact = false }: { compact?: boolean }) {
             <div
               key={ki}
               style={{ flex }}
-              className={`rounded-[4px] bg-gradient-to-b from-[#17171d] to-[#0c0c10] shadow-[0_-0.5px_1px_0_rgba(255,255,255,0.12)_inset,0_1px_2px_0_rgba(0,0,0,0.6)] ${compact ? 'h-5' : 'h-7'}`}
+              className={`rounded-[4px] bg-gradient-to-b from-[#17171d] to-[#0c0c10] shadow-[0_-0.5px_1px_0_rgba(255,255,255,0.12)_inset,0_1px_2px_0_rgba(0,0,0,0.6)] ${compact ? 'h-4' : 'h-7'}`}
             />
           ))}
         </div>
