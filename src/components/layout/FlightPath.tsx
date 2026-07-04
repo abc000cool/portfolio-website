@@ -25,6 +25,39 @@ export function FlightPath({ containerRef }: FlightPathProps) {
   const [arcLengths, setArcLengths] = useState<number[]>([])
   const [totalLength, setTotalLength] = useState(0)
   const { update: updateMission, markAllReached } = useMissionUpdater()
+  const progressRef = useRef(0)
+  const lastProgressRender = useRef(0)
+
+  const applyProgressVisuals = (p: number) => {
+    const path = pathRef.current
+    const trail = trailRef.current
+    const rocket = rocketRef.current
+    if (!path || !rocket) return
+
+    const length = getPathLength(path)
+    if (length === 0) return
+
+    const drawn = length * p
+    path.style.strokeDasharray = `${drawn} ${length}`
+    path.style.strokeDashoffset = '0'
+
+    if (trail) {
+      const trailLen = Math.max(0, drawn - 8)
+      trail.style.strokeDasharray = `${trailLen} ${length}`
+      trail.style.strokeDashoffset = '0'
+    }
+
+    const tip = Math.max(0, Math.min(length, drawn))
+    const point = path.getPointAtLength(tip)
+    const lookAhead = path.getPointAtLength(Math.min(length, tip + 2))
+    const angle =
+      (Math.atan2(lookAhead.y - point.y, lookAhead.x - point.x) * 180) / Math.PI
+
+    rocket.setAttribute(
+      'transform',
+      `translate(${point.x}, ${point.y}) rotate(${angle + 90})`,
+    )
+  }
 
   useEffect(() => {
     const path = pathRef.current
@@ -54,8 +87,15 @@ export function FlightPath({ containerRef }: FlightPathProps) {
 
     const update = () => {
       const p = scrollProgressToPathProgress(window.scrollY, waypoints, arcLengths, totalLength)
-      setProgress(p)
+      progressRef.current = p
+      applyProgressVisuals(p)
       updateMission(p, checkpoints)
+
+      const now = performance.now()
+      if (now - lastProgressRender.current > 80) {
+        lastProgressRender.current = now
+        setProgress(p)
+      }
     }
 
     const st = ScrollTrigger.create({
@@ -74,37 +114,6 @@ export function FlightPath({ containerRef }: FlightPathProps) {
   useEffect(() => {
     if (reduced && ready && checkpoints.length > 0) markAllReached(checkpoints)
   }, [reduced, ready, checkpoints, markAllReached])
-
-  useEffect(() => {
-    const path = pathRef.current
-    const trail = trailRef.current
-    const rocket = rocketRef.current
-    if (!path || !rocket) return
-
-    const length = getPathLength(path)
-    if (length === 0) return
-
-    const drawn = length * progress
-    path.style.strokeDasharray = `${drawn} ${length}`
-    path.style.strokeDashoffset = '0'
-
-    if (trail) {
-      const trailLen = Math.max(0, drawn - 8)
-      trail.style.strokeDasharray = `${trailLen} ${length}`
-      trail.style.strokeDashoffset = '0'
-    }
-
-    const tip = Math.max(0, Math.min(length, drawn))
-    const point = path.getPointAtLength(tip)
-    const lookAhead = path.getPointAtLength(Math.min(length, tip + 2))
-    const angle =
-      (Math.atan2(lookAhead.y - point.y, lookAhead.x - point.x) * 180) / Math.PI
-
-    rocket.setAttribute(
-      'transform',
-      `translate(${point.x}, ${point.y}) rotate(${angle + 90})`,
-    )
-  }, [progress, pathD, ready])
 
   useEffect(() => {
     if (!reduced || !pathRef.current) return

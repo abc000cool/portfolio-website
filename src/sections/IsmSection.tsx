@@ -1,16 +1,19 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { portfolio } from '../data/portfolio'
-import { useWaypointReached } from '../context/MissionContext'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
+import { useSectionReveal } from '../hooks/useSectionReveal'
 import { sectionShellClass } from '../lib/waypointLayout'
 
 export function IsmSection() {
-  const active = useWaypointReached('ism')
+  const sectionRef = useRef<HTMLElement>(null)
+  const active = useSectionReveal('ism', sectionRef)
   const { ism } = portfolio
 
   return (
     <section
+      ref={sectionRef}
       id="ism"
       data-mission-waypoint
       data-waypoint-side="center"

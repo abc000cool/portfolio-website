@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { portfolio } from '../data/portfolio'
-import { useWaypointReached } from '../context/MissionContext'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
 import { TelemetryTicker } from '../components/ui/TelemetryTicker'
+import { useSectionReveal } from '../hooks/useSectionReveal'
 import { gsap } from '../lib/scrollTrigger'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 
@@ -14,7 +14,8 @@ const EarthOrbit = lazy(() =>
 )
 
 export function AboutSection() {
-  const active = useWaypointReached('about')
+  const sectionRef = useRef<HTMLElement>(null)
+  const active = useSectionReveal('about', sectionRef)
   const schematicRef = useRef<SVGPathElement>(null)
   const reduced = useReducedMotion()
 
@@ -30,6 +31,7 @@ export function AboutSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="about"
       data-mission-waypoint
       data-waypoint-side="left"

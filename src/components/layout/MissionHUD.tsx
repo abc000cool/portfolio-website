@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useScrollProgress } from '../../hooks/useScrollProgress'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useMissionState } from '../../context/MissionContext'
 import { SECTION_LABELS, type SectionId } from '../../data/portfolio'
@@ -15,7 +16,8 @@ import { AirspeedGauge } from '../hud/AirspeedGauge'
  */
 export function MissionHUD() {
   const reduced = useReducedMotion()
-  const progress = useScrollProgress()
+  const hudVisible = useMediaQuery('(min-width: 1024px)', true)
+  const progress = useScrollProgress(!reduced && hudVisible)
   const { phase } = useMissionState()
   const [velocity, setVelocity] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
@@ -23,7 +25,7 @@ export function MissionHUD() {
 
   // Smoothed signed scroll velocity (-1..1) drives horizon pitch/roll and airspeed
   useEffect(() => {
-    if (reduced) return
+    if (reduced || !hudVisible) return
 
     let raf = 0
     let v = 0
@@ -44,7 +46,7 @@ export function MissionHUD() {
 
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [reduced])
+  }, [reduced, hudVisible])
 
   // Waypoint-reached toast on phase change (skip initial mount)
   useEffect(() => {
@@ -61,7 +63,7 @@ export function MissionHUD() {
     return () => clearTimeout(t)
   }, [phase])
 
-  if (reduced) return null
+  if (reduced || !hudVisible) return null
 
   const phaseLabel =
     phase === 'contact' ? 'Touchdown' : (SECTION_LABELS[phase as SectionId] ?? phase)

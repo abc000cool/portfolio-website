@@ -6,13 +6,14 @@ import {
   getResearchShowcasePaper,
   type ResearchShowcaseConfig,
 } from '../data/researchShowcase'
-import { useWaypointReached } from '../context/MissionContext'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useInView, prefetchResearchViewers } from '../hooks/useInView'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { useIsPhoneLayout } from '../hooks/useTouchDevice'
+import { useSectionReveal } from '../hooks/useSectionReveal'
 
 const MOBILE_SCROLL_SCALE = 0.55
 
@@ -81,6 +82,41 @@ function ResearchViewer({
         {config.viewerHint}
       </p>
     </Suspense>
+  )
+}
+
+function MobileResearchCard({ config }: { config: ResearchShowcaseConfig }) {
+  const paper = getResearchShowcasePaper(config.paperSlug)
+  if (!paper) return null
+
+  return (
+    <article className="glass-card p-6">
+      {config.conferenceBadge && (
+        <p className="font-mono text-[10px] uppercase tracking-widest text-indigo-300/80 mb-3">
+          {config.conferenceBadge.conference} {config.conferenceBadge.number} ·{' '}
+          {config.conferenceBadge.location}
+        </p>
+      )}
+      <span className="font-mono text-xs text-[var(--color-cockpit-amber)]">
+        {paper.year} — {paper.venue}
+      </span>
+      <h3 className="font-display text-lg text-white mt-2 mb-3 leading-snug">{paper.title}</h3>
+      <p className="text-sm text-slate-400 leading-relaxed mb-5 line-clamp-4">{paper.abstract}</p>
+      <div className="flex flex-wrap gap-3 mb-5">
+        {config.metrics.map((metric) => (
+          <div key={metric.label} className="research-showcase__metric">
+            <span className="research-showcase__metric-value">{metric.value}</span>
+            <span className="research-showcase__metric-label">{metric.label}</span>
+          </div>
+        ))}
+      </div>
+      <Link
+        to={config.linkTo}
+        className="link-underline text-sm font-medium text-indigo-300 no-underline"
+      >
+        {config.linkLabel}
+      </Link>
+    </article>
   )
 }
 
@@ -201,16 +237,17 @@ function ResearchShowcaseBlock({
 }
 
 export function ResearchSection() {
-  const reached = useWaypointReached('research')
   const sectionRef = useRef<HTMLElement>(null)
+  const active = useSectionReveal('research', sectionRef)
+  const isPhone = useIsPhoneLayout()
   const sectionNear = useInView(sectionRef, {
     threshold: 0,
     rootMargin: '0px 0px 40% 0px',
   })
 
   useEffect(() => {
-    if (sectionNear) prefetchResearchViewers()
-  }, [sectionNear])
+    if (sectionNear && !isPhone) prefetchResearchViewers()
+  }, [sectionNear, isPhone])
 
   return (
     <section
@@ -224,23 +261,34 @@ export function ResearchSection() {
       <div className="section-inner wide">
         <p className="section-label">Research</p>
         <div id="research-heading" className="mb-10 md:mb-14 max-w-2xl">
-          <RedactedHeading active={reached || sectionNear}>Research</RedactedHeading>
+          <RedactedHeading active={active}>Research</RedactedHeading>
           <p className="text-slate-400 mt-4 leading-relaxed">
-            Scroll through each project to explore interactive 3D visualizations — from orbital
-            debris capture to morphing airfoil optimization and fluid-dynamics traffic flow.
+            {isPhone
+              ? 'Pending research across orbital debris mitigation, morphing airfoil optimization, and fluid-dynamics traffic modeling.'
+              : 'Scroll through each project to explore interactive 3D visualizations — from orbital debris capture to morphing airfoil optimization and fluid-dynamics traffic flow.'}
           </p>
         </div>
 
-        <div className="research-showcase-list">
-          {RESEARCH_SHOWCASE.map((config, index) => (
-            <ResearchShowcaseBlock
-              key={config.id}
-              config={config}
-              headingActive={reached || sectionNear}
-              index={index}
-            />
-          ))}
-        </div>
+        {isPhone ? (
+          <ScanWipe active={active}>
+            <div className="flex flex-col gap-6">
+              {RESEARCH_SHOWCASE.map((config) => (
+                <MobileResearchCard key={config.id} config={config} />
+              ))}
+            </div>
+          </ScanWipe>
+        ) : (
+          <div className="research-showcase-list">
+            {RESEARCH_SHOWCASE.map((config, index) => (
+              <ResearchShowcaseBlock
+                key={config.id}
+                config={config}
+                headingActive={active}
+                index={index}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

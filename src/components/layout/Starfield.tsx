@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { useTouchDevice } from '../../hooks/useTouchDevice'
 
 interface Star {
   x: number
@@ -14,6 +15,7 @@ export function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isVisible = useIntersectionPause(canvasRef)
   const reduced = useReducedMotion()
+  const touch = useTouchDevice()
   const mouseRef = useRef({ x: 0.5, y: 0.5 })
 
   useEffect(() => {
@@ -23,6 +25,8 @@ export function Starfield() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    const starCount = reduced ? 30 : touch ? 40 : 90
+
     const resize = () => {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
@@ -30,7 +34,7 @@ export function Starfield() {
     resize()
     window.addEventListener('resize', resize)
 
-    const stars: Star[] = Array.from({ length: reduced ? 40 : 90 }, () => ({
+    const stars: Star[] = Array.from({ length: starCount }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       size: Math.random() * 1.2 + 0.3,
@@ -44,14 +48,14 @@ export function Starfield() {
         y: e.clientY / window.innerHeight,
       }
     }
-    window.addEventListener('mousemove', onMove)
+    if (!touch) window.addEventListener('mousemove', onMove)
 
     let animId = 0
     let shootingStar: { x: number; y: number; len: number; life: number } | null = null
 
     const draw = () => {
       if (!isVisible) {
-        animId = requestAnimationFrame(draw)
+        animId = 0
         return
       }
 
@@ -70,7 +74,7 @@ export function Starfield() {
         ctx.fill()
       }
 
-      if (!reduced && Math.random() < 0.0008 && !shootingStar) {
+      if (!reduced && !touch && Math.random() < 0.0008 && !shootingStar) {
         shootingStar = {
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height * 0.5,
@@ -104,9 +108,9 @@ export function Starfield() {
     return () => {
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', resize)
-      window.removeEventListener('mousemove', onMove)
+      if (!touch) window.removeEventListener('mousemove', onMove)
     }
-  }, [isVisible, reduced])
+  }, [isVisible, reduced, touch])
 
   return (
     <canvas

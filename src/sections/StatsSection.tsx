@@ -1,8 +1,9 @@
+import { useRef } from 'react'
 import { motion } from 'motion/react'
 import { portfolio } from '../data/portfolio'
-import { useWaypointReached } from '../context/MissionContext'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
+import { useSectionReveal } from '../hooks/useSectionReveal'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { Odometer } from '../components/ui/Odometer'
 import type { Stat } from '../data/portfolio'
@@ -41,10 +42,12 @@ function StatValue({
 }
 
 export function StatsSection() {
-  const active = useWaypointReached('stats')
+  const sectionRef = useRef<HTMLElement>(null)
+  const active = useSectionReveal('stats', sectionRef)
 
   return (
     <section
+      ref={sectionRef}
       id="stats"
       data-mission-waypoint
       data-waypoint-side="right"

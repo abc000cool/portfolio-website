@@ -4,8 +4,8 @@ import { gsap, ScrollTrigger } from './scrollTrigger'
 let lenisInstance: Lenis | null = null
 let tickerFn: ((time: number) => void) | null = null
 
-export function initLenis(reducedMotion: boolean): Lenis | null {
-  if (reducedMotion) return null
+export function initLenis(reducedMotion: boolean, touchDevice = false): Lenis | null {
+  if (reducedMotion || touchDevice) return null
   if (lenisInstance) return lenisInstance
 
   const lenis = new Lenis({
