@@ -8,7 +8,7 @@ import {
 } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { portfolio } from '../data/portfolio'
-import { useWaypointReached } from '../context/MissionContext'
+import { useSectionReveal } from '../hooks/useSectionReveal'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { MissionPatch } from '../components/ui/MissionPatch'
 import { sectionShellClass } from '../lib/waypointLayout'
@@ -224,7 +224,8 @@ function PinnedRevealCard({
 
 export function ProjectsSection() {
   const wrapRef = useRef<HTMLDivElement>(null)
-  const reached = useWaypointReached('projects')
+  const sectionRef = useRef<HTMLElement>(null)
+  const reached = useSectionReveal('projects', sectionRef)
   const reduced = useReducedMotion()
   const isNarrow = useMediaQuery('(max-width: 1023px)')
 
@@ -248,6 +249,7 @@ export function ProjectsSection() {
   if (!pinned) {
     return (
       <section
+        ref={sectionRef}
         id="projects"
         data-mission-waypoint
         data-waypoint-side="right"
@@ -277,6 +279,7 @@ export function ProjectsSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="projects"
       data-mission-waypoint
       data-waypoint-side="right"

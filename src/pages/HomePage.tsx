@@ -3,6 +3,7 @@ import { MotionConfig } from 'motion/react'
 import { initLenis, destroyLenis, scrollToSection } from '../lib/lenis'
 import { ScrollTrigger } from '../lib/scrollTrigger'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { usePreferNativeScroll } from '../hooks/useTouchDevice'
 import { useKonamiCode } from '../hooks/useKonamiCode'
 import { useLaunchCode } from '../hooks/useLaunchCode'
 import { MissionProvider, useWaypointReached } from '../context/MissionContext'
@@ -79,15 +80,22 @@ function FlightLogLine() {
 
 export function HomePage() {
   const reduced = useReducedMotion()
+  const nativeScroll = usePreferNativeScroll()
   const mainRef = useRef<HTMLElement>(null)
   const [launchActive, setLaunchActive] = useState(false)
   const [warpActive, setWarpActive] = useState(false)
   useEffect(() => {
-    initLenis(reduced)
+    initLenis(reduced, nativeScroll)
 
     const refresh = () => ScrollTrigger.refresh()
     window.addEventListener('load', refresh)
     const t = setTimeout(refresh, 600)
+    const t2 = setTimeout(refresh, 1800)
+
+    const vv = window.visualViewport
+    const onViewportChange = () => refresh()
+    vv?.addEventListener('resize', onViewportChange)
+    vv?.addEventListener('scroll', onViewportChange)
 
     const hash = window.location.hash.slice(1)
     if (hash) {
@@ -95,7 +103,10 @@ export function HomePage() {
       return () => {
         window.removeEventListener('load', refresh)
         clearTimeout(t)
+        clearTimeout(t2)
         clearTimeout(hashTimer)
+        vv?.removeEventListener('resize', onViewportChange)
+        vv?.removeEventListener('scroll', onViewportChange)
         destroyLenis()
         ScrollTrigger.getAll().forEach((st) => st.kill())
       }
@@ -104,10 +115,13 @@ export function HomePage() {
     return () => {
       window.removeEventListener('load', refresh)
       clearTimeout(t)
+      clearTimeout(t2)
+      vv?.removeEventListener('resize', onViewportChange)
+      vv?.removeEventListener('scroll', onViewportChange)
       destroyLenis()
       ScrollTrigger.getAll().forEach((st) => st.kill())
     }
-  }, [reduced])
+  }, [reduced, nativeScroll])
 
   const handleLaunch = useCallback(() => {
     if (!reduced) setLaunchActive(true)

@@ -15,6 +15,7 @@ export function MacbookIntro() {
   const ref = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
   const { isMobile, displayScale } = useIntroViewport()
+  const translateMax = isMobile ? 900 : 1500
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -23,7 +24,7 @@ export function MacbookIntro() {
 
   const scaleX = useTransform(scrollYProgress, [0, 0.3], [1.2, isMobile ? 1 : 1.5])
   const scaleY = useTransform(scrollYProgress, [0, 0.3], [0.6, isMobile ? 1 : 1.5])
-  const translate = useTransform(scrollYProgress, [0, 1], [0, 1500])
+  const translate = useTransform(scrollYProgress, [0, 1], [0, translateMax])
   const rotate = useTransform(scrollYProgress, [0.1, 0.12, 0.3], [-28, -28, 0])
   const textTranslate = useTransform(scrollYProgress, [0, 0.35], [0, -160])
   const textOpacity = useTransform(scrollYProgress, [0, 0.28], [1, 0])
@@ -62,7 +63,7 @@ export function MacbookIntro() {
     >
       <div
         ref={ref}
-        className="flex min-h-[200vh] shrink-0 flex-col items-center justify-start py-0 md:py-16"
+        className={`flex shrink-0 flex-col items-center justify-start py-0 md:py-16 ${isMobile ? 'min-h-[140vh]' : 'min-h-[200vh]'}`}
         style={{
           scale: displayScale,
           transformOrigin: 'top center',
@@ -82,7 +83,7 @@ export function MacbookIntro() {
         >
           <motion.div
             style={{ opacity: glowOpacity }}
-            className="pointer-events-none absolute top-40 h-[26rem] w-[46rem] rounded-full bg-indigo-500/25 blur-[120px]"
+            className={`pointer-events-none absolute top-40 rounded-full bg-indigo-500/25 ${isMobile ? 'h-[18rem] w-[28rem] blur-[60px]' : 'h-[26rem] w-[46rem] blur-[120px]'}`}
             aria-hidden="true"
           />
 

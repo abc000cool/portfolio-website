@@ -1,13 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { portfolio } from '../data/portfolio'
 import { externalLinkRel } from '../lib/externalLink'
-import { useWaypointReached } from '../context/MissionContext'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
+import { useSectionReveal } from '../hooks/useSectionReveal'
 import { sectionShellClass } from '../lib/waypointLayout'
 
 export function ContactSection() {
-  const active = useWaypointReached('contact')
+  const sectionRef = useRef<HTMLElement>(null)
+  const active = useSectionReveal('contact', sectionRef)
   const [submitted, setSubmitted] = useState(false)
 
   const handleSubmit = (e: FormEvent) => {
@@ -25,6 +26,7 @@ export function ContactSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="contact"
       data-mission-waypoint
       data-waypoint-side="center"

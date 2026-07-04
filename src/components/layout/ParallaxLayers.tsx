@@ -55,7 +55,8 @@ export function ParallaxLayers({ back, mid, children }: ParallaxLayersProps) {
           {mid}
         </div>
       )}
-      <div data-parallax-depth="1">{children}</div>
+      {/* No transform on content — ancestor transforms break position:sticky in Safari */}
+      <div>{children}</div>
     </>
   )
 }
