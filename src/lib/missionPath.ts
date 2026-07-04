@@ -53,18 +53,20 @@ export function buildSmoothPath(waypoints: Waypoint[], width: number): string {
   if (waypoints.length === 0) return ''
   if (waypoints.length === 1) return `M ${waypoints[0].x} ${waypoints[0].y}`
 
+  const sweep = width * 0.26
   let d = `M ${waypoints[0].x} ${waypoints[0].y}`
 
   for (let i = 1; i < waypoints.length; i++) {
     const prev = waypoints[i - 1]
     const curr = waypoints[i]
-    const dy = curr.y - prev.y
-    const sweep = width * 0.22
+    const dy = Math.max(64, curr.y - prev.y)
 
     const c1x = prev.x + (prev.side === 'left' ? sweep : prev.side === 'right' ? -sweep : 0)
     const c2x = curr.x + (curr.side === 'right' ? sweep : curr.side === 'left' ? -sweep : 0)
+    const c1y = prev.y + dy * 0.5
+    const c2y = curr.y - dy * 0.5
 
-    d += ` C ${c1x} ${prev.y + dy * 0.38}, ${c2x} ${curr.y - dy * 0.38}, ${curr.x} ${curr.y}`
+    d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${curr.x} ${curr.y}`
   }
 
   return d
