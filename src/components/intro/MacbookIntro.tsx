@@ -119,38 +119,32 @@ export function MacbookIntro() {
         )}
 
         {touch || isMobile ? (
-          <MobileLid
-            progress={scrollYProgress}
-            translate={translate}
-            backShellOpacity={backShellOpacity}
-          />
+          <MobileMacbook progress={scrollYProgress} />
         ) : (
-          <DesktopLid
-            scaleX={scaleX}
-            scaleY={scaleY}
-            rotate={rotate}
-            translate={translate}
-            backShellOpacity={backShellOpacity}
-            progress={scrollYProgress}
-          />
-        )}
+          <>
+            <DesktopLid
+              scaleX={scaleX}
+              scaleY={scaleY}
+              rotate={rotate}
+              translate={translate}
+              backShellOpacity={backShellOpacity}
+              progress={scrollYProgress}
+            />
 
-        <div
-          className={`relative -z-10 overflow-hidden rounded-2xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10 ${
-            isMobile ? 'h-[11.5rem] w-[min(90vw,20rem)]' : 'h-[22rem] w-[min(92vw,32rem)]'
-          }`}
-        >
-          <div className="relative h-7 w-full">
-            <div className="absolute inset-x-0 mx-auto h-3 w-[80%] rounded-b-lg bg-[#050507]" />
-          </div>
-          <div className="relative flex">
-            <SpeakerGrid compact={isMobile} />
-            <Keypad compact={isMobile} />
-            <SpeakerGrid compact={isMobile} />
-          </div>
-          <Trackpad compact={isMobile} />
-          <div className="absolute inset-x-0 bottom-0 mx-auto h-1.5 w-16 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-[#23232b] to-[#060608]" />
-        </div>
+            <div className="relative -z-10 h-[22rem] w-[min(92vw,32rem)] overflow-hidden rounded-2xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10">
+              <div className="relative h-10 w-full">
+                <div className="absolute inset-x-0 mx-auto h-4 w-[80%] rounded-b-lg bg-[#050507]" />
+              </div>
+              <div className="relative flex">
+                <SpeakerGrid />
+                <Keypad />
+                <SpeakerGrid />
+              </div>
+              <Trackpad />
+              <div className="absolute inset-x-0 bottom-0 mx-auto h-2 w-20 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-[#23232b] to-[#060608]" />
+            </div>
+          </>
+        )}
       </motion.div>
     </div>
   )
@@ -167,7 +161,7 @@ export function MacbookIntro() {
         ref={ref}
         className={
           isMobile
-            ? 'relative h-[170vh]'
+            ? 'relative h-[160vh]'
             : 'flex min-h-[200vh] shrink-0 flex-col items-center justify-start py-0 md:py-16 [perspective:800px]'
         }
       >
@@ -222,66 +216,89 @@ function IntroTitle({ compact = false }: { compact?: boolean }) {
   )
 }
 
-/** iOS-safe lid: screen stays 16:10; only the cover scales away from the bottom hinge. */
-function MobileLid({
-  progress,
-  translate,
-  backShellOpacity,
-}: {
-  progress: MotionValue<number>
-  translate: MotionValue<number>
-  backShellOpacity: MotionValue<number>
-}) {
-  const coverRef = useRef<HTMLDivElement>(null)
-  const screenScale = useTransform(progress, [0.35, 0.52], [1, 1.04])
+/** Unified mobile MacBook — closed screen crossfades to dashboard; no overlay squash. */
+function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
+  const unitRef = useRef<HTMLDivElement>(null)
+  const closedRef = useRef<HTMLDivElement>(null)
+  const openRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const updateCover = (v: number) => {
-      const cover = coverRef.current
-      if (!cover) return
-      const t = Math.min(1, Math.max(0, v / 0.3))
-      cover.style.transform = `scaleY(${1 - t})`
+    const apply = (v: number) => {
+      const closedT = 1 - Math.min(1, v / 0.12)
+      const openT = Math.min(1, Math.max(0, (v - 0.02) / 0.1))
+      const liftT = Math.min(1, Math.max(0, (v - 0.22) / 0.55))
+      const scale = 1 + Math.min(0.03, Math.max(0, (v - 0.22) / 0.16) * 0.03)
+
+      if (closedRef.current) closedRef.current.style.opacity = String(closedT)
+      if (openRef.current) openRef.current.style.opacity = String(openT)
+      if (unitRef.current) {
+        unitRef.current.style.transform = `translateY(${liftT * 360}px) scale(${scale})`
+      }
     }
-    updateCover(progress.get())
-    const unsub = progress.on('change', updateCover)
-    return unsub
+    apply(progress.get())
+    return progress.on('change', apply)
   }, [progress])
 
   return (
-    <motion.div
-      style={{ translateY: translate }}
-      className="relative w-[min(90vw,20rem)]"
+    <div
+      ref={unitRef}
+      className="relative w-[min(88vw,19.5rem)] will-change-transform"
       data-testid="mobile-lid"
+      style={{ transform: 'translateY(0px) scale(1)' }}
     >
-      <motion.div style={{ opacity: backShellOpacity }} className="relative z-0 mb-1" aria-hidden="true">
-        <div className="h-8 w-full rounded-t-xl bg-[#08080c] ring-1 ring-white/10 flex items-center justify-center">
-          <LidLogo size={22} />
-        </div>
-      </motion.div>
-
-      <motion.div
-        style={{ scale: screenScale }}
-        className="relative z-10 rounded-xl bg-[#08080c] p-1.5 ring-1 ring-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
+      {/* Screen lid */}
+      <div
+        className="relative z-10 rounded-t-xl bg-[#08080c] px-2 pt-2 pb-1.5 ring-1 ring-white/10 shadow-[0_12px_32px_rgba(0,0,0,0.4)]"
         data-testid="mobile-screen-frame"
       >
-        <div className="relative aspect-[16/10] w-full rounded-lg overflow-hidden bg-[#16161d]">
-          <MacbookScreenContent progress={progress} compact />
+        <div className="mx-auto mb-1.5 h-1 w-10 rounded-full bg-[#050507] ring-1 ring-white/[0.06]" aria-hidden="true" />
 
+        <div className="relative aspect-[16/10] w-full rounded-md overflow-hidden bg-[#16161d] ring-1 ring-white/[0.06]">
+          <div ref={openRef} className="absolute inset-0" style={{ opacity: 0 }}>
+            <MacbookScreenContent progress={progress} compact />
+          </div>
+
+          {/* Closed — proper MacBook sleep screen */}
           <div
-            ref={coverRef}
-            className="absolute inset-0 z-20 flex items-center justify-center bg-[#08080c] [transform-origin:bottom_center]"
-            data-testid="mobile-lid-cover"
-            style={{ transform: 'scaleY(1)' }}
+            ref={closedRef}
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a10] via-[#08080c] to-[#12121a]"
+            style={{ opacity: 1 }}
+            data-testid="mobile-closed-screen"
           >
             <div
+              className="absolute inset-0 rounded-md"
               style={{ boxShadow: '0px 2px 0px 2px #16161d inset' }}
-              className="absolute inset-0 rounded-lg bg-[#08080c]"
+              aria-hidden="true"
             />
-            <LidLogo size={28} />
+            <LidLogo size={32} />
           </div>
+
+          {/* Glass sheen */}
+          <div
+            className="pointer-events-none absolute inset-0 rounded-md"
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 42%, transparent 58%, rgba(255,255,255,0.03) 100%)',
+            }}
+            aria-hidden="true"
+          />
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+
+      {/* Keyboard base — flush with lid */}
+      <div className="relative -mt-px overflow-hidden rounded-b-xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10 ring-t-0 pb-1.5">
+        <div className="relative h-6 w-full">
+          <div className="absolute inset-x-0 mx-auto h-2.5 w-[78%] rounded-b-md bg-[#050507]" />
+        </div>
+        <div className="relative flex px-0.5">
+          <SpeakerGrid compact />
+          <Keypad compact />
+          <SpeakerGrid compact />
+        </div>
+        <Trackpad compact />
+        <div className="absolute inset-x-0 bottom-0 mx-auto h-1 w-14 rounded-tl-2xl rounded-tr-2xl bg-gradient-to-t from-[#23232b] to-[#060608]" />
+      </div>
+    </div>
   )
 }
 
