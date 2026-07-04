@@ -13,15 +13,22 @@ function breakpointScale(width: number): number {
  */
 export function useIntroViewport(): { isMobile: boolean; displayScale: number } {
   const isMobile = useIsPhoneLayout()
-  const [displayScale, setDisplayScale] = useState(1)
+  const [displayScale, setDisplayScale] = useState(isMobile ? 1 : 1)
 
   useEffect(() => {
     const update = () => {
       const vw = window.innerWidth
       const vh = window.innerHeight
       const mobile = vw < 768
+
+      // Phone layout uses responsive sizing — no CSS scale transform (avoids double-compression)
+      if (mobile) {
+        setDisplayScale(1)
+        return
+      }
+
       const base = breakpointScale(vw)
-      const peakLidScale = mobile ? 1 : 1.5
+      const peakLidScale = 1.5
 
       const titleBlock = Math.min(320, vh * 0.34)
       const laptopStack = (192 + 352 + 96 * peakLidScale) * base
