@@ -7,6 +7,8 @@ import { useSectionReveal } from '../hooks/useSectionReveal'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { Odometer } from '../components/ui/Odometer'
 import type { Stat } from '../data/portfolio'
+import { useLightExperience } from '../hooks/useTouchDevice'
+import { revealHidden, revealVisible } from '../lib/revealMotion'
 
 function StatValue({
   stat,
@@ -44,6 +46,9 @@ function StatValue({
 export function StatsSection() {
   const sectionRef = useRef<HTMLElement>(null)
   const active = useSectionReveal('stats', sectionRef)
+  const light = useLightExperience()
+  const hidden = revealHidden(light)
+  const visible = revealVisible(light)
 
   return (
     <section
@@ -66,10 +71,9 @@ export function StatsSection() {
           {portfolio.stats.map((stat, i) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-10% 0px' }}
-              transition={{ duration: 0.7, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              initial={hidden}
+              animate={active ? visible : hidden}
+              transition={{ duration: light ? 0.5 : 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
               className="glass-card spotlight-card p-6 md:p-8 text-center"
               onMouseMove={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()

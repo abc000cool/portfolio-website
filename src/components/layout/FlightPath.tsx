@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { ScrollTrigger } from '../../lib/scrollTrigger'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { useLightExperience } from '../../hooks/useTouchDevice'
 import { useMissionPath } from '../../hooks/useMissionPath'
 import {
   computeWaypointArcLengths,
@@ -20,6 +21,7 @@ export function FlightPath({ containerRef }: FlightPathProps) {
   const rocketRef = useRef<SVGGElement>(null)
   const trailRef = useRef<SVGPathElement>(null)
   const reduced = useReducedMotion()
+  const light = useLightExperience()
   const { pathD, waypoints, height, width, ready } = useMissionPath(containerRef)
   const [progress, setProgress] = useState(0)
   const [arcLengths, setArcLengths] = useState<number[]>([])
@@ -27,6 +29,7 @@ export function FlightPath({ containerRef }: FlightPathProps) {
   const { update: updateMission, markAllReached } = useMissionUpdater()
   const progressRef = useRef(0)
   const lastProgressRender = useRef(0)
+  const lastMissionUpdate = useRef(0)
 
   const applyProgressVisuals = (p: number) => {
     const path = pathRef.current
@@ -88,11 +91,15 @@ export function FlightPath({ containerRef }: FlightPathProps) {
     const update = () => {
       const p = scrollProgressToPathProgress(window.scrollY, waypoints, arcLengths, totalLength)
       progressRef.current = p
-      applyProgressVisuals(p)
-      updateMission(p, checkpoints)
 
       const now = performance.now()
-      if (now - lastProgressRender.current > 80) {
+      if (now - lastMissionUpdate.current > (light ? 150 : 80)) {
+        lastMissionUpdate.current = now
+        applyProgressVisuals(p)
+        updateMission(p, checkpoints)
+      }
+
+      if (now - lastProgressRender.current > (light ? 150 : 80)) {
         lastProgressRender.current = now
         setProgress(p)
       }
@@ -108,7 +115,7 @@ export function FlightPath({ containerRef }: FlightPathProps) {
     update()
 
     return () => st.kill()
-  }, [reduced, ready, containerRef, waypoints, arcLengths, totalLength, checkpoints, updateMission])
+  }, [reduced, ready, containerRef, waypoints, arcLengths, totalLength, checkpoints, updateMission, light])
 
   // Reduced motion: no scroll-driven progress, so reveal everything immediately
   useEffect(() => {
@@ -195,7 +202,7 @@ export function FlightPath({ containerRef }: FlightPathProps) {
         stroke="url(#path-gradient)"
         strokeWidth="2"
         strokeLinecap="round"
-        filter="url(#path-glow)"
+        filter={light ? undefined : 'url(#path-glow)'}
         style={{ strokeDasharray: '0 1', strokeDashoffset: 0 }}
       />
 

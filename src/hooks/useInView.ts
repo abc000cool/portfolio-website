@@ -1,8 +1,8 @@
 import { useEffect, useState, type RefObject } from 'react'
 
 const DEFAULT_OPTIONS: IntersectionObserverInit = {
-  threshold: 0.06,
-  rootMargin: '0px 0px -8% 0px',
+  threshold: 0,
+  rootMargin: '0px 0px 35% 0px',
 }
 
 function optionsKey(options?: IntersectionObserverInit): string {

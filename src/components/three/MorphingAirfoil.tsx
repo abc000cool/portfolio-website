@@ -1,10 +1,11 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Grid, Line } from '@react-three/drei'
 import { useMotionValueEvent, useMotionValue, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import { useMotionProgressRef } from '../../hooks/useMotionProgressRef'
+import { useThrottledMotionValue } from '../../hooks/useThrottledMotionValue'
 import {
   CHORD_LENGTH,
   FEATURED_AIRFOIL_PROFILES,
@@ -395,26 +396,19 @@ export function MorphingAirfoil({
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
   const profiles = variant === 'featured' ? FEATURED_AIRFOIL_PROFILES : RESEARCH_AIRFOIL_PROFILES
-  const [morph, setMorph] = useState<MorphState | null>(() =>
-    getMorphState(progress?.get() ?? scrollProgress, profiles),
-  )
-  const [liveProgress, setLiveProgress] = useState(() => progress?.get() ?? scrollProgress)
+  const liveProgress = useThrottledMotionValue(source, 150)
+  const morph = useMemo(() => getMorphState(liveProgress, profiles), [liveProgress, profiles])
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
   }, [progress, scrollProgress, fallbackProgress])
 
   useEffect(() => {
-    const v = progress?.get() ?? scrollProgress
-    progressRef.current = v
-    setLiveProgress(v)
-    setMorph(getMorphState(v, profiles))
-  }, [progress, scrollProgress, profiles, progressRef])
+    progressRef.current = progress?.get() ?? scrollProgress
+  }, [progress, scrollProgress, progressRef])
 
   useMotionValueEvent(source, 'change', (v) => {
     progressRef.current = v
-    setLiveProgress(v)
-    setMorph(getMorphState(v, profiles))
   })
 
   const morphProgress = Math.round(liveProgress * 100)
@@ -434,7 +428,7 @@ export function MorphingAirfoil({
               progressRef={progressRef}
               active={isVisible && active}
               profiles={profiles}
-              onMorphChange={setMorph}
+              onMorphChange={() => {}}
             />
           </Suspense>
         </Canvas>

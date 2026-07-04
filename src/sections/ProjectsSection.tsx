@@ -9,6 +9,8 @@ import {
 import { Link } from 'react-router-dom'
 import { portfolio } from '../data/portfolio'
 import { useSectionReveal } from '../hooks/useSectionReveal'
+import { useLightExperience } from '../hooks/useTouchDevice'
+import { revealHidden, revealVisible } from '../lib/revealMotion'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { MissionPatch } from '../components/ui/MissionPatch'
 import { sectionShellClass } from '../lib/waypointLayout'
@@ -228,6 +230,9 @@ export function ProjectsSection() {
   const reached = useSectionReveal('projects', sectionRef)
   const reduced = useReducedMotion()
   const isNarrow = useMediaQuery('(max-width: 1023px)')
+  const light = useLightExperience()
+  const cardHidden = revealHidden(light)
+  const cardVisible = revealVisible(light)
 
   const { scrollYProgress } = useScroll({
     target: wrapRef,
@@ -262,10 +267,9 @@ export function ProjectsSection() {
             {selectedProjects.map((project, i) => (
               <motion.div
                 key={project.id}
-                initial={{ opacity: 0, y: 36 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-10% 0px' }}
-                transition={{ duration: 0.7, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                initial={cardHidden}
+                animate={reached ? cardVisible : cardHidden}
+                transition={{ duration: light ? 0.5 : 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
               >
                 <ProjectCard project={project} />
               </motion.div>

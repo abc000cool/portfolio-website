@@ -92,8 +92,12 @@ export function HomePage() {
     const t = setTimeout(refresh, 600)
     const t2 = setTimeout(refresh, 1800)
 
+    let refreshTimer = 0
     const vv = window.visualViewport
-    const onViewportChange = () => refresh()
+    const onViewportChange = () => {
+      window.clearTimeout(refreshTimer)
+      refreshTimer = window.setTimeout(refresh, 200)
+    }
     vv?.addEventListener('resize', onViewportChange)
     vv?.addEventListener('scroll', onViewportChange)
 
@@ -105,6 +109,7 @@ export function HomePage() {
         clearTimeout(t)
         clearTimeout(t2)
         clearTimeout(hashTimer)
+        clearTimeout(refreshTimer)
         vv?.removeEventListener('resize', onViewportChange)
         vv?.removeEventListener('scroll', onViewportChange)
         destroyLenis()
@@ -116,6 +121,7 @@ export function HomePage() {
       window.removeEventListener('load', refresh)
       clearTimeout(t)
       clearTimeout(t2)
+      clearTimeout(refreshTimer)
       vv?.removeEventListener('resize', onViewportChange)
       vv?.removeEventListener('scroll', onViewportChange)
       destroyLenis()

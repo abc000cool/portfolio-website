@@ -8,11 +8,14 @@ interface ParallaxLayersProps {
   children: ReactNode
 }
 
+import { useLightExperience } from '../../hooks/useTouchDevice'
+
 export function ParallaxLayers({ back, mid, children }: ParallaxLayersProps) {
   const reduced = useReducedMotion()
+  const light = useLightExperience()
 
   useEffect(() => {
-    if (reduced) return
+    if (reduced || light) return
 
     const triggers: ScrollTrigger[] = []
     const layers = document.querySelectorAll('[data-parallax-depth]')
@@ -32,7 +35,7 @@ export function ParallaxLayers({ back, mid, children }: ParallaxLayersProps) {
     })
 
     return () => triggers.forEach((st) => st.kill())
-  }, [reduced])
+  }, [reduced, light])
 
   return (
     <>
