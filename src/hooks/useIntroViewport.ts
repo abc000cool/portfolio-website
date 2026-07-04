@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useIsPhoneLayout } from './useTouchDevice'
 
 function breakpointScale(width: number): number {
   if (width < 640) return 0.48
@@ -11,15 +12,16 @@ function breakpointScale(width: number): number {
  * Does not alter scroll keyframes or animation timing.
  */
 export function useIntroViewport(): { isMobile: boolean; displayScale: number } {
-  const [metrics, setMetrics] = useState({ isMobile: false, displayScale: 1 })
+  const isMobile = useIsPhoneLayout()
+  const [displayScale, setDisplayScale] = useState(1)
 
   useEffect(() => {
     const update = () => {
       const vw = window.innerWidth
       const vh = window.innerHeight
-      const isMobile = vw < 768
+      const mobile = vw < 768
       const base = breakpointScale(vw)
-      const peakLidScale = isMobile ? 1 : 1.5
+      const peakLidScale = mobile ? 1 : 1.5
 
       const titleBlock = Math.min(320, vh * 0.34)
       const laptopStack = (192 + 352 + 96 * peakLidScale) * base
@@ -29,10 +31,7 @@ export function useIntroViewport(): { isMobile: boolean; displayScale: number } 
       const widthFit = (vw * 0.96) / laptopWidth
       const fit = Math.min(1, heightFit, widthFit)
 
-      setMetrics({
-        isMobile,
-        displayScale: base * fit,
-      })
+      setDisplayScale(base * fit)
     }
 
     update()
@@ -40,5 +39,5 @@ export function useIntroViewport(): { isMobile: boolean; displayScale: number } 
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  return metrics
+  return { isMobile, displayScale }
 }
