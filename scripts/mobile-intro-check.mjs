@@ -40,7 +40,7 @@ await page.goto(URL, { waitUntil: 'networkidle', timeout: 30000 })
 await page.waitForTimeout(800)
 
 const report = []
-for (const pct of [0, 0.15, 0.35, 0.55, 0.75]) {
+for (const pct of [0, 0.15, 0.35, 0.55, 0.75, 0.92]) {
   const introHeight = await page.evaluate(() => document.getElementById('intro')?.offsetHeight ?? 0)
   const maxScroll = Math.max(0, introHeight - 660)
   const y = Math.round(maxScroll * pct)
@@ -56,14 +56,16 @@ console.log(JSON.stringify(report, null, 2))
 
 const start = report[0]
 const mid = report.find((r) => r.pct === 0.35) ?? report[2]
-const end = report.find((r) => r.pct === 0.75) ?? report[4]
+const end = report.find((r) => r.pct === 0.92) ?? report[5]
 const issues = []
 if (!start.hasMobileLid) issues.push('Mobile MacBook not rendered')
 if (start.hasCoverOverlay) issues.push('Black cover overlay still present')
 if (start.screen && start.screen.ratio < 1.45) issues.push(`Screen compressed at start (ratio ${start.screen.ratio})`)
 if (start.closedOpacity && Number(start.closedOpacity) < 0.8) issues.push(`Closed screen not visible at start (opacity ${start.closedOpacity})`)
 if (mid && Number(mid.closedOpacity) > 0.55) issues.push(`Closed screen still dominant mid-scroll (opacity ${mid.closedOpacity})`)
-if (end && Number(end.wrapOpacity ?? 1) > 0.05) issues.push(`MacBook wrapper not fully faded before hero (opacity ${end.wrapOpacity})`)
+if (end && Number(end.wrapOpacity ?? 1) > 0.08) issues.push(`MacBook should be faded near end of intro (opacity ${end.wrapOpacity} at 92%)`)
+const midOpen = report.find((r) => r.pct === 0.55)
+if (midOpen && Number(midOpen.wrapOpacity ?? 0) < 0.9) issues.push(`MacBook fading too early at 55% scroll (${midOpen.wrapOpacity})`)
 
 console.log('\nISSUES:', issues.length ? issues : ['none'])
 process.exitCode = issues.length ? 1 : 0

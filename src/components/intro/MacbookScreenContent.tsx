@@ -7,14 +7,21 @@ const CHART_POINTS = '0,38 14,34 28,30 42,31 56,24 70,20 84,14 100,10'
 interface MacbookScreenContentProps {
   progress?: MotionValue<number>
   compact?: boolean
+  /** Scroll progress at which launch UI appears (lower on mobile). */
+  launchAt?: number
 }
 
-export function MacbookScreenContent({ progress, compact = false }: MacbookScreenContentProps) {
+export function MacbookScreenContent({
+  progress,
+  compact = false,
+  launchAt,
+}: MacbookScreenContentProps) {
   const fallback = useMotionValue(0)
   const [launch, setLaunch] = useState(false)
+  const launchThreshold = launchAt ?? (compact ? 0.2 : 0.48)
 
   useMotionValueEvent(progress ?? fallback, 'change', (v) => {
-    const next = v >= 0.48
+    const next = v >= launchThreshold
     setLaunch((prev) => (prev === next ? prev : next))
   })
 

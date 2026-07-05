@@ -6,13 +6,14 @@ import { MagneticButton } from '../components/ui/MagneticButton'
 import { scrollToSection } from '../lib/lenis'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { useSectionReveal } from '../hooks/useSectionReveal'
-import { useLightExperience } from '../hooks/useTouchDevice'
+import { useIsPhoneLayout, useLightExperience } from '../hooks/useTouchDevice'
 import { revealHidden, revealVisible } from '../lib/revealMotion'
 
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null)
   const active = useSectionReveal('hero', sectionRef)
   const light = useLightExperience()
+  const phone = useIsPhoneLayout()
   const hidden = revealHidden(light)
   const visible = revealVisible(light)
 
@@ -28,7 +29,7 @@ export function HeroSection() {
       id="hero"
       data-mission-waypoint
       data-waypoint-side="right"
-      className={`${sectionShellClass('right')} relative !pt-28 md:!pt-36`}
+      className={`${sectionShellClass('right')} relative !pt-28 md:!pt-36 ${phone ? '-mt-[10vh]' : ''}`}
       aria-labelledby="hero-heading"
     >
       <div className="section-inner wide max-w-3xl">
