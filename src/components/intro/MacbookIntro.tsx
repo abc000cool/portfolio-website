@@ -151,7 +151,7 @@ export function MacbookIntro() {
             progress={scrollYProgress}
           />
 
-          <div className="relative -z-10 h-[22rem] w-[min(92vw,32rem)] overflow-hidden rounded-2xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10">
+          <div className="relative -z-10 h-[22rem] w-[32rem] overflow-hidden rounded-2xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10">
             <div className="relative h-10 w-full">
               <div className="absolute inset-x-0 mx-auto h-4 w-[80%] rounded-b-lg bg-[#050507]" />
             </div>
@@ -336,7 +336,7 @@ function DesktopLid({
   progress: MotionValue<number>
 }) {
   return (
-    <div className="relative [perspective:800px]" style={{ width: 'min(92vw, 32rem)', minHeight: '24rem' }}>
+    <div className="relative [perspective:800px]">
       <motion.div style={{ opacity: backShellOpacity }} className="relative z-0">
         <div
           style={{
@@ -344,7 +344,7 @@ function DesktopLid({
             transformOrigin: 'bottom',
             transformStyle: 'preserve-3d',
           }}
-          className="relative h-[10rem] md:h-[12rem] w-full rounded-2xl bg-[#08080c] p-2 ring-1 ring-white/10"
+          className="relative h-[12rem] w-[32rem] rounded-2xl bg-[#08080c] p-2 ring-1 ring-white/10"
         >
           <div
             style={{ boxShadow: '0px 2px 0px 2px #16161d inset' }}
@@ -362,9 +362,9 @@ function DesktopLid({
           rotateX: rotate,
           translateY: translate,
           transformStyle: 'preserve-3d',
-          transformOrigin: 'top center',
+          transformOrigin: 'top',
         }}
-        className="absolute left-0 right-0 top-0 z-10 h-80 md:h-96 w-full rounded-2xl bg-[#08080c] p-2 ring-1 ring-white/10"
+        className="absolute inset-0 h-96 w-[32rem] rounded-2xl bg-[#08080c] p-2 ring-1 ring-white/10"
       >
         <div className="absolute inset-0 rounded-lg bg-[#16161d]" />
         <div className="absolute inset-2 overflow-hidden rounded-lg">
