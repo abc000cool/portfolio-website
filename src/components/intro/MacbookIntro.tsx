@@ -30,8 +30,8 @@ export function MacbookIntro() {
   })
 
   const lidEnd = isMobile ? 0.42 : 0.3
-  const fadeStart = isMobile ? 0.16 : 0.5
-  const fadeMid = isMobile ? 0.28 : 0.72
+  const fadeStart = isMobile ? 0.3 : 0.5
+  const fadeMid = isMobile ? 0.4 : 0.72
   const translateEnd = isMobile ? 0.9 : 1
   const translateMax = isMobile ? 360 : 1500
   const peakLidScale = isMobile ? 1 : 1.5
@@ -46,7 +46,7 @@ export function MacbookIntro() {
   )
   const backShellOpacity = useTransform(scrollYProgress, [0, touch ? 0.22 : 0.12], [1, 0])
   const textTranslate = useTransform(scrollYProgress, [0, isMobile ? 0.32 : 0.35], [0, -120])
-  const textOpacity = useTransform(scrollYProgress, [0, isMobile ? 0.26 : 0.28], [1, 0])
+  const textOpacity = useTransform(scrollYProgress, [0, isMobile ? 0.22 : 0.28], [1, 0])
   const glowOpacity = useTransform(
     scrollYProgress,
     [0, 0.25, isMobile ? 0.45 : 0.55],
@@ -180,7 +180,7 @@ export function MacbookIntro() {
         ref={ref}
         className={
           isMobile
-            ? 'relative h-[160vh]'
+            ? 'relative h-[175vh]'
             : 'flex min-h-[200vh] shrink-0 flex-col items-center justify-start py-0 md:py-16 [perspective:800px]'
         }
       >
@@ -243,9 +243,9 @@ function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
 
   useEffect(() => {
     const apply = (v: number) => {
-      const closedT = 1 - Math.min(1, v / 0.12)
-      const openT = Math.min(1, Math.max(0, (v - 0.02) / 0.1))
-      const scale = 1 + Math.min(0.03, Math.max(0, (v - 0.22) / 0.16) * 0.03)
+      const closedT = 1 - Math.min(1, v / 0.18)
+      const openT = Math.min(1, Math.max(0, (v - 0.02) / 0.14))
+      const scale = 1 + Math.min(0.03, Math.max(0, (v - 0.28) / 0.2) * 0.03)
 
       if (closedRef.current) closedRef.current.style.opacity = String(closedT)
       if (openRef.current) openRef.current.style.opacity = String(openT)
