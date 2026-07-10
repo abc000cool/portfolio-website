@@ -40,6 +40,8 @@ function ResearchViewer({
   scrollProgress?: ReturnType<typeof useScroll>['scrollYProgress']
   staticProgress?: number
 }) {
+  if (!config.viewer) return null
+
   const fallback =
     staticProgress ?? (config.viewer === 'airfoil' ? 1 : 0.4)
 
@@ -78,10 +80,40 @@ function ResearchViewer({
             )
         }
       })()}
-      <p className="research-showcase__viewer-hint font-mono text-[10px] uppercase tracking-widest text-slate-500 text-center mt-3">
-        {config.viewerHint}
-      </p>
+      {config.viewerHint && (
+        <p className="research-showcase__viewer-hint font-mono text-[10px] uppercase tracking-widest text-slate-500 text-center mt-3">
+          {config.viewerHint}
+        </p>
+      )}
     </Suspense>
+  )
+}
+
+function ResearchExternalLinks({ config }: { config: ResearchShowcaseConfig }) {
+  if (!config.externalUrl && !config.githubUrl) return null
+  return (
+    <div className="flex flex-wrap items-center gap-4 mt-4">
+      {config.externalUrl && (
+        <a
+          href={config.externalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link-underline text-sm font-medium text-slate-400 hover:text-white no-underline"
+        >
+          Project site →
+        </a>
+      )}
+      {config.githubUrl && (
+        <a
+          href={config.githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link-underline text-sm font-medium text-slate-400 hover:text-white no-underline"
+        >
+          GitHub →
+        </a>
+      )}
+    </div>
   )
 }
 
@@ -116,6 +148,7 @@ function MobileResearchCard({ config }: { config: ResearchShowcaseConfig }) {
       >
         {config.linkLabel}
       </Link>
+      <ResearchExternalLinks config={config} />
     </article>
   )
 }
@@ -135,6 +168,7 @@ function ResearchShowcaseBlock({
   const isMobile = useMediaQuery('(max-width: 767px)')
   const blockInView = useInView(scrollZoneRef, { threshold: 0, rootMargin: '0px 0px 40% 0px' })
   const blockActive = headingActive || blockInView
+  const hasViewer = Boolean(config.viewer)
 
   const { scrollYProgress } = useScroll({
     target: scrollZoneRef,
@@ -148,8 +182,8 @@ function ResearchShowcaseBlock({
     ? 'research-showcase__grid research-showcase__grid--reverse'
     : 'research-showcase__grid'
   const scrollHeightVh = isMobile
-    ? Math.round(config.scrollHeightVh * MOBILE_SCROLL_SCALE)
-    : config.scrollHeightVh
+    ? Math.round((config.scrollHeightVh ?? 180) * MOBILE_SCROLL_SCALE)
+    : (config.scrollHeightVh ?? 180)
 
   const viewerActive = blockActive
 
@@ -190,25 +224,24 @@ function ResearchShowcaseBlock({
       >
         {config.linkLabel}
       </Link>
+      <ResearchExternalLinks config={config} />
     </article>
   )
 
-  const viewer = (
-    <div className="research-showcase__viewer">
-      <ResearchViewer
-        config={config}
-        active={viewerActive}
-        scrollProgress={reduced ? undefined : scrollYProgress}
-        staticProgress={reduced ? (config.viewer === 'airfoil' ? 1 : 0.45) : 0}
-      />
-    </div>
-  )
-
-  const content = (
+  const content = hasViewer ? (
     <div className={gridClass}>
       {card}
-      {viewer}
+      <div className="research-showcase__viewer">
+        <ResearchViewer
+          config={config}
+          active={viewerActive}
+          scrollProgress={reduced ? undefined : scrollYProgress}
+          staticProgress={reduced ? (config.viewer === 'airfoil' ? 1 : 0.45) : 0}
+        />
+      </div>
     </div>
+  ) : (
+    <div className="max-w-3xl">{card}</div>
   )
 
   return (
@@ -217,7 +250,7 @@ function ResearchShowcaseBlock({
       className="research-showcase-block"
       aria-labelledby={`${config.id}-title`}
     >
-      {reduced ? (
+      {!hasViewer || reduced ? (
         <div className="research-showcase__body">
           <ScanWipe active={headingActive}>{content}</ScanWipe>
         </div>
@@ -264,8 +297,8 @@ export function ResearchSection() {
           <RedactedHeading active={active}>Research</RedactedHeading>
           <p className="text-slate-400 mt-4 leading-relaxed">
             {isMobile
-              ? 'Pending research across orbital debris mitigation, morphing airfoil optimization, and fluid-dynamics traffic modeling.'
-              : 'Scroll through each project to explore interactive 3D visualizations — from orbital debris capture to morphing airfoil optimization and fluid-dynamics traffic flow.'}
+              ? 'Research across orbital debris mitigation, morphing airfoil optimization, fluid-dynamics traffic modeling, and hybrid quantum–classical inertial navigation.'
+              : 'Scroll through each project to explore interactive 3D visualizations — from orbital debris capture to morphing airfoil optimization and fluid-dynamics traffic flow — plus hybrid quantum–classical navigation research.'}
           </p>
         </div>
 

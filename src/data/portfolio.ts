@@ -15,6 +15,7 @@ export interface Project {
   details: string
   status?: string
   externalUrl?: string
+  githubUrl?: string
   group?: ProjectGroup
 }
 
@@ -27,6 +28,8 @@ export interface Paper {
   abstract: string
   /** Optional HTML for subscripts/superscripts in abstracts. */
   abstractHtml?: string
+  externalUrl?: string
+  githubUrl?: string
 }
 
 export interface Stat {
@@ -96,6 +99,7 @@ export const portfolio = {
     details: p.overview,
     status: p.status,
     externalUrl: p.externalUrl,
+    githubUrl: p.githubUrl,
     group: p.group ?? 'selected',
   })) as Project[],
   papers: [
@@ -128,6 +132,20 @@ export const portfolio = {
         'Continuously morphing airfoils reshape during flight to match changing aerodynamic conditions, enabling performance that fixed geometry designs fundamentally cannot achieve. We present a four-phase pipeline combining Gaussian Process surrogate modeling with QAOA as a diversity-oriented sampler for morphing airfoil optimization, validated against XFOIL with improved drag and lift over a NACA 2412 baseline.',
       abstractHtml:
         'Continuously morphing airfoils reshape during flight to match changing aerodynamic conditions, enabling performance that fixed geometry designs fundamentally cannot achieve. Optimizing them, however, means traversing high-dimensional, non-convex design spaces where classical gradient-based methods fail. We present a four-phase pipeline combining Gaussian Process (GP) surrogate modeling with the Quantum Approximate Optimization Algorithm (QAOA) as a diversity-oriented sampler for morphing airfoil optimization. We generated 1,500 airfoil geometries via B-spline parameterization and compressed them to a six-dimensional latent space using Principal Component Analysis (PCA). GP surrogates (drag C<sub>d</sub> and lift C<sub>l</sub>) were fit with a Matérn 5/2 kernel with Automatic Relevance Determination (ARD). The Upper Confidence Bound (UCB) acquisition landscape was projected onto a 24-qubit Quadratic Unconstrained Binary Optimization (QUBO) formulation via BOX-QUBO weighted regression, with a lift constraint (C<sub>l</sub>&ge;0.60) enforced as a decoupled post-sampling filter rather than a penalty term. QAOA at circuit depths p=1,2,3 was benchmarked against Simulated Annealing (SA), Genetic Algorithm (GA), and random search. Shannon entropy of the QAOA sampling distributions fell from H=2.342 at p=1 to H=2.216 at p=3, a 5.4% reduction confirming the QAOA cooling protocol hypothesis. QAOA at p=2 achieved the best constrained average drag (C<sub>d</sub>=0.00583) with all returned solutions satisfying the lift constraint. Decoupling the lift constraint from QUBO fitting improved model fit from R<sup>2</sup>=0.12 to R<sup>2</sup>=0.43. The best XFOIL-validated airfoil achieved a 9.3% drag reduction and 37% lift improvement over the NACA 2412 baseline at Re=10<sup>6</sup>.',
+    },
+    {
+      id: 'paper-qcin',
+      slug: 'hybrid-quantum-classical-inertial-navigation',
+      title:
+        'Which Error Sources Dominate Hybrid Quantum–Classical Inertial Navigation? A Sobol’ Variance Decomposition Across Atmospheric GNSS-Denied and Cislunar Regimes',
+      venue: 'Computational Research Study',
+      year: 2026,
+      externalUrl: 'https://qcin-nav.vercel.app/',
+      githubUrl: 'https://github.com/abc000cool/qcin-nav',
+      abstract:
+        'A validated open-source simulator of a cold-atom interferometer + classical IMU hybrid navigator (Cheiney–Lautier–Wang architecture in a 15-state error-state EKF), paired with a global Sobol′ variance decomposition of its error budget across two opposite aerospace regimes: an atmospheric UAV under GNSS jamming, and a multi-day cislunar coast. Across 27,648 simulations and eight passing validation tests, the hybrid holds a median 7.6 m after five minutes of jamming (about 4.9× tighter than classical-only) and 124 km after a 4.98-day lunar coast versus 38,800 km unaided (313×). The study shows the remaining atmospheric error is dominated by gyroscope bias and platform vibration, while the cislunar floor is governed by classical accelerometer bias and coast duration—not cold-atom stability alone.',
+      abstractHtml:
+        'A validated open-source simulator of a cold-atom interferometer + classical IMU hybrid navigator (Cheiney–Lautier–Wang architecture in a 15-state error-state EKF), paired with a global Sobol′ variance decomposition of its error budget across two opposite aerospace regimes: an atmospheric UAV under GNSS jamming, and a multi-day cislunar coast. Across 27,648 simulations and eight passing validation tests, the hybrid holds a median <strong>7.6&nbsp;m</strong> after five minutes of jamming (~4.9× tighter than classical-only) and <strong>124&nbsp;km</strong> after a 4.98-day lunar coast versus 38,800&nbsp;km unaided (313×). Scenario&nbsp;A residual error is dominated by gyroscope bias (S<sub>T</sub>=0.48) and platform vibration (S<sub>T</sub>=0.46); Scenario&nbsp;B is governed by classical accelerometer bias (S<sub>T</sub>=0.56) and coast duration (S<sub>T</sub>=0.31), with CAI systematic bias contributing only S<sub>T</sub>=0.03. Dynamics use CR3BP targeting of a 3,250&nbsp;km Gateway NRHO perilune and are cross-checked against the DE440 ephemeris.',
     },
   ] as Paper[],
   stats: [

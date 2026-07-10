@@ -17,16 +17,19 @@ export type ResearchViewerId = 'debris' | 'airfoil' | 'flowstate'
 export interface ResearchShowcaseConfig {
   id: string
   paperSlug: string
-  viewer: ResearchViewerId
-  /** Sticky scroll zone height — higher = longer animation. */
-  scrollHeightVh: number
+  /** Omit for card-only research (no 3D scroll viewer yet). */
+  viewer?: ResearchViewerId
+  /** Sticky scroll zone height — higher = longer animation. Unused when viewer is omitted. */
+  scrollHeightVh?: number
   linkTo: string
   linkLabel: string
-  viewerHint: string
+  viewerHint?: string
   metrics: ResearchMetric[]
   conferenceBadge?: ConferenceBadge
   /** Flip card/viewer columns on desktop. */
   reverseLayout?: boolean
+  externalUrl?: string
+  githubUrl?: string
 }
 
 export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
@@ -76,6 +79,20 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
       { value: '42%', label: 'Jam reduction at 5% AV penetration' },
       { value: '5.2', label: 'km/h average flow speed gain' },
       { value: 'CFD', label: 'Navier–Stokes traffic modeling' },
+    ],
+  },
+  {
+    id: 'research-qcin',
+    paperSlug: 'hybrid-quantum-classical-inertial-navigation',
+    linkTo: '/research/hybrid-quantum-classical-inertial-navigation',
+    linkLabel: 'Read full abstract →',
+    externalUrl: 'https://qcin-nav.vercel.app/',
+    githubUrl: 'https://github.com/abc000cool/qcin-nav',
+    metrics: [
+      { value: '27,648', label: 'Sobol′ simulations' },
+      { value: '4.9×', label: 'Tighter · 5-min GNSS jamming' },
+      { value: '313×', label: 'Tighter · 5-day cislunar coast' },
+      { value: '8/8', label: 'Validation tests passed' },
     ],
   },
 ]

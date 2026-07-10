@@ -116,6 +116,16 @@ function ProjectCard({
               Live site →
             </a>
           )}
+          {project.githubUrl && (
+            <a
+              href={project.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-underline text-xs font-medium text-slate-400 hover:text-white no-underline"
+            >
+              GitHub →
+            </a>
+          )}
         </div>
         <button
           type="button"
