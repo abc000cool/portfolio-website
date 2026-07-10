@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
-import { useMotionValueEvent, useMotionValue, type MotionValue } from 'motion/react'
+import { useMotionValue, useMotionValueEvent, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import { useMotionProgressRef } from '../../hooks/useMotionProgressRef'
@@ -13,253 +13,474 @@ import {
   ViewerTelemetry,
 } from '../research/ResearchViewerFrame'
 
-const EARTH_RADIUS = 1.15
-const ORBIT_RADIUS = 2.35
-const DEBRIS_COUNT = 260
+const DEBRIS_COUNT = 180
+const EARTH_RADIUS = 1.42
+const ORBIT_RADIUS = 2.7
+const CAPTURE_COLOR = '#86efac'
+const RAIL_COLOR = '#fbbf24'
+const ORBIT_COLOR = '#818cf8'
 
-interface DebrisState {
-  angle: number
-  incline: number
-  radius: number
-  scale: number
-  spin: number
+type ProgressRef = React.RefObject<number | null>
+
+function range01(value: number, start: number, end: number) {
+  return THREE.MathUtils.clamp((value - start) / (end - start), 0, 1)
 }
 
-function CameraRig({ progressRef }: { progressRef: React.RefObject<number | null> }) {
+function deterministic(index: number, salt: number) {
+  return ((Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453) % 1 + 1) % 1
+}
+
+function CameraRig({ progressRef }: { progressRef: ProgressRef }) {
   const { camera } = useThree()
-  const lookAt = useMemo(() => new THREE.Vector3(0, 0, 0), [])
+  const positionRef = useRef(new THREE.Vector3())
+  const targetRef = useRef(new THREE.Vector3())
 
   useFrame(() => {
-    const p = smoothstep(progressRef.current ?? 0)
-    const angle = THREE.MathUtils.lerp(0.5, 1.15, p)
-    const radius = THREE.MathUtils.lerp(5.8, 4.9, p)
-    const elevation = THREE.MathUtils.lerp(0.85, 1.35, p)
-    camera.position.set(
-      Math.sin(angle) * radius,
-      elevation,
-      Math.cos(angle) * radius,
-    )
-    camera.lookAt(lookAt)
-  })
+    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+    const intercept = smoothstep(range01(p, 0.18, 0.38))
+    const operation = smoothstep(range01(p, 0.38, 0.72))
+    const pullback = smoothstep(range01(p, 0.78, 1))
+    const position = positionRef.current
+    const target = targetRef.current
 
+    position.set(
+      THREE.MathUtils.lerp(4.6, 3.25, intercept) + pullback * 0.8,
+      THREE.MathUtils.lerp(2.2, 1.35, intercept) + pullback * 0.4,
+      THREE.MathUtils.lerp(5.4, 4.25, operation) + pullback * 0.55,
+    )
+    target.set(
+      THREE.MathUtils.lerp(0, 0.68, intercept) - pullback * 0.4,
+      THREE.MathUtils.lerp(0.05, 0.45, operation),
+      0,
+    )
+    camera.position.lerp(position, 0.1)
+    camera.lookAt(target)
+  })
   return null
+}
+
+function Starfield() {
+  const geometry = useMemo(() => {
+    const positions = new Float32Array(420 * 3)
+    for (let i = 0; i < 420; i++) {
+      const radius = 7 + deterministic(i, 1) * 4
+      const theta = deterministic(i, 2) * Math.PI * 2
+      const phi = Math.acos(deterministic(i, 3) * 2 - 1)
+      positions[i * 3] = Math.sin(phi) * Math.cos(theta) * radius
+      positions[i * 3 + 1] = Math.cos(phi) * radius
+      positions[i * 3 + 2] = Math.sin(phi) * Math.sin(theta) * radius
+    }
+    const result = new THREE.BufferGeometry()
+    result.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    return result
+  }, [])
+
+  useEffect(() => () => geometry.dispose(), [geometry])
+
+  return (
+    <points geometry={geometry}>
+      <pointsMaterial color="#dbeafe" size={0.025} transparent opacity={0.72} sizeAttenuation />
+    </points>
+  )
 }
 
 function Earth() {
   const earthRef = useRef<THREE.Mesh>(null)
-
   useFrame((state) => {
-    if (earthRef.current) earthRef.current.rotation.y = state.clock.elapsedTime * 0.04
+    if (earthRef.current) earthRef.current.rotation.y = state.clock.elapsedTime * 0.025
   })
-
   return (
-    <group>
+    <group position={[-1.25, -1.42, -0.72]}>
       <mesh ref={earthRef}>
-        <icosahedronGeometry args={[EARTH_RADIUS, 3]} />
+        <icosahedronGeometry args={[EARTH_RADIUS, 5]} />
         <meshPhysicalMaterial
-          color="#2a5fd4"
-          emissive="#0a1840"
-          emissiveIntensity={0.35}
-          metalness={0.15}
-          roughness={0.55}
-          transparent
-          opacity={0.92}
+          color="#102b5d"
+          emissive="#06142e"
+          emissiveIntensity={0.75}
+          metalness={0.04}
+          roughness={0.68}
+          clearcoat={0.15}
         />
       </mesh>
       <mesh>
-        <icosahedronGeometry args={[EARTH_RADIUS * 1.04, 2]} />
-        <meshBasicMaterial color="#6eb5ff" wireframe transparent opacity={0.12} />
+        <icosahedronGeometry args={[EARTH_RADIUS * 1.035, 5]} />
+        <meshBasicMaterial
+          color="#60a5fa"
+          transparent
+          opacity={0.13}
+          side={THREE.BackSide}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[EARTH_RADIUS * 1.35, EARTH_RADIUS * 1.42, 64]} />
-        <meshBasicMaterial color="#818cf8" transparent opacity={0.2} side={THREE.DoubleSide} />
-      </mesh>
-    </group>
-  )
-}
-
-function OrbitTrack() {
-  const points = useMemo(() => {
-    const pts: THREE.Vector3[] = []
-    for (let i = 0; i <= 96; i++) {
-      const a = (i / 96) * Math.PI * 2
-      pts.push(new THREE.Vector3(Math.cos(a) * ORBIT_RADIUS, 0, Math.sin(a) * ORBIT_RADIUS))
-    }
-    return pts
-  }, [])
-
-  return (
-    <Line points={points} color="#c9a962" transparent opacity={0.35} lineWidth={1} />
-  )
-}
-
-function DebrisField({ progressRef }: { progressRef: React.RefObject<number | null> }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
-  const dummy = useMemo(() => new THREE.Object3D(), [])
-  const states = useMemo(() => {
-    const result: DebrisState[] = []
-    for (let i = 0; i < DEBRIS_COUNT; i++) {
-      result.push({
-        angle: Math.random() * Math.PI * 2,
-        incline: (Math.random() - 0.5) * 0.55,
-        radius: ORBIT_RADIUS + (Math.random() - 0.5) * 0.45,
-        scale: 0.025 + Math.random() * 0.04,
-        spin: Math.random() * Math.PI,
-      })
-    }
-    return result
-  }, [])
-
-  useFrame((state) => {
-    const mesh = meshRef.current
-    if (!mesh) return
-    const p = smoothstep(progressRef.current ?? 0)
-    const captured = Math.floor(p * DEBRIS_COUNT * 0.72)
-    const t = state.clock.elapsedTime
-
-    states.forEach((d, i) => {
-      const isCaptured = i < captured
-      const angle = d.angle + t * 0.08
-      const x = Math.cos(angle) * d.radius
-      const z = Math.sin(angle) * d.radius
-      const y = d.incline + (isCaptured ? THREE.MathUtils.lerp(0, 0.35, p) : 0)
-
-      dummy.position.set(x, y, z)
-      dummy.rotation.set(d.spin + t * 0.5, d.spin * 0.7, t * 0.3)
-      const scale = isCaptured ? d.scale * (1 - p * 0.85) : d.scale
-      dummy.scale.setScalar(Math.max(0.001, scale))
-      dummy.updateMatrix()
-      mesh.setMatrixAt(i, dummy.matrix)
-    })
-    mesh.instanceMatrix.needsUpdate = true
-  })
-
-  return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, DEBRIS_COUNT]}>
-      <boxGeometry args={[1, 0.4, 0.6]} />
-      <meshStandardMaterial color="#94a3b8" metalness={0.6} roughness={0.35} />
-    </instancedMesh>
-  )
-}
-
-function SweepSpacecraft({ progressRef }: { progressRef: React.RefObject<number | null> }) {
-  const groupRef = useRef<THREE.Group>(null)
-  const beamRef = useRef<THREE.Mesh>(null)
-
-  useFrame((state) => {
-    const p = smoothstep(progressRef.current ?? 0)
-    const t = state.clock.elapsedTime
-    if (groupRef.current) {
-      const angle = t * 0.12 + p * 0.8
-      groupRef.current.position.set(
-        Math.cos(angle) * (ORBIT_RADIUS - 0.15),
-        0.12 + Math.sin(t * 0.4) * 0.03,
-        Math.sin(angle) * (ORBIT_RADIUS - 0.15),
-      )
-      groupRef.current.lookAt(0, 0, 0)
-      groupRef.current.rotateY(Math.PI / 2)
-    }
-    if (beamRef.current) {
-      const active = p > 0.15 && p < 0.92
-      beamRef.current.visible = active
-      beamRef.current.scale.set(1, 1, THREE.MathUtils.lerp(0.2, 1.4, (p - 0.15) / 0.77))
-      ;(beamRef.current.material as THREE.MeshBasicMaterial).opacity = active
-        ? 0.15 + Math.sin(t * 8) * 0.05
-        : 0
-    }
-  })
-
-  return (
-    <group ref={groupRef}>
-      <mesh>
-        <boxGeometry args={[0.22, 0.14, 0.32]} />
-        <meshPhysicalMaterial color="#e2e8f0" metalness={0.7} roughness={0.25} />
-      </mesh>
-      <mesh position={[0.28, 0, 0]}>
-        <boxGeometry args={[0.38, 0.02, 0.14]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.5} roughness={0.4} />
-      </mesh>
-      <mesh position={[-0.28, 0, 0]}>
-        <boxGeometry args={[0.38, 0.02, 0.14]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.5} roughness={0.4} />
-      </mesh>
-      <mesh position={[0, 0, -0.28]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.06, 0.08, 0.35, 12]} />
-        <meshStandardMaterial color="#64748b" metalness={0.55} roughness={0.35} />
-      </mesh>
-      <mesh ref={beamRef} position={[0, 0, 0.55]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.12, 0.9, 16, 1, true]} />
-        <meshBasicMaterial color="#86efac" transparent opacity={0.2} side={THREE.DoubleSide} />
+      <mesh rotation={[Math.PI / 2.6, 0.2, -0.2]}>
+        <torusGeometry args={[EARTH_RADIUS * 1.32, 0.012, 6, 128]} />
+        <meshBasicMaterial color={ORBIT_COLOR} transparent opacity={0.34} />
       </mesh>
     </group>
   )
 }
 
-function EjectionTrail({ progressRef }: { progressRef: React.RefObject<number | null> }) {
-  const matRef = useRef<THREE.LineBasicMaterial>(null)
-
-  useFrame(() => {
-    if (!matRef.current) return
-    const p = smoothstep(progressRef.current ?? 0)
-    matRef.current.opacity = p > 0.55 ? THREE.MathUtils.lerp(0, 0.65, (p - 0.55) / 0.45) : 0
-  })
-
-  const geom = useMemo(
+function OrbitShells() {
+  const shells = useMemo(
     () =>
-      new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0.2, 0),
-        new THREE.Vector3(2.8, 0.5, 1.2),
-      ]),
+      [-0.18, 0.08, 0.28].map((inclination, shell) => {
+        const points: THREE.Vector3[] = []
+        const radius = ORBIT_RADIUS + shell * 0.22
+        for (let i = 0; i <= 128; i++) {
+          const angle = (i / 128) * Math.PI * 2
+          points.push(
+            new THREE.Vector3(
+              Math.cos(angle) * radius - 1.25,
+              Math.sin(angle) * radius * Math.sin(inclination) - 1.42,
+              Math.sin(angle) * radius * Math.cos(inclination) - 0.72,
+            ),
+          )
+        }
+        return points
+      }),
     [],
   )
 
-  const line = useMemo(
-    () => new THREE.Line(geom, new THREE.LineBasicMaterial({ color: '#e8a317', transparent: true, opacity: 0 })),
-    [geom],
-  )
-
-  useEffect(() => {
-    matRef.current = line.material as THREE.LineBasicMaterial
-    return () => {
-      geom.dispose()
-      line.material.dispose()
-    }
-  }, [line, geom])
-
-  return <primitive object={line} />
-}
-
-function DebrisScene({
-  progressRef,
-}: {
-  progressRef: React.RefObject<number | null>
-  active: boolean
-}) {
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[6, 5, 4]} intensity={1.1} color="#f8fafc" />
-      <directionalLight position={[-4, 2, -3]} intensity={0.25} color="#818cf8" />
-      <pointLight position={[0, 2, 3]} intensity={0.2} color="#c9a962" />
+      {shells.map((points, index) => (
+        <Line
+          key={index}
+          points={points}
+          color={index === 1 ? '#c7d2fe' : ORBIT_COLOR}
+          transparent
+          opacity={index === 1 ? 0.3 : 0.14}
+          lineWidth={index === 1 ? 1.2 : 0.8}
+        />
+      ))}
+    </>
+  )
+}
+
+function DebrisField({ progressRef }: { progressRef: ProgressRef }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const glowRef = useRef<THREE.InstancedMesh>(null)
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+  const states = useMemo(
+    () =>
+      Array.from({ length: DEBRIS_COUNT }, (_, index) => ({
+        angle: deterministic(index, 4) * Math.PI * 2,
+        inclination: (deterministic(index, 5) - 0.5) * 0.62,
+        radius: ORBIT_RADIUS + (deterministic(index, 6) - 0.5) * 0.62,
+        scale: 0.025 + deterministic(index, 7) * 0.052,
+        speed: 0.018 + deterministic(index, 8) * 0.024,
+        spin: deterministic(index, 9) * Math.PI,
+      })),
+    [],
+  )
+
+  useFrame((state) => {
+    const mesh = meshRef.current
+    const glow = glowRef.current
+    if (!mesh || !glow) return
+    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+    const tracking = smoothstep(range01(p, 0.1, 0.28))
+    const cleared = smoothstep(range01(p, 0.42, 0.92))
+    const time = state.clock.elapsedTime
+    const trackedCount = Math.floor(tracking * 28)
+    const clearedCount = Math.floor(cleared * 82)
+
+    states.forEach((debris, index) => {
+      const angle = debris.angle + time * debris.speed
+      const visibleScale = index < clearedCount ? debris.scale * 0.04 : debris.scale
+      dummy.position.set(
+        Math.cos(angle) * debris.radius - 1.25,
+        Math.sin(angle) * debris.radius * Math.sin(debris.inclination) - 1.42,
+        Math.sin(angle) * debris.radius * Math.cos(debris.inclination) - 0.72,
+      )
+      dummy.rotation.set(debris.spin + time * 0.2, angle, debris.spin * 0.7)
+      dummy.scale.set(visibleScale * 0.6, visibleScale * 1.8, visibleScale)
+      dummy.updateMatrix()
+      mesh.setMatrixAt(index, dummy.matrix)
+
+      const tracked = index < trackedCount && index >= clearedCount
+      dummy.scale.setScalar(tracked ? visibleScale * 2.4 : 0.001)
+      dummy.updateMatrix()
+      glow.setMatrixAt(index, dummy.matrix)
+    })
+    mesh.instanceMatrix.needsUpdate = true
+    glow.instanceMatrix.needsUpdate = true
+  })
+
+  return (
+    <>
+      <instancedMesh ref={meshRef} args={[undefined, undefined, DEBRIS_COUNT]}>
+        <tetrahedronGeometry args={[1, 0]} />
+        <meshStandardMaterial color="#a8b2c3" metalness={0.86} roughness={0.32} />
+      </instancedMesh>
+      <instancedMesh ref={glowRef} args={[undefined, undefined, DEBRIS_COUNT]}>
+        <sphereGeometry args={[1, 8, 8]} />
+        <meshBasicMaterial
+          color={CAPTURE_COLOR}
+          transparent
+          opacity={0.18}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </instancedMesh>
+    </>
+  )
+}
+
+function CmgAssembly({ progressRef }: { progressRef: ProgressRef }) {
+  const outerRef = useRef<THREE.Group>(null)
+  const innerRef = useRef<THREE.Group>(null)
+  useFrame((state) => {
+    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+    const stabilize = smoothstep(range01(p, 0.72, 0.9))
+    if (outerRef.current) outerRef.current.rotation.x = state.clock.elapsedTime * (0.25 + stabilize * 3)
+    if (innerRef.current) innerRef.current.rotation.y = -state.clock.elapsedTime * (0.2 + stabilize * 3.6)
+  })
+  return (
+    <group position={[-0.38, 0, 0]}>
+      <group ref={outerRef}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.19, 0.026, 8, 36]} />
+          <meshStandardMaterial color="#94a3b8" metalness={0.9} roughness={0.18} />
+        </mesh>
+      </group>
+      <group ref={innerRef}>
+        <mesh rotation={[0, Math.PI / 2, 0]}>
+          <torusGeometry args={[0.13, 0.02, 8, 32]} />
+          <meshStandardMaterial color={ORBIT_COLOR} emissive="#312e81" emissiveIntensity={0.8} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+function SweepVehicle({ progressRef }: { progressRef: ProgressRef }) {
+  const rigRef = useRef<THREE.Group>(null)
+  const chamberRef = useRef<THREE.MeshStandardMaterial>(null)
+  const railRef = useRef<THREE.MeshStandardMaterial>(null)
+  const targetRef = useRef<THREE.Mesh>(null)
+
+  useFrame(() => {
+    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+    const enter = smoothstep(range01(p, 0.22, 0.4))
+    const compress = Math.sin(range01(p, 0.42, 0.58) * Math.PI)
+    const fire = Math.sin(range01(p, 0.58, 0.72) * Math.PI)
+    const recoil = smoothstep(range01(p, 0.6, 0.7)) * (1 - smoothstep(range01(p, 0.72, 0.82)))
+
+    if (rigRef.current) {
+      rigRef.current.position.set(
+        THREE.MathUtils.lerp(2.3, 0.75, enter) - recoil * 0.12,
+        THREE.MathUtils.lerp(1.15, 0.55, enter),
+        THREE.MathUtils.lerp(0.8, 0, enter),
+      )
+      rigRef.current.rotation.y = THREE.MathUtils.lerp(-0.55, -0.12, enter)
+    }
+    if (chamberRef.current) chamberRef.current.emissiveIntensity = 0.25 + compress * 3.5
+    if (railRef.current) railRef.current.emissiveIntensity = 0.4 + fire * 6
+    if (targetRef.current) {
+      const capture = smoothstep(range01(p, 0.28, 0.5))
+      targetRef.current.position.x = THREE.MathUtils.lerp(1.35, 0.16, capture)
+      targetRef.current.scale.setScalar(THREE.MathUtils.lerp(1, 0.08, capture))
+      targetRef.current.rotation.x += 0.018
+    }
+  })
+
+  return (
+    <group ref={rigRef} position={[2.3, 1.15, 0.8]} rotation={[0, -0.55, 0]}>
+      <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.38, 0.38, 1.18, 32, 1, true]} />
+        <meshPhysicalMaterial
+          color="#61728c"
+          emissive="#101827"
+          emissiveIntensity={0.45}
+          metalness={0.84}
+          roughness={0.22}
+          clearcoat={0.42}
+        />
+      </mesh>
+      <mesh position={[0.59, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[0.38, 0.045, 10, 40]} />
+        <meshStandardMaterial color="#dbe4ee" metalness={0.92} roughness={0.16} />
+      </mesh>
+      <mesh position={[-0.59, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[0.38, 0.045, 10, 40]} />
+        <meshStandardMaterial color="#dbe4ee" metalness={0.92} roughness={0.16} />
+      </mesh>
+      <mesh position={[0.08, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.3, 0.3, 0.62, 32, 1, true]} />
+        <meshStandardMaterial
+          ref={chamberRef}
+          color="#172033"
+          emissive={CAPTURE_COLOR}
+          emissiveIntensity={0.25}
+          metalness={0.52}
+          roughness={0.28}
+          transparent
+          opacity={0.82}
+        />
+      </mesh>
+      <mesh ref={targetRef} position={[1.35, 0.1, 0]}>
+        <octahedronGeometry args={[0.12, 0]} />
+        <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.25} />
+      </mesh>
+      <CmgAssembly progressRef={progressRef} />
+
+      <group position={[0.42, -0.18, 0]}>
+        {[-0.1, 0.1].map((z) => (
+          <mesh key={z} position={[0, 0, z]} rotation={[0, 0, Math.PI / 2]}>
+            <boxGeometry args={[0.06, 0.78, 0.045]} />
+            <meshStandardMaterial
+              ref={z < 0 ? railRef : undefined}
+              color={RAIL_COLOR}
+              emissive={RAIL_COLOR}
+              emissiveIntensity={0.4}
+              toneMapped={false}
+            />
+          </mesh>
+        ))}
+      </group>
+      <mesh position={[-0.18, 0, -0.56]}>
+        <boxGeometry args={[0.64, 0.035, 0.58]} />
+        <meshPhysicalMaterial color="#1e3a5f" metalness={0.65} roughness={0.3} clearcoat={0.5} />
+      </mesh>
+      <mesh position={[-0.18, 0, 0.56]}>
+        <boxGeometry args={[0.64, 0.035, 0.58]} />
+        <meshPhysicalMaterial color="#1e3a5f" metalness={0.65} roughness={0.3} clearcoat={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+function MissionEffects({ progressRef }: { progressRef: ProgressRef }) {
+  const interceptMaterial = useRef<THREE.LineBasicMaterial | null>(null)
+  const ejectMaterial = useRef<THREE.LineBasicMaterial | null>(null)
+  const pelletRef = useRef<THREE.Mesh>(null)
+
+  const intercept = useMemo(
+    () => [
+      new THREE.Vector3(2.1, 1.1, 0.65),
+      new THREE.Vector3(1.55, 0.9, 0.35),
+      new THREE.Vector3(1.02, 0.62, 0.06),
+    ],
+    [],
+  )
+  const eject = useMemo(
+    () => [
+      new THREE.Vector3(1.1, 0.37, 0),
+      new THREE.Vector3(1.65, 0.18, 0.15),
+      new THREE.Vector3(2.55, -0.18, 0.46),
+    ],
+    [],
+  )
+
+  useFrame(() => {
+    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+    const scan = smoothstep(range01(p, 0.1, 0.3)) * (1 - smoothstep(range01(p, 0.42, 0.5)))
+    const fire = smoothstep(range01(p, 0.58, 0.7))
+    if (interceptMaterial.current) interceptMaterial.current.opacity = scan * 0.75
+    if (ejectMaterial.current) ejectMaterial.current.opacity = fire * 0.85
+    if (pelletRef.current) {
+      pelletRef.current.visible = fire > 0.02
+      pelletRef.current.position.lerpVectors(eject[0], eject[2], fire)
+      pelletRef.current.scale.setScalar(0.04 + fire * 0.025)
+    }
+  })
+
+  return (
+    <>
+      <Line
+        points={intercept}
+        color={CAPTURE_COLOR}
+        transparent
+        opacity={0}
+        lineWidth={1.5}
+        dashed
+        dashSize={0.06}
+        gapSize={0.045}
+        onUpdate={(line: THREE.Line) => {
+          interceptMaterial.current = line.material as THREE.LineBasicMaterial
+        }}
+      />
+      <Line
+        points={eject}
+        color={RAIL_COLOR}
+        transparent
+        opacity={0}
+        lineWidth={2}
+        onUpdate={(line: THREE.Line) => {
+          ejectMaterial.current = line.material as THREE.LineBasicMaterial
+        }}
+      />
+      <mesh ref={pelletRef} visible={false}>
+        <sphereGeometry args={[1, 12, 12]} />
+        <meshStandardMaterial
+          color="#fff7d6"
+          emissive={RAIL_COLOR}
+          emissiveIntensity={4}
+          toneMapped={false}
+        />
+      </mesh>
+    </>
+  )
+}
+
+function DebrisScene({ progressRef }: { progressRef: ProgressRef }) {
+  return (
+    <>
+      <color attach="background" args={['#030610']} />
+      <fog attach="fog" args={['#030610', 7, 12]} />
+      <ambientLight intensity={0.24} />
+      <directionalLight position={[5, 6, 4]} intensity={1.65} color="#f8fafc" />
+      <directionalLight position={[-4, 2, 3]} intensity={0.65} color={ORBIT_COLOR} />
+      <pointLight position={[1, 1.2, 2]} intensity={0.8} color={CAPTURE_COLOR} distance={4} />
       <CameraRig progressRef={progressRef} />
+      <Starfield />
       <Earth />
-      <OrbitTrack />
+      <OrbitShells />
       <DebrisField progressRef={progressRef} />
-      <SweepSpacecraft progressRef={progressRef} />
-      <EjectionTrail progressRef={progressRef} />
+      <SweepVehicle progressRef={progressRef} />
+      <MissionEffects progressRef={progressRef} />
     </>
   )
 }
 
 function getTelemetry(progress: number) {
-  const p = smoothstep(progress)
-  const phases = p < 0.33 ? 'Survey' : p < 0.66 ? 'Capture' : 'Eject'
-  const tracked = Math.round(THREE.MathUtils.lerp(847, 214, p))
+  const p = THREE.MathUtils.clamp(progress, 0, 1)
+  let phase = 'Orbital survey'
+  let detail = 'Cataloging LEO debris'
+  let mode = 'SCAN'
+  if (p >= 0.88) {
+    phase = 'Mission reset'
+    detail = 'Next target acquired'
+    mode = 'READY'
+  } else if (p >= 0.74) {
+    phase = 'CMG stabilize'
+    detail = 'Recoil cancellation'
+    mode = 'ATTITUDE'
+  } else if (p >= 0.58) {
+    phase = 'Railgun eject'
+    detail = 'Pellet disposal burn'
+    mode = 'FIRE'
+  } else if (p >= 0.42) {
+    phase = 'Encapsulate'
+    detail = 'Conductive compression'
+    mode = 'PROCESS'
+  } else if (p >= 0.28) {
+    phase = 'Capture'
+    detail = 'Tunnel intercept'
+    mode = 'INGEST'
+  } else if (p >= 0.1) {
+    phase = 'Track'
+    detail = 'Relative navigation'
+    mode = 'TRACK'
+  }
   return {
-    phase: phases,
-    tracked: String(tracked),
-    altitude: '550 km',
-    cleared: `${Math.round(p * 72)}%`,
+    phase,
+    detail,
+    mode,
+    tracked: String(Math.round(847 - range01(p, 0.28, 0.88) * 612)),
+    cleared: `${Math.round(range01(p, 0.42, 1) * 72)}%`,
   }
 }
 
@@ -283,18 +504,16 @@ export function SpaceDebrisOrbit({
   const progressRef = useMotionProgressRef(progress, scrollProgress)
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
-  const liveProgress = useThrottledMotionValue(source, 150)
+  const liveProgress = useThrottledMotionValue(source, 100)
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
   }, [progress, scrollProgress, fallbackProgress])
-
   useEffect(() => {
     progressRef.current = progress?.get() ?? scrollProgress
   }, [progress, scrollProgress, progressRef])
-
-  useMotionValueEvent(source, 'change', (v) => {
-    progressRef.current = v
+  useMotionValueEvent(source, 'change', (value) => {
+    progressRef.current = value
   })
 
   const telemetry = getTelemetry(liveProgress)
@@ -302,50 +521,49 @@ export function SpaceDebrisOrbit({
   return (
     <div ref={containerRef}>
       <ResearchViewerFrame
-        className={className}
+        className={`${className} research-viewer--debris`}
         progressPercent={Math.round(liveProgress * 100)}
         badge={
           showConferenceBadge ? (
-            <ConferenceBadgeOverlay
-              conference="AAS"
-              number="248"
-              location="Pasadena, California"
-            />
+            <ConferenceBadgeOverlay conference="AAS" number="248" location="Pasadena, California" />
           ) : undefined
         }
         telemetry={
           <ViewerTelemetry
-            label="Orbital telemetry"
+            label="SWEEP mission"
             rows={[
               { key: 'Phase', value: telemetry.phase },
               { key: 'Tracked', value: telemetry.tracked },
-              { key: 'Altitude', value: telemetry.altitude },
+              { key: 'Altitude', value: '550 km' },
               { key: 'Cleared', value: telemetry.cleared },
+              { key: 'Mode', value: telemetry.mode },
             ]}
           />
         }
         legend={
           <div className="research-viewer__legend">
-            <span className="research-viewer__legend-item research-viewer__legend-item--capture">
-              SWEEP capture
-            </span>
-            <span className="research-viewer__legend-item research-viewer__legend-item--debris">
-              Debris field
-            </span>
+            <span className="research-viewer__legend-item research-viewer__legend-item--capture">Target lock</span>
+            <span className="research-viewer__legend-item research-viewer__legend-item--debris">Debris field</span>
+            <span className="research-viewer__legend-item research-viewer__legend-item--rail">Rail ejection</span>
           </div>
         }
       >
         <Canvas
-          camera={{ position: [0, 1.2, 5.5], fov: 42, near: 0.1, far: 80 }}
+          camera={{ position: [4.6, 2.2, 5.4], fov: 40, near: 0.1, far: 30 }}
           dpr={[1, 1.5]}
-          gl={{ alpha: true, antialias: true }}
+          shadows
+          gl={{ alpha: true, antialias: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
           frameloop={isVisible && active ? 'always' : 'demand'}
           style={{ background: 'transparent' }}
         >
           <Suspense fallback={null}>
-            <DebrisScene progressRef={progressRef} active={isVisible && active} />
+            <DebrisScene progressRef={progressRef} />
           </Suspense>
         </Canvas>
+        <div className="viewer-phase" aria-hidden="true">
+          <span className="viewer-phase__index">{String(Math.min(5, Math.floor(liveProgress * 6)) + 1).padStart(2, '0')}</span>
+          <span className="viewer-phase__copy"><strong>{telemetry.phase}</strong><small>{telemetry.detail}</small></span>
+        </div>
       </ResearchViewerFrame>
     </div>
   )
