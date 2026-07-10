@@ -291,6 +291,27 @@
   background: #86efac;
 }
 
+.research-viewer__legend-item--rail::before,
+.research-viewer__legend-item--guidance::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.3rem;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.research-viewer__legend-item--rail::before {
+  background: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.research-viewer__legend-item--guidance::before {
+  background: #22d3ee;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+}
+
 .research-viewer--qcin .research-viewer__telemetry {
   right: 0.55rem;
   left: auto;
@@ -348,6 +369,71 @@
 }
 
 .qcin-phase__copy small {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.45rem;
+  letter-spacing: 0.06em;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.research-viewer--airfoil .research-viewer__telemetry,
+.research-viewer--flowstate .research-viewer__telemetry {
+  right: 0.55rem;
+  left: auto;
+  background:
+    linear-gradient(145deg, rgba(30, 41, 59, 0.78), rgba(4, 7, 17, 0.94));
+}
+
+.research-viewer--airfoil .research-viewer__legend,
+.research-viewer--flowstate .research-viewer__legend,
+.research-viewer--debris .research-viewer__legend {
+  right: 0.7rem;
+  bottom: 0.7rem;
+  left: 10rem;
+  justify-content: flex-end;
+}
+
+.viewer-phase {
+  position: absolute;
+  bottom: 0.62rem;
+  left: 0.7rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  pointer-events: none;
+}
+
+.viewer-phase__index {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 1px solid rgba(165, 180, 252, 0.35);
+  border-radius: 0.4rem;
+  background: rgba(4, 7, 17, 0.82);
+  box-shadow: inset 0 0 16px rgba(99, 102, 241, 0.12);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  color: #c7d2fe;
+}
+
+.viewer-phase__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+}
+
+.viewer-phase__copy strong {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f1f5f9;
+}
+
+.viewer-phase__copy small {
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.45rem;
   letter-spacing: 0.06em;
