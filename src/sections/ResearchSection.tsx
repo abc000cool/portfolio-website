@@ -47,7 +47,7 @@ function ResearchViewer({
 
   const fallback =
     staticProgress ??
-    (config.viewer === 'airfoil' ? 1 : config.viewer === 'qcin' ? 0.95 : 0.4)
+    (config.viewer === 'airfoil' ? 1 : config.viewer === 'qcin' ? 0.98 : 0.4)
 
   return (
     <Suspense fallback={<div className={`research-viewer ${VIEWER_HEIGHT}`} />}>
@@ -246,7 +246,7 @@ function ResearchShowcaseBlock({
   )
 
   const reducedStatic =
-    config.viewer === 'airfoil' ? 1 : config.viewer === 'qcin' ? 0.95 : 0.45
+    config.viewer === 'airfoil' ? 1 : config.viewer === 'qcin' ? 0.98 : 0.45
 
   const content = hasViewer ? (
     <div className={gridClass}>
