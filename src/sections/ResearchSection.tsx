@@ -26,6 +26,9 @@ const SpaceDebrisOrbit = lazy(() =>
 const FlowStateTraffic = lazy(() =>
   import('../components/three/FlowStateTraffic').then((m) => ({ default: m.FlowStateTraffic })),
 )
+const HybridQuantumNav = lazy(() =>
+  import('../components/three/HybridQuantumNav').then((m) => ({ default: m.HybridQuantumNav })),
+)
 
 const VIEWER_HEIGHT = 'h-[300px] md:h-[380px] lg:h-[420px]'
 
@@ -43,7 +46,8 @@ function ResearchViewer({
   if (!config.viewer) return null
 
   const fallback =
-    staticProgress ?? (config.viewer === 'airfoil' ? 1 : 0.4)
+    staticProgress ??
+    (config.viewer === 'airfoil' ? 1 : config.viewer === 'qcin' ? 0.95 : 0.4)
 
   return (
     <Suspense fallback={<div className={`research-viewer ${VIEWER_HEIGHT}`} />}>
@@ -72,6 +76,15 @@ function ResearchViewer({
           case 'flowstate':
             return (
               <FlowStateTraffic
+                progress={scrollProgress}
+                scrollProgress={fallback}
+                active={active}
+                className={VIEWER_HEIGHT}
+              />
+            )
+          case 'qcin':
+            return (
+              <HybridQuantumNav
                 progress={scrollProgress}
                 scrollProgress={fallback}
                 active={active}
@@ -134,7 +147,9 @@ function MobileResearchCard({ config }: { config: ResearchShowcaseConfig }) {
       </span>
       <h3 className="font-display text-lg text-white mt-2 mb-3 leading-snug">{paper.title}</h3>
       <p className="text-sm text-slate-400 leading-relaxed mb-5 line-clamp-4">{paper.abstract}</p>
-      <div className="flex flex-wrap gap-3 mb-5">
+      <div
+        className={`research-showcase__metrics${config.metrics.length === 4 ? ' research-showcase__metrics--quad' : ''}`}
+      >
         {config.metrics.map((metric) => (
           <div key={metric.label} className="research-showcase__metric">
             <span className="research-showcase__metric-value">{metric.value}</span>
@@ -209,7 +224,9 @@ function ResearchShowcaseBlock({
       </h3>
       <p className="text-sm text-slate-400 leading-relaxed mb-6">{paper.abstract}</p>
 
-      <div className="research-showcase__metrics">
+      <div
+        className={`research-showcase__metrics${config.metrics.length === 4 ? ' research-showcase__metrics--quad' : ''}`}
+      >
         {config.metrics.map((metric) => (
           <div key={metric.label} className="research-showcase__metric">
             <span className="research-showcase__metric-value">{metric.value}</span>
@@ -228,6 +245,9 @@ function ResearchShowcaseBlock({
     </article>
   )
 
+  const reducedStatic =
+    config.viewer === 'airfoil' ? 1 : config.viewer === 'qcin' ? 0.95 : 0.45
+
   const content = hasViewer ? (
     <div className={gridClass}>
       {card}
@@ -236,7 +256,7 @@ function ResearchShowcaseBlock({
           config={config}
           active={viewerActive}
           scrollProgress={reduced ? undefined : scrollYProgress}
-          staticProgress={reduced ? (config.viewer === 'airfoil' ? 1 : 0.45) : 0}
+          staticProgress={reduced ? reducedStatic : 0}
         />
       </div>
     </div>
