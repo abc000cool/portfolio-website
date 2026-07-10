@@ -46,4 +46,5 @@ export function prefetchResearchViewers(): void {
   void import('../components/three/SpaceDebrisOrbit')
   void import('../components/three/MorphingAirfoil')
   void import('../components/three/FlowStateTraffic')
+  void import('../components/three/HybridQuantumNav')
 }

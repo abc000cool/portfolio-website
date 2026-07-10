@@ -12,7 +12,7 @@ export interface ConferenceBadge {
   location: string
 }
 
-export type ResearchViewerId = 'debris' | 'airfoil' | 'flowstate'
+export type ResearchViewerId = 'debris' | 'airfoil' | 'flowstate' | 'qcin'
 
 export interface ResearchShowcaseConfig {
   id: string
@@ -84,8 +84,11 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
   {
     id: 'research-qcin',
     paperSlug: 'hybrid-quantum-classical-inertial-navigation',
+    viewer: 'qcin',
+    scrollHeightVh: 320,
     linkTo: '/research/hybrid-quantum-classical-inertial-navigation',
     linkLabel: 'Read full abstract →',
+    viewerHint: 'Scroll: atom interferometer → hybrid bias lock',
     externalUrl: 'https://qcin-nav.vercel.app/',
     githubUrl: 'https://github.com/abc000cool/qcin-nav',
     metrics: [
