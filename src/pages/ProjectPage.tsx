@@ -63,6 +63,16 @@ export function ProjectPage() {
                 Visit live site →
               </a>
             )}
+            {project.githubUrl && (
+              <a
+                href={project.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-underline text-sm text-slate-400 hover:text-white font-medium"
+              >
+                GitHub →
+              </a>
+            )}
           </div>
         </header>
 

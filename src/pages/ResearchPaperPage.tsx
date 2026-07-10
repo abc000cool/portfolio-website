@@ -19,7 +19,7 @@ export function ResearchPaperPage() {
       <article className="max-w-4xl mx-auto">
         <header className="mb-10">
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-indigo-300/90 mb-3">
-            Pending Research
+            {paper.venue === 'Pending' ? 'Pending Research' : 'Research'}
           </p>
           <p className="font-mono text-sm text-amber-200/80 m-0 mb-4">
             {paper.year} — {paper.venue}
@@ -27,6 +27,30 @@ export function ResearchPaperPage() {
           <h1 className="font-display text-3xl md:text-4xl lg:text-[2.35rem] text-white m-0 leading-snug tracking-tight">
             {paper.title}
           </h1>
+          {(paper.externalUrl || paper.githubUrl) && (
+            <div className="flex flex-wrap items-center gap-4 mt-6">
+              {paper.externalUrl && (
+                <a
+                  href={paper.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link-underline text-sm text-indigo-300 font-medium"
+                >
+                  Visit project site →
+                </a>
+              )}
+              {paper.githubUrl && (
+                <a
+                  href={paper.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link-underline text-sm text-slate-400 hover:text-white font-medium"
+                >
+                  GitHub →
+                </a>
+              )}
+            </div>
+          )}
         </header>
 
         <section className="glass-card p-6 md:p-8 mb-10">

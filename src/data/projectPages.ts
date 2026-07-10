@@ -28,6 +28,7 @@ export interface ProjectPage {
   overview: string
   group?: ProjectGroup
   externalUrl?: string
+  githubUrl?: string
   specs?: ProjectSpec[]
   sections: ProjectSection[]
   capabilities?: { title: string; items: string[] }[]
@@ -159,6 +160,70 @@ export const projectPages: ProjectPage[] = [
     externalUrl: 'https://abc000cool.github.io/propulsion-studio/',
     tags: ['Propulsion Systems', 'Systems Engineering', 'Live Analysis', 'Design Optimization'],
     patchColors: ['#0f1624', '#e8a317', '#b8bfca'],
+  },
+  {
+    slug: 'porkchop',
+    title: 'PORKCHOP',
+    subtitle: 'Interplanetary Mission Planner',
+    status: 'Live',
+    category: 'Trajectory Design Tool',
+    tagline: 'Interactive Lambert-solver porkchop plots, Grand Tour planning, and 3D solar-system transfers',
+    overview:
+      'Porkchop is an interactive interplanetary trajectory design tool for exploring Lambert-solver porkchop plots, planning multi-body Grand Tours with patched-conic gravity assists, and visualizing transfers in an animated 3D solar system. Physics correctness is checked against Vallado examples, Perseverance C3, Earth–Mars transfer windows, and Voyager 2 flyby dates before trajectory changes ship.',
+    externalUrl: 'https://porkchop-mission-planner.vercel.app/',
+    githubUrl: 'https://github.com/abc000cool/porkchop-mission-planner',
+    specs: [
+      { label: 'Transfer Solver', value: 'Lambert (prograde / retrograde)' },
+      { label: 'Ephemerides', value: 'astronomy-engine' },
+      { label: 'Tour Method', value: 'Patched-conic gravity assists' },
+      { label: 'Visualization', value: 'React Three Fiber solar system' },
+      { label: 'Plotting', value: 'd3 contour / geo / scale' },
+      { label: 'Export', value: 'CSV · PDF · shareable permalinks' },
+    ],
+    sections: [
+      {
+        title: 'Porkchop plots',
+        description:
+          'Δv contour maps across launch and arrival date windows for any planet pair, with retrograde and multi-revolution Lambert solver toggles plus a top-5 transfer table for quick mission down-select.',
+      },
+      {
+        title: '3D solar system view',
+        description:
+          'Animated transfer arcs with orbit-capped planet and sun sizing, click-to-lock transfer windows, and a live launch countdown so candidate trajectories can be inspected in context.',
+      },
+      {
+        title: 'Grand Tour planner',
+        description:
+          'Coordinate-descent optimizer for multi-flyby trajectories using the patched-conic method, validated against Voyager 2’s real flyby dates and C3, with a synodic time-lapse mode for tour storytelling.',
+      },
+      {
+        title: 'Mission tools & reporting',
+        description:
+          'Rocket payload mapper, aerocapture and capture-burn modeling, historical mission overlay, difficulty scoring, CSV export, shareable permalinks, and PDF mission/tour reports — plus metric/imperial and color-palette toggles with a GL error boundary for constrained GPUs.',
+      },
+    ],
+    capabilities: [
+      {
+        title: 'Trajectory design',
+        items: [
+          'Planet-pair porkchop Δv maps',
+          'Retrograde and multi-revolution Lambert modes',
+          'Top-5 transfer ranking table',
+          'Click-to-lock transfer windows in 3D',
+        ],
+      },
+      {
+        title: 'Validation & export',
+        items: [
+          'Vallado 7-5 and Perseverance C3 sanity checks',
+          'Earth→Mars 2026 window and synodic period checks',
+          'Voyager 2 real-date flyby / C3 validation',
+          'CSV export and PDF mission/tour reports',
+        ],
+      },
+    ],
+    tags: ['Orbital Mechanics', 'Lambert Solver', 'Three.js', 'Mission Design'],
+    patchColors: ['#0b1220', '#f59e0b', '#38bdf8'],
   },
   {
     slug: 'sweep',
