@@ -12,7 +12,13 @@ export interface ConferenceBadge {
   location: string
 }
 
-export type ResearchViewerId = 'debris' | 'airfoil' | 'flowstate' | 'qcin'
+export type ResearchViewerId =
+  | 'debris'
+  | 'airfoil'
+  | 'flowstate'
+  | 'qcin'
+  | 'sailnko'
+  | 'transition'
 
 export interface ResearchShowcaseConfig {
   id: string
@@ -96,6 +102,40 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
       { value: '4.9×', label: 'Tighter · 5-min GNSS jamming' },
       { value: '313×', label: 'Tighter · 5-day cislunar coast' },
       { value: '8/8', label: 'Validation tests passed' },
+    ],
+  },
+  {
+    id: 'research-sailnko',
+    paperSlug: 'solar-sail-displaced-nko',
+    viewer: 'sailnko',
+    scrollHeightVh: 400,
+    linkTo: '/research/solar-sail-displaced-nko',
+    linkLabel: 'Read full abstract →',
+    viewerHint: 'Scroll: deploy the sail → lift the ring above the ecliptic → optical envelope',
+    externalUrl: 'https://solar-sail-nko.vercel.app/',
+    githubUrl: 'https://github.com/abc000cool/solar-sail-nko-site',
+    metrics: [
+      { value: '55.5°', label: 'Thrust-cone ceiling · optical model' },
+      { value: '×1.23', label: 'Median lightness penalty vs ideal' },
+      { value: '750', label: 'Converged minimum-time transfers' },
+      { value: '0.36–0.39 yr', label: 'Time to envelope · 5–150 g/m²' },
+    ],
+  },
+  {
+    id: 'research-transition',
+    paperSlug: 'nlf-transition-atlas',
+    viewer: 'transition',
+    scrollHeightVh: 420,
+    linkTo: '/research/nlf-transition-atlas',
+    linkLabel: 'Read full abstract →',
+    viewerHint: 'Scroll to sweep Ncrit — the transition front moves, then meets the 1981 data',
+    externalUrl: 'https://transition-atlas.vercel.app/',
+    githubUrl: 'https://github.com/abc000cool/nlf-transition-atlas',
+    metrics: [
+      { value: '7,020', label: 'Polar points · 96.2% converged' },
+      { value: '0.011c', label: 'Median ∂xtr/∂Ncrit shift' },
+      { value: '+0.010–0.035c', label: 'Envelope bias vs Orr–Sommerfeld' },
+      { value: '0.023c RMS', label: 'Validation vs 1981 Langley data' },
     ],
   },
 ]

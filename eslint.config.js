@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'macbook scroll/**']),
+  globalIgnores(['dist', 'macbook scroll/**', '_june-snapshot-backup/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
