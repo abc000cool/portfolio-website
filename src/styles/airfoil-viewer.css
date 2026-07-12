@@ -291,6 +291,56 @@
   background: #86efac;
 }
 
+.research-viewer__legend-item--sail-photon::before,
+.research-viewer__legend-item--sail-ring::before,
+.research-viewer__legend-item--sail-cone::before,
+.research-viewer__legend-item--sail-envelope::before,
+.research-viewer__legend-item--tr-laminar::before,
+.research-viewer__legend-item--tr-turbulent::before,
+.research-viewer__legend-item--tr-front::before,
+.research-viewer__legend-item--tr-bracket::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.3rem;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.research-viewer__legend-item--sail-photon::before {
+  background: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.research-viewer__legend-item--sail-ring::before {
+  background: #818cf8;
+}
+
+.research-viewer__legend-item--sail-cone::before {
+  background: #fb7185;
+}
+
+.research-viewer__legend-item--sail-envelope::before {
+  background: #86efac;
+}
+
+.research-viewer__legend-item--tr-laminar::before {
+  background: #22d3ee;
+}
+
+.research-viewer__legend-item--tr-turbulent::before {
+  background: #fb7185;
+}
+
+.research-viewer__legend-item--tr-front::before {
+  background: #818cf8;
+}
+
+.research-viewer__legend-item--tr-bracket::before {
+  background: #86efac;
+}
+
 .research-viewer__legend-item--rail::before,
 .research-viewer__legend-item--guidance::before {
   content: '';
@@ -312,7 +362,9 @@
   box-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
 }
 
-.research-viewer--qcin .research-viewer__telemetry {
+.research-viewer--qcin .research-viewer__telemetry,
+.research-viewer--sailnko .research-viewer__telemetry,
+.research-viewer--transition .research-viewer__telemetry {
   right: 0.55rem;
   left: auto;
   border-color: rgba(129, 140, 248, 0.28);
@@ -320,7 +372,9 @@
     linear-gradient(145deg, rgba(30, 41, 59, 0.78), rgba(4, 7, 17, 0.94));
 }
 
-.research-viewer--qcin .research-viewer__legend {
+.research-viewer--qcin .research-viewer__legend,
+.research-viewer--sailnko .research-viewer__legend,
+.research-viewer--transition .research-viewer__legend {
   right: 0.7rem;
   bottom: 0.7rem;
   left: 10rem;

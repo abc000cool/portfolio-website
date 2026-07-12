@@ -29,6 +29,12 @@ const FlowStateTraffic = lazy(() =>
 const HybridQuantumNav = lazy(() =>
   import('../components/three/HybridQuantumNav').then((m) => ({ default: m.HybridQuantumNav })),
 )
+const SolarSailNKO = lazy(() =>
+  import('../components/three/SolarSailNKO').then((m) => ({ default: m.SolarSailNKO })),
+)
+const TransitionAtlas = lazy(() =>
+  import('../components/three/TransitionAtlas').then((m) => ({ default: m.TransitionAtlas })),
+)
 
 const VIEWER_HEIGHT = 'h-[300px] md:h-[380px] lg:h-[420px]'
 
@@ -55,7 +61,11 @@ function ResearchViewer({
           ? 0.94
           : config.viewer === 'qcin'
             ? 0.98
-            : 0.4)
+            : config.viewer === 'sailnko'
+              ? 0.62
+              : config.viewer === 'transition'
+                ? 0.93
+                : 0.4)
 
   return (
     <Suspense fallback={<div className={`research-viewer ${VIEWER_HEIGHT}`} />}>
@@ -93,6 +103,24 @@ function ResearchViewer({
           case 'qcin':
             return (
               <HybridQuantumNav
+                progress={scrollProgress}
+                scrollProgress={fallback}
+                active={active}
+                className={VIEWER_HEIGHT}
+              />
+            )
+          case 'sailnko':
+            return (
+              <SolarSailNKO
+                progress={scrollProgress}
+                scrollProgress={fallback}
+                active={active}
+                className={VIEWER_HEIGHT}
+              />
+            )
+          case 'transition':
+            return (
+              <TransitionAtlas
                 progress={scrollProgress}
                 scrollProgress={fallback}
                 active={active}
@@ -262,7 +290,11 @@ function ResearchShowcaseBlock({
           ? 0.94
           : config.viewer === 'qcin'
             ? 0.98
-            : 0.45
+            : config.viewer === 'sailnko'
+              ? 0.62
+              : config.viewer === 'transition'
+                ? 0.93
+                : 0.45
 
   const content = hasViewer ? (
     <div className={gridClass}>
@@ -333,8 +365,8 @@ export function ResearchSection() {
           <RedactedHeading active={active}>Research</RedactedHeading>
           <p className="text-slate-400 mt-4 leading-relaxed">
             {isMobile
-              ? 'Research across orbital debris mitigation, morphing airfoil optimization, fluid-dynamics traffic modeling, and hybrid quantum–classical inertial navigation.'
-              : 'Scroll through each project to explore interactive 3D visualizations — from orbital debris capture to morphing airfoil optimization and fluid-dynamics traffic flow — plus hybrid quantum–classical navigation research.'}
+              ? 'Research across orbital debris mitigation, morphing airfoil optimization, fluid-dynamics traffic modeling, hybrid quantum–classical inertial navigation, solar-sail non-Keplerian orbits, and boundary-layer transition prediction.'
+              : 'Scroll through each project to explore interactive 3D visualizations — from orbital debris capture and morphing airfoils to solar sails hovering above the ecliptic and the boundary layer letting go on a laminar-flow wing.'}
           </p>
         </div>
 

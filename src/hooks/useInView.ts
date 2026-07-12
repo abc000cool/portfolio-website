@@ -47,4 +47,6 @@ export function prefetchResearchViewers(): void {
   void import('../components/three/MorphingAirfoil')
   void import('../components/three/FlowStateTraffic')
   void import('../components/three/HybridQuantumNav')
+  void import('../components/three/SolarSailNKO')
+  void import('../components/three/TransitionAtlas')
 }
