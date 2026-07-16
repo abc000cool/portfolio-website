@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { ScrollToTop } from './components/layout/ScrollToTop'
 import { HomePage } from './pages/HomePage'
 import { ProjectPage } from './pages/ProjectPage'
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/ism" element={<IsmPage />} />
         <Route path="/ism/:section" element={<IsmPage />} />
       </Routes>
+      <Analytics />
     </BrowserRouter>
   )
 }
