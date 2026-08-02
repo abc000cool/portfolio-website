@@ -6,7 +6,7 @@ import { getProjectsByGroup } from '../../data/projectPages'
 import { RESEARCH_SHOWCASE, getResearchShowcasePaper } from '../../data/researchShowcase'
 import { scrollToSection } from '../../lib/lenis'
 
-/** Biography sections — work is listed first, Connect is the contact CTA. */
+/** Biography sections - work is listed first, Connect is the contact CTA. */
 const BIO_SECTIONS: SectionId[] = ['about', 'stats']
 
 /** Condensed forms of the research titles, matching the desktop nav. */
@@ -51,7 +51,7 @@ export function MobileNav({ isHome, activeId }: MobileNavProps) {
 
   const close = useCallback(() => setOpen(false), [])
 
-  // Close on any navigation — including browser back/forward, which no link
+  // Close on any navigation - including browser back/forward, which no link
   // handler sees. Adjusting during render rather than in an effect avoids a
   // committed frame where the drawer is still open over the new route.
   const [renderedKey, setRenderedKey] = useState(location.key)
@@ -73,7 +73,7 @@ export function MobileNav({ isHome, activeId }: MobileNavProps) {
 
   /**
    * React flushes the close *after* this click handler returns, so the body is
-   * still locked when we try to move the page — and a locked body silently
+   * still locked when we try to move the page - and a locked body silently
    * clamps every programmatic scroll. Release it by hand first; the effect
    * cleanup writing the same value back later is a no-op.
    */
@@ -97,7 +97,7 @@ export function MobileNav({ isHome, activeId }: MobileNavProps) {
       for (const sibling of Array.from(parent.children)) {
         if (sibling === node) continue
         if (!(sibling instanceof HTMLElement)) continue
-        // The backdrop must stay tappable — it is the close affordance.
+        // The backdrop must stay tappable - it is the close affordance.
         if (sibling.dataset.mobileNavKeep !== undefined) continue
         if (sibling.hasAttribute('inert')) continue
         sibling.setAttribute('inert', '')

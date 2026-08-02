@@ -18,7 +18,7 @@ function persist(key: string): void {
   try {
     sessionStorage.setItem(STORAGE_PREFIX + key, String(Math.round(y)))
   } catch {
-    // Private mode / storage full — restoration is a nicety, never a failure.
+    // Private mode / storage full - restoration is a nicety, never a failure.
   }
 }
 
@@ -38,7 +38,7 @@ function recall(key: string): number | null {
 /**
  * Scroll management across route changes.
  *
- * Forward navigation (PUSH/REPLACE) still resets to the top — that was written
+ * Forward navigation (PUSH/REPLACE) still resets to the top - that was written
  * to fix landing part-way down a freshly mounted project/ISM page and it stays.
  * Back/forward (POP) restores where the entry was left, because drilling into a
  * project and backing out is how this site is actually read, and dumping the

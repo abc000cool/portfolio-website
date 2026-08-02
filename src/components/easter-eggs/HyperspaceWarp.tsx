@@ -9,7 +9,7 @@ export function HyperspaceWarp({ active, onComplete }: HyperspaceWarpProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   // Callers pass an inline arrow, so `onComplete` is a new function every parent
   // render. Reading it through a ref keeps it out of the animation effect's deps
-  // — otherwise the effect tore down and restarted the warp mid-flight.
+  // - otherwise the effect tore down and restarted the warp mid-flight.
   const onCompleteRef = useRef(onComplete)
 
   useEffect(() => {

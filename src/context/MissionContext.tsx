@@ -9,7 +9,7 @@ import {
 } from './missionState'
 
 /**
- * Exports the provider and nothing else — the contexts, hooks and types live in
+ * Exports the provider and nothing else - the contexts, hooks and types live in
  * `./missionState` so Fast Refresh can keep this module's state across edits.
  */
 export function MissionProvider({ children }: { children: ReactNode }) {

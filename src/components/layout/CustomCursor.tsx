@@ -15,7 +15,7 @@ function detectFinePointer() {
  *
  * Previously the trail never rendered for anyone: the effect called
  * setEnabled(true) and then read trailRef.current in the same pass, but the
- * <canvas> only mounts once `enabled` is true — i.e. on the *next* render — so
+ * <canvas> only mounts once `enabled` is true - i.e. on the *next* render - so
  * the ref was always null and the draw loop bailed. The effect's deps meant it
  * never ran again. `enabled` is now resolved during the first render, so the
  * canvas exists by the time the effect runs.
@@ -43,7 +43,7 @@ export function CustomCursor() {
     const canvas = trailRef.current
     const ctx = canvas?.getContext('2d')
 
-    // Sized on resize rather than inside the draw loop — assigning width or
+    // Sized on resize rather than inside the draw loop - assigning width or
     // height resets the canvas, so doing it per frame cleared and reallocated
     // the backing store 60 times a second.
     const sizeCanvas = () => {

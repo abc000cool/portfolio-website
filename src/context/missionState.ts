@@ -17,7 +17,7 @@ export interface MissionCheckpoint {
 }
 
 export interface MissionState {
-  /** Sticky — once the rocket reaches a waypoint, it stays reached. */
+  /** Sticky - once the rocket reaches a waypoint, it stays reached. */
   reached: Record<string, boolean>
   /** Current mission phase (last waypoint crossed); follows scroll in both directions. */
   phase: string

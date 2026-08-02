@@ -25,7 +25,7 @@ export interface ResearchShowcaseConfig {
   paperSlug: string
   /** Omit for card-only research (no 3D scroll viewer yet). */
   viewer?: ResearchViewerId
-  /** Sticky scroll zone height — higher = longer animation. Unused when viewer is omitted. */
+  /** Sticky scroll zone height - higher = longer animation. Unused when viewer is omitted. */
   scrollHeightVh?: number
   linkTo: string
   linkLabel: string
@@ -43,7 +43,7 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     id: 'research-debris',
     paperSlug: 'space-debris-mitigation',
     viewer: 'debris',
-    scrollHeightVh: 150,
+    scrollHeightVh: 300,
     linkTo: '/projects/sweep',
     linkLabel: 'Explore SWEEP project →',
     viewerHint: 'Scroll to run debris survey → capture → ejection sequence',
@@ -54,7 +54,7 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     },
     metrics: [
       { value: 'US Patent', label: 'SWEEP platform design' },
-      { value: '3', label: 'Railguns — ejection doubles as thrust' },
+      { value: '3', label: 'Railguns - ejection doubles as thrust' },
       { value: '0', label: 'Traditional propellant used to maneuver' },
     ],
   },
@@ -62,7 +62,7 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     id: 'research-airfoil',
     paperSlug: 'morphing-airfoil-qaoa',
     viewer: 'airfoil',
-    scrollHeightVh: 150,
+    scrollHeightVh: 400,
     linkTo: '/research/morphing-airfoil-qaoa',
     linkLabel: 'Read full abstract →',
     viewerHint: 'Scroll to morph NACA 2412 baseline → QAOA-optimized profile',
@@ -77,7 +77,7 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     id: 'research-flowstate',
     paperSlug: 'traffic-fluid-dynamics',
     viewer: 'flowstate',
-    scrollHeightVh: 150,
+    scrollHeightVh: 300,
     linkTo: '/projects/flowstate',
     linkLabel: 'Explore FlowState project →',
     viewerHint: 'Scroll to dissipate congestion waves through the corridor',
@@ -91,7 +91,7 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     id: 'research-qcin',
     paperSlug: 'hybrid-quantum-classical-inertial-navigation',
     viewer: 'qcin',
-    scrollHeightVh: 150,
+    scrollHeightVh: 320,
     linkTo: '/research/hybrid-quantum-classical-inertial-navigation',
     linkLabel: 'Read full abstract →',
     viewerHint: 'Scroll: atom interferometer → hybrid bias lock',
@@ -108,7 +108,7 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     id: 'research-sailnko',
     paperSlug: 'solar-sail-displaced-nko',
     viewer: 'sailnko',
-    scrollHeightVh: 150,
+    scrollHeightVh: 400,
     linkTo: '/research/solar-sail-displaced-nko',
     linkLabel: 'Read full abstract →',
     viewerHint: 'Scroll: deploy the sail → lift the ring above the ecliptic → optical envelope',
@@ -125,10 +125,10 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     id: 'research-transition',
     paperSlug: 'nlf-transition-atlas',
     viewer: 'transition',
-    scrollHeightVh: 150,
+    scrollHeightVh: 420,
     linkTo: '/research/nlf-transition-atlas',
     linkLabel: 'Read full abstract →',
-    viewerHint: 'Scroll to sweep Ncrit — the transition front moves, then meets the 1981 data',
+    viewerHint: 'Scroll to sweep Ncrit - the transition front moves, then meets the 1981 data',
     externalUrl: 'https://transition-atlas.vercel.app/',
     githubUrl: 'https://github.com/abc000cool/nlf-transition-atlas',
     metrics: [

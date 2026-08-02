@@ -1,4 +1,4 @@
-/** Shared reveal viewport — triggers before content reaches the fold. */
+/** Shared reveal viewport - triggers before content reaches the fold. */
 export const EARLY_VIEWPORT = { once: true, margin: '0px 0px 40% 0px' } as const
 
 /**
@@ -14,7 +14,7 @@ export const REVEAL_EASE = [0.22, 1, 0.36, 1] as const
  *
  * This same reveal wraps six live WebGL canvases. A CSS `filter: blur()` on an
  * element containing a canvas forces the whole subtree through an offscreen
- * composite — and it was doing so on exactly the frames those canvases start
+ * composite - and it was doing so on exactly the frames those canvases start
  * rendering. Translate and opacity stay on the compositor.
  */
 export const revealHidden = (light: boolean) => ({ opacity: 0, y: light ? 14 : 20 })
@@ -22,7 +22,7 @@ export const revealHidden = (light: boolean) => ({ opacity: 0, y: light ? 14 : 2
 const SETTLED = { opacity: 1, y: 0 }
 
 /**
- * Settled state. Identical for both experiences — it takes `light` so a call
+ * Settled state. Identical for both experiences - it takes `light` so a call
  * site can pair it with `revealHidden(light)` without branching, and so the two
  * always agree on which properties animate.
  */

@@ -26,7 +26,7 @@ export function NotFoundPage() {
   const { pathname } = useLocation()
 
   useDocumentHead({
-    title: `Page not found — ${portfolio.identity.name}`,
+    title: `Page not found - ${portfolio.identity.name}`,
     description: 'That page does not exist. Head back to projects, research, or the homepage.',
   })
 

@@ -14,7 +14,7 @@ const KONAMI = [
 ]
 
 /**
- * True when the keystroke belongs to something the visitor is typing into —
+ * True when the keystroke belongs to something the visitor is typing into -
  * arrow keys move a caret and "b"/"a" are letters, so a form field must never
  * feed the sequence.
  */

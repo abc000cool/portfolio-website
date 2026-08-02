@@ -81,7 +81,7 @@ export function AboutSection() {
                 &ldquo;{portfolio.identity.quote.text}&rdquo;
               </p>
               <footer className="text-xs text-slate-500 mt-2">
-                — {portfolio.identity.quote.attribution}
+                - {portfolio.identity.quote.attribution}
               </footer>
             </blockquote>
             <TelemetryTicker />
@@ -104,7 +104,7 @@ export function AboutSection() {
             </div>
           </div>
           {/* Height is reserved whether or not the canvas mounts, so document
-              height never changes mid-scroll — the flight path measures it. */}
+              height never changes mid-scroll - the flight path measures it. */}
           <div ref={orbitRef} className="h-[300px] md:h-[350px]">
             {showOrbit && (
               <Suspense fallback={<div className="h-full" />}>

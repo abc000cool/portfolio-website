@@ -17,7 +17,7 @@ interface ScanWipeProps {
 }
 
 /**
- * The workhorse body reveal — a flat lift-and-fade, used by every content
+ * The workhorse body reveal - a flat lift-and-fade, used by every content
  * block. It is deliberately the quiet one: RedactedHeading carries the
  * emphasis, and this runs underneath it without competing.
  */

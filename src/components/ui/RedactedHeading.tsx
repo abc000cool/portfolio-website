@@ -13,7 +13,7 @@ interface RedactedHeadingProps {
 
 /**
  * The one emphatic reveal on the site, and the only motion reserved for
- * headings: the text is uncovered left-to-right by a travelling scan line —
+ * headings: the text is uncovered left-to-right by a travelling scan line -
  * the motion the component has always been named for. Everything else on the
  * page uses the flat ScanWipe fade, so a section heading is now the loudest
  * thing that happens when a section arrives.

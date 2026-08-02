@@ -3,12 +3,18 @@ import { useMotionValue, useMotionValueEvent, type MotionValue } from 'motion/re
 import { portfolio } from '../../data/portfolio'
 
 /**
- * The screen used to render a hardcoded polyline captioned "Altitude profile —
+ * The screen used to render a hardcoded polyline captioned "Altitude profile -
  * flight 047" beside a literal LIVE dot. It was the most prominent thing on the
  * landing screen and none of it was real. It now reads the actual record from
  * portfolio.ts, so the dashboard says something true and updates itself when
  * the data does.
  */
+/**
+ * The awards grid carries every stat; the laptop screen shows the first five so
+ * the rows stay readable at this scale.
+ */
+const CONSOLE_STATS = portfolio.stats.slice(0, 5)
+
 interface MacbookScreenContentProps {
   progress?: MotionValue<number>
   compact?: boolean
@@ -54,7 +60,7 @@ export function MacbookScreenContent({
           </div>
 
           <div className="flex-1 min-h-0 rounded border border-white/[0.06] bg-white/[0.02] p-1.5 flex flex-col justify-between">
-            {portfolio.stats.slice(0, 4).map((stat) => (
+            {CONSOLE_STATS.slice(0, 4).map((stat) => (
               <div key={stat.label} className="flex items-baseline justify-between gap-1.5">
                 <span className="text-[8px] text-slate-400 leading-tight truncate">
                   {stat.label}
@@ -96,8 +102,8 @@ export function MacbookScreenContent({
         <span className="w-2 h-2 rounded-full bg-[#28c840]" />
         <span className="ml-3 text-[9px] text-slate-500 font-mono truncate">
           {launch
-            ? 'launch-sequence — countdown active'
-            : `mission-control — ${portfolio.identity.name.split(' ')[0].toLowerCase()}@flight-os`}
+            ? 'launch-sequence - countdown active'
+            : `mission-control - ${portfolio.identity.name.split(' ')[0].toLowerCase()}@flight-os`}
         </span>
       </div>
 
@@ -115,13 +121,13 @@ export function MacbookScreenContent({
             <p className="text-[10px] text-slate-500">{portfolio.identity.title}</p>
           </div>
 
-          {/* Flight record — the real body of work, read straight from the data */}
+          {/* Flight record - the real body of work, read straight from the data */}
           <div className="flex-1 min-h-0 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 flex flex-col">
             <p className="text-[8px] uppercase tracking-widest text-slate-500 mb-1.5">
               Flight record
             </p>
             <div className="flex-1 min-h-0 flex flex-col justify-between">
-              {portfolio.stats.map((stat) => (
+              {CONSOLE_STATS.map((stat) => (
                 <div
                   key={stat.label}
                   className="flex items-baseline justify-between gap-2 border-b border-white/[0.05] last:border-b-0 py-[3px]"
@@ -153,14 +159,14 @@ export function MacbookScreenContent({
 
         {/* Right column */}
         <div className="col-span-2 flex flex-col gap-3 min-h-0">
-          {/* Headline credential — the record list carries the rest, so this
+          {/* Headline credential - the record list carries the rest, so this
               stays a single tile rather than repeating four of them. */}
           <div className="rounded-lg bg-indigo-500/[0.07] border border-indigo-400/20 px-2.5 py-2">
             <p className="text-[9px] uppercase tracking-widest text-indigo-300/80 leading-none mb-1">
               Patent holder
             </p>
             <p className="text-[10px] text-white leading-snug m-0">
-              SWEEP — orbital debris capture &amp; ejection platform
+              SWEEP - orbital debris capture &amp; ejection platform
             </p>
           </div>
 

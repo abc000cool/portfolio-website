@@ -499,7 +499,7 @@ export function MorphingAirfoil({
     progressRef.current = source.get()
   }, [source, scrollProgress])
   useMotionValueEvent(source, 'change', (value) => {
-    // While the visitor is dragging, scroll progress is not consumed — the scene
+    // While the visitor is dragging, scroll progress is not consumed - the scene
     // holds still so the drag is the only thing moving.
     if (!manualRef.current.active) progressRef.current = value
   })
@@ -534,7 +534,7 @@ export function MorphingAirfoil({
       try {
         event.currentTarget.setPointerCapture(event.pointerId)
       } catch {
-        // Pointer already released — the move/up handlers still work without capture.
+        // Pointer already released - the move/up handlers still work without capture.
       }
     },
     [finePointer],
@@ -597,8 +597,8 @@ export function MorphingAirfoil({
               { key: 'Profile', value: telemetry.morph.profile.label },
               // Coefficients are the profile's measured values, so they are held
               // (not recomputed) while the visitor is flying the model by hand.
-              { key: 'Cₗ', value: manual ? '—' : telemetry.morph.cl.toFixed(2) },
-              { key: 'Cᴅ', value: manual ? '—' : telemetry.morph.cd.toFixed(3) },
+              { key: 'Cₗ', value: manual ? '-' : telemetry.morph.cl.toFixed(2) },
+              { key: 'Cᴅ', value: manual ? '-' : telemetry.morph.cd.toFixed(3) },
               { key: 'α', value: `${displayAoa.toFixed(1)}°` },
               { key: 'Mode', value: manual ? 'MANUAL' : telemetry.mode },
             ]}
@@ -633,7 +633,7 @@ export function MorphingAirfoil({
           <span className="viewer-phase__index">{String(Math.min(4, Math.floor(liveProgress * 5)) + 1).padStart(2, '0')}</span>
           <span className="viewer-phase__copy">
             <strong>{manual ? 'Manual attitude' : telemetry.phase}</strong>
-            <small>{manual ? 'Drag sets α — coefficients held' : telemetry.detail}</small>
+            <small>{manual ? 'Drag sets α - coefficients held' : telemetry.detail}</small>
           </span>
         </div>
       </ResearchViewerFrame>

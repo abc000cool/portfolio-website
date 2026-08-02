@@ -68,7 +68,7 @@ export function ContactSection() {
 
   /**
    * There is no backend. This hands the draft to whatever mail handler the
-   * device has registered — which on a managed desktop may be none at all — so
+   * device has registered - which on a managed desktop may be none at all - so
    * the status text below says exactly that and never claims a message was sent.
    */
   const handleSubmit = (e: FormEvent) => {
@@ -78,7 +78,7 @@ export function ContactSection() {
     const email = data.get('email')
     const message = data.get('message')
     const subject = encodeURIComponent(`Portfolio Contact from ${name}`)
-    const body = encodeURIComponent(String(message) + `\n\n— ${name} (${email})`)
+    const body = encodeURIComponent(String(message) + `\n\n- ${name} (${email})`)
     window.location.href = `mailto:${EMAIL}?subject=${subject}&body=${body}`
     setMailAttempted(true)
   }
@@ -105,7 +105,7 @@ export function ContactSection() {
               <div className="mb-6 space-y-1 text-sm">
                 <p className="m-0">
                   <span className="crt-terminal__prompt">&gt;</span>
-                  FLIGHT LOG — FINAL ENTRY
+                  FLIGHT LOG - FINAL ENTRY
                 </p>
                 <p className="m-0 opacity-80">
                   <span className="crt-terminal__prompt">&gt;</span>
@@ -113,7 +113,7 @@ export function ContactSection() {
                 </p>
                 <p className="m-0 opacity-80">
                   <span className="crt-terminal__prompt">&gt;</span>
-                  channel open — address below <span className="crt-terminal__cursor" />
+                  channel open - address below <span className="crt-terminal__cursor" />
                 </p>
               </div>
 
@@ -141,9 +141,9 @@ export function ContactSection() {
               </div>
 
               <p className="font-mono text-xs opacity-80 mt-3 m-0 min-h-[1.25rem]" role="status">
-                {copyState === 'copied' && 'copied — the address is on your clipboard'}
+                {copyState === 'copied' && 'copied - the address is on your clipboard'}
                 {copyState === 'failed' &&
-                  'could not copy automatically — the address is selected, press Ctrl/Cmd+C'}
+                  'could not copy automatically - the address is selected, press Ctrl/Cmd+C'}
               </p>
 
               <div className="mt-8 pt-6 border-t border-[rgba(134,239,172,0.2)]">
@@ -151,7 +151,7 @@ export function ContactSection() {
                   Or draft it here
                 </p>
                 <p className="font-mono text-xs opacity-60 mt-1 mb-2 m-0">
-                  this fills a draft in your own mail app — nothing is sent from this page
+                  this fills a draft in your own mail app - nothing is sent from this page
                 </p>
 
                 <form onSubmit={handleSubmit} aria-label="Draft an email">
@@ -189,7 +189,7 @@ export function ContactSection() {
                     </button>
                     <p className="font-mono text-xs opacity-80 mt-3 m-0" role="status">
                       {mailAttempted &&
-                        'opening your mail client — if nothing happens, copy the address above'}
+                        'opening your mail client - if nothing happens, copy the address above'}
                     </p>
                   </div>
                 </form>

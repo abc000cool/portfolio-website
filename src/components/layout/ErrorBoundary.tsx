@@ -11,7 +11,7 @@ interface ErrorBoundaryState {
 /**
  * Catches render-time crashes so the page degrades to a readable panel instead of
  * a blank black screen. The common real-world trigger is a stale JS chunk 404 after
- * a redeploy while an old tab is still open — reloading fixes it, so the fallback
+ * a redeploy while an old tab is still open - reloading fixes it, so the fallback
  * leads with a reload action.
  *
  * Styles are inline: if the failure was the stylesheet or a CSS-owning chunk, the
