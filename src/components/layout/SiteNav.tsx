@@ -8,7 +8,7 @@ import { scrollToSection } from '../../lib/lenis'
 import { MobileNav } from './MobileNav'
 
 /**
- * Biography sections, shown after the work. Contact is deliberately absent —
+ * Biography sections, shown after the work. Contact is deliberately absent -
  * the Connect button on the right is the contact affordance and a second
  * "Contact" link next to it is noise.
  */
@@ -224,7 +224,7 @@ export function SiteNav() {
           </Link>
         )}
 
-        {/* Work first, biography after — the reader is here for the work. */}
+        {/* Work first, biography after - the reader is here for the work. */}
         <ul className="hidden md:flex gap-0.5 list-none m-0 p-0 relative items-center">
           <NavDropdown label="Projects" isActive={projectsActive}>
             {(close) => (

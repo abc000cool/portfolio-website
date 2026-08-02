@@ -68,14 +68,15 @@ function read(relPath) {
 
 /* ------------------------------------------------------------------- shared */
 
-/** Mirror of clampText() in src/hooks/useDocumentHead.ts — keep both in sync. */
+/** Mirror of clampText() in src/hooks/useDocumentHead.ts - keep both in sync. */
 function clampText(text, max) {
   const clean = text.replace(/\s+/g, ' ').trim()
   if (clean.length <= max) return clean
   const cut = clean.slice(0, max - 1)
   const lastSpace = cut.lastIndexOf(' ')
   const trimmed = lastSpace > max * 0.5 ? cut.slice(0, lastSpace) : cut
-  return `${trimmed.replace(/[\s,;:.–—-]+$/, '')}…`
+  // Hyphen last so it is a literal, not a range endpoint.
+  return `${trimmed.replace(/[\s,;:.–-]+$/, '')}…`
 }
 
 function escapeAttr(value) {
@@ -106,7 +107,7 @@ if (!author) throw new Error('prerender-meta: could not read identity.name from 
 
 const routes = []
 
-// Projects — /projects/<slug>
+// Projects - /projects/<slug>
 const projects = entriesBySlug(projectSource)
 if (projects.length === 0) {
   throw new Error('prerender-meta: no project slugs parsed from src/data/projectPages.ts')
@@ -119,12 +120,12 @@ for (const { slug, block } of projects) {
   }
   routes.push({
     path: `/projects/${slug}`,
-    title: `${title} — ${author}`,
+    title: `${title} - ${author}`,
     description: clampText(tagline, 160),
   })
 }
 
-// Research papers — /research/<slug>
+// Research papers - /research/<slug>
 const papers = entriesBySlug(portfolioSource)
 if (papers.length === 0) {
   throw new Error('prerender-meta: no paper slugs parsed from src/data/portfolio.ts')
@@ -137,12 +138,12 @@ for (const { slug, block } of papers) {
   }
   routes.push({
     path: `/research/${slug}`,
-    title: `${clampText(title, 80)} — ${author}`,
+    title: `${clampText(title, 80)} - ${author}`,
     description: clampText(abstract, 160),
   })
 }
 
-// ISM overview — /ism
+// ISM overview - /ism
 const ism = objectBlock(portfolioSource, 'ism: {', '\n  },')
 const ismName = ism && field(ism, 'programName')
 const ismDescription = ism && field(ism, 'description')
@@ -151,11 +152,11 @@ if (!ismName || !ismDescription) {
 }
 routes.push({
   path: '/ism',
-  title: `${ismName} — ${author}`,
+  title: `${ismName} - ${author}`,
   description: clampText(ismDescription, 160),
 })
 
-// ISM sections — /ism/<section>, parsed from the ISM_SECTION_META literal
+// ISM sections - /ism/<section>, parsed from the ISM_SECTION_META literal
 const ismMetaBlock = objectBlock(ismPageSource, 'const ISM_SECTION_META', '\n}\n')
 if (!ismMetaBlock) {
   throw new Error('prerender-meta: could not find ISM_SECTION_META in src/pages/IsmPage.tsx')
@@ -174,7 +175,7 @@ if (sectionMatches.length === 0) {
 for (const match of sectionMatches) {
   routes.push({
     path: `/ism/${match[1]}`,
-    title: `${decodeLiteral(match[2])} — ${author}`,
+    title: `${decodeLiteral(match[2])} - ${author}`,
     description: clampText(decodeLiteral(match[3]), 160),
   })
 }
@@ -182,7 +183,7 @@ for (const match of sectionMatches) {
 /* ------------------------------------------------------------------ writing */
 
 if (!existsSync(join(DIST, 'index.html'))) {
-  console.error(`prerender-meta: ${join(DIST, 'index.html')} not found — run the build first.`)
+  console.error(`prerender-meta: ${join(DIST, 'index.html')} not found - run the build first.`)
   process.exit(1)
 }
 

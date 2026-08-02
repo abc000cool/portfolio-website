@@ -8,7 +8,7 @@
 /*
  * Tailwind v4 only emits `font-*` utilities for families declared in an @theme
  * block. Without this, `.font-display` and `.font-body` compiled to nothing and
- * every element using them silently fell back to the body face — including the
+ * every element using them silently fell back to the body face - including the
  * largest text on the landing screen. The plain custom properties in tokens.css
  * are kept because stylesheets also reference var(--font-display) directly.
  */
@@ -190,7 +190,7 @@
   /*
    * Phones and tablets drop the blur entirely rather than reducing it. The
    * starfield already degrades to a static CSS gradient at this width, so there
-   * is almost nothing behind the card to blur — but the filter still costs a
+   * is almost nothing behind the card to blur - but the filter still costs a
    * full-surface composite per card on the weakest GPUs. Desktop keeps its blur:
    * --color-surface is 96% transparent, and the starfield and flight path would
    * otherwise read straight through every card.
@@ -312,7 +312,7 @@
     border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   }
 
-  /* Left rail — the always-on identity cue. Grows on hover/focus. */
+  /* Left rail - the always-on identity cue. Grows on hover/focus. */
   .project-card__rail {
     position: absolute;
     left: 0;
@@ -556,7 +556,7 @@
     display: none !important;
   }
 
-  /* The intro is a scroll-driven laptop prop — 200vh of animation that carries
+  /* The intro is a scroll-driven laptop prop - 200vh of animation that carries
      no text a reader can use on paper. The sections below it carry everything. */
   #intro {
     display: none !important;
@@ -661,7 +661,7 @@
   }
 
   /* Subpage <main> reserves 7rem of top padding to clear the fixed nav bar,
-     which is not printed — that would otherwise be a blank first page. */
+     which is not printed - that would otherwise be a blank first page. */
   main {
     padding-top: 0 !important;
   }

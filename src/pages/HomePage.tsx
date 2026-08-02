@@ -48,8 +48,8 @@ function FlightLogLine() {
   return (
     <p className="font-mono text-[11px] tracking-wider text-slate-600 m-0">
       {complete
-        ? `MISSION COMPLETE — ${new Date().toISOString().slice(0, 10)} — ALL SYSTEMS NOMINAL`
-        : 'MISSION IN PROGRESS — TELEMETRY NOMINAL'}
+        ? `MISSION COMPLETE - ${new Date().toISOString().slice(0, 10)} - ALL SYSTEMS NOMINAL`
+        : 'MISSION IN PROGRESS - TELEMETRY NOMINAL'}
     </p>
   )
 }

@@ -1,5 +1,5 @@
 /**
- * Portfolio site QA runner — maps to the manual checklist.
+ * Portfolio site QA runner - maps to the manual checklist.
  * Usage: node scripts/run-qa.mjs [baseUrl]
  */
 import { chromium, devices } from 'playwright'
@@ -12,7 +12,7 @@ const results = []
 function record(id, name, pass, detail = '') {
   results.push({ id, name, pass, detail })
   const icon = pass ? 'PASS' : 'FAIL'
-  console.log(`[${icon}] ${id} ${name}${detail ? ` — ${detail}` : ''}`)
+  console.log(`[${icon}] ${id} ${name}${detail ? ` - ${detail}` : ''}`)
 }
 
 async function scrollToId(page, id) {

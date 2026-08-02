@@ -23,17 +23,21 @@ const MOBILE_SCROLL_SCALE = 0.55
 const DEFAULT_SCROLL_HEIGHT_VH = 180
 
 /**
- * Ceiling on one entry's sticky scroll zone, as a guard against a data entry
- * reintroducing the old 300–420vh values (~2,100vh total, two thirds of the
- * page). Every viewer maps progress 0→1 across its own zone, so a shorter zone
- * plays the same animation faster — nothing is truncated.
+ * Each scene's pacing comes from its own scrollHeightVh in researchShowcase.ts.
+ * A viewer maps progress 0 to 1 across its zone, so shortening the zone makes
+ * the same animation play proportionally faster. Shortening these was what made
+ * the scenes feel rushed, so the data is authoritative and there is no cap.
  */
-const MAX_SCROLL_HEIGHT_VH = 150
 
-/** Mount the canvas roughly one block ahead so shaders compile off-screen. */
+/**
+ * Mount the canvas a full viewport ahead of the zone. Mounting late means the
+ * scene appears with progress already part-way through its timeline, which
+ * reads as a glitch rather than a reveal. The extra lead also gives shaders
+ * time to compile off-screen.
+ */
 const VIEWER_MOUNT_OBSERVER: IntersectionObserverInit = {
   threshold: 0,
-  rootMargin: '0px 0px 80% 0px',
+  rootMargin: '0px 0px 150% 0px',
 }
 /** Drive the frameloop / reveal only once the block is genuinely close. */
 const VIEWER_ACTIVE_OBSERVER: IntersectionObserverInit = {
@@ -290,7 +294,7 @@ function ResearchIndex({ reduced }: { reduced: boolean }) {
                   {paper.title}
                 </a>
                 <p className="m-0 mt-1 font-mono text-[11px] text-slate-500">
-                  {paper.year} — {paper.venue}
+                  {paper.year} - {paper.venue}
                 </p>
               </div>
 
@@ -356,7 +360,7 @@ function MobileResearchCard({ config }: { config: ResearchShowcaseConfig }) {
         </p>
       )}
       <span className="font-mono text-xs text-[var(--color-cockpit-amber)]">
-        {paper.year} — {paper.venue}
+        {paper.year} - {paper.venue}
       </span>
       <h3
         id={`${config.id}-title`}
@@ -397,7 +401,7 @@ function ResearchShowcaseBlock({
   // The observer is attached to the block wrapper, not to the scroll zone: the
   // scroll zone only exists in the non-reduced-motion branch, and prefers-
   // reduced-motion visitors would otherwise get a permanently empty viewer.
-  // It latches — once a viewer is mounted it stays mounted, because remounting
+  // It latches - once a viewer is mounted it stays mounted, because remounting
   // recompiles shaders and hitches on scroll-back.
   const [viewerMounted, setViewerMounted] = useState(false)
   useEffect(() => {
@@ -426,13 +430,10 @@ function ResearchShowcaseBlock({
   const gridClass = reverse
     ? 'research-showcase__grid research-showcase__grid--reverse'
     : 'research-showcase__grid'
-  const cappedScrollVh = Math.min(
-    config.scrollHeightVh ?? DEFAULT_SCROLL_HEIGHT_VH,
-    MAX_SCROLL_HEIGHT_VH,
-  )
+  const zoneScrollVh = config.scrollHeightVh ?? DEFAULT_SCROLL_HEIGHT_VH
   const scrollHeightVh = isMobile
-    ? Math.round(cappedScrollVh * MOBILE_SCROLL_SCALE)
-    : cappedScrollVh
+    ? Math.round(zoneScrollVh * MOBILE_SCROLL_SCALE)
+    : zoneScrollVh
 
   const card = (
     <article className="research-showcase__card glass-card p-6 md:p-8 lg:p-10">
@@ -449,7 +450,7 @@ function ResearchShowcaseBlock({
       )}
 
       <span className="font-mono text-xs text-[var(--color-cockpit-amber)]">
-        {paper.year} — {paper.venue}
+        {paper.year} - {paper.venue}
       </span>
       <h3
         id={`${config.id}-title`}
@@ -540,7 +541,7 @@ export function ResearchSection() {
           <p className="text-slate-400 mt-4 leading-relaxed">
             {isMobile
               ? 'Research across orbital debris mitigation, morphing airfoil optimization, fluid-dynamics traffic modeling, hybrid quantum–classical inertial navigation, solar-sail non-Keplerian orbits, and boundary-layer transition prediction.'
-              : 'Scroll through each project to explore interactive 3D visualizations — from orbital debris capture and morphing airfoils to solar sails hovering above the ecliptic and the boundary layer letting go on a laminar-flow wing.'}
+              : 'Scroll through each project to explore interactive 3D visualizations - from orbital debris capture and morphing airfoils to solar sails hovering above the ecliptic and the boundary layer letting go on a laminar-flow wing.'}
           </p>
         </div>
 

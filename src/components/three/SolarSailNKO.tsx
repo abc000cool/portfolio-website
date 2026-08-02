@@ -283,7 +283,7 @@ function EclipticPlane() {
   )
 }
 
-/** The classical orbit — stays behind as a ghost once the ring lifts. */
+/** The classical orbit - stays behind as a ghost once the ring lifts. */
 function KeplerRing({ progressRef }: { progressRef: ProgressRef }) {
   const materialRef = useRef<THREE.LineBasicMaterial | null>(null)
 
@@ -719,13 +719,13 @@ interface FamilyRing {
 }
 
 const ENVELOPE_FAMILY: FamilyRing[] = [
-  // Ideal cos²α reflector family — the territory the classical maps promise.
+  // Ideal cos²α reflector family - the territory the classical maps promise.
   ...Array.from({ length: 11 }, (_, i) => ({
     radius: 2.35 - i * 0.145,
     height: 0.2 + i * 0.17,
     ideal: true,
   })),
-  // Optical-model family — contracted by the cone ceiling and ×1.23 penalty.
+  // Optical-model family - contracted by the cone ceiling and ×1.23 penalty.
   ...Array.from({ length: 8 }, (_, i) => ({
     radius: 2.22 - i * 0.15,
     height: 0.16 + i * 0.115,
@@ -772,7 +772,7 @@ function EnvelopeFamily({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
-/** Ideal-only territory that the cone ceiling excises — flashes and dies. */
+/** Ideal-only territory that the cone ceiling excises - flashes and dies. */
 function ExcisedRings({ progressRef }: { progressRef: ProgressRef }) {
   const materials = useRef<(THREE.LineBasicMaterial | null)[]>([])
   const rings = useMemo(
@@ -878,7 +878,7 @@ function getTelemetry(progress: number) {
     phase,
     phaseDetail,
     index,
-    beta: deploy > 0.05 ? beta.toFixed(2) : '—',
+    beta: deploy > 0.05 ? beta.toFixed(2) : '-',
     cone: pitchF > 0.02 ? `${pitchDeg.toFixed(1)}°` : '0.0°',
     displacement: `${displacement.toFixed(2)} au`,
     radius: `${radius.toFixed(2)} au`,

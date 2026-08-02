@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 /**
  * Decorative cockpit strip. It carried `aria-live="polite"`, which made a
  * ticking clock the only live region on the homepage and re-announced the
- * whole readout to screen reader users once a second. It is scenery — it is
+ * whole readout to screen reader users once a second. It is scenery - it is
  * now hidden from assistive technology entirely.
  */
 export function TelemetryTicker() {

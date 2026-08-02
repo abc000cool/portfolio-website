@@ -1,5 +1,5 @@
 /**
- * Generates public/og.jpg — the 1200x630 social share card referenced by
+ * Generates public/og.jpg - the 1200x630 social share card referenced by
  * index.html and by every prerendered route head.
  *
  * Shoots the real landing screen from a built copy of the site, so the card can
@@ -47,7 +47,7 @@ await page.screenshot({ path: OUT, type: 'jpeg', quality: 88 })
 await browser.close()
 
 const kb = Math.round(fs.statSync(OUT).size / 1024)
-console.log(`og-shot: wrote public/og.jpg — ${WIDTH}x${HEIGHT}, ${kb} kB`)
+console.log(`og-shot: wrote public/og.jpg - ${WIDTH}x${HEIGHT}, ${kb} kB`)
 if (kb > 300) {
-  console.warn('og-shot: WARNING over 300 kB — lower the JPEG quality or simplify the frame')
+  console.warn('og-shot: WARNING over 300 kB - lower the JPEG quality or simplify the frame')
 }

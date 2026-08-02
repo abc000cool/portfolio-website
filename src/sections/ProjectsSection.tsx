@@ -69,7 +69,7 @@ function ProjectCard({
         } as React.CSSProperties
       }
     >
-      {/* Mission rail — the card's only always-on colour cue. */}
+      {/* Mission rail - the card's only always-on colour cue. */}
       <span className="project-card__rail" aria-hidden="true" />
 
       <div className="flex items-start gap-4 mb-5">
@@ -211,8 +211,8 @@ function OtherProjectsGrid() {
  *
  * It used to run a scroll-scrubbed pinned mode across a ~400vh container, where
  * card opacity was a function of scroll progress. Every deliberate jump into
- * this section — the hero CTA, the nav's "All projects", every project-page
- * back link — landed at progress 0, i.e. an empty viewport. The grid below is
+ * this section - the hero CTA, the nav's "All projects", every project-page
+ * back link - landed at progress 0, i.e. an empty viewport. The grid below is
  * the same content, visible the instant you arrive.
  */
 export function ProjectsSection() {

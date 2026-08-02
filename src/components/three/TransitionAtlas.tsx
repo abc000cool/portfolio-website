@@ -285,7 +285,7 @@ function BoundaryLayerStream({
   )
 }
 
-/** Distant freestream streaks — context for flow direction and speed. */
+/** Distant freestream streaks - context for flow direction and speed. */
 function FreestreamFlow({ progressRef }: { progressRef: ProgressRef }) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const dummy = useMemo(() => new THREE.Object3D(), [])
@@ -330,7 +330,7 @@ function FreestreamFlow({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
-/** Glowing spanwise band at x_tr — the front the whole paper is about. */
+/** Glowing spanwise band at x_tr - the front the whole paper is about. */
 function TransitionFront({
   surface,
   progressRef,

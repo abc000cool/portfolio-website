@@ -7,10 +7,10 @@ export function ResearchPaperPage() {
   const { slug } = useParams<{ slug: string }>()
   const paper = slug ? getPaperBySlug(slug) : undefined
 
-  // Must run before any early return — hook order has to stay identical across renders.
+  // Must run before any early return - hook order has to stay identical across renders.
   useDocumentHead({
     title: paper
-      ? `${clampText(paper.title, 80)} — ${portfolio.identity.name}`
+      ? `${clampText(paper.title, 80)} - ${portfolio.identity.name}`
       : `${portfolio.identity.name} | ${portfolio.identity.title}`,
     description: paper ? clampText(paper.abstract, 160) : clampText(portfolio.identity.tagline, 160),
     canonicalPath: paper ? `/research/${paper.slug}` : '/',
@@ -32,7 +32,7 @@ export function ResearchPaperPage() {
             {paper.venue === 'Pending' ? 'Pending Research' : 'Research'}
           </p>
           <p className="font-mono text-sm text-amber-200/80 m-0 mb-4">
-            {paper.year} — {paper.venue}
+            {paper.year} - {paper.venue}
           </p>
           <h1 className="font-display text-3xl md:text-4xl lg:text-[2.35rem] text-white m-0 leading-snug tracking-tight">
             {paper.title}

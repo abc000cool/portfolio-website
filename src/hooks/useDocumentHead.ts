@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 export const SITE_ORIGIN = 'https://www.anshpathak.us'
 
 export interface DocumentHeadOptions {
-  /** Full document title, e.g. "STRATOS — Ansh Pathak". */
+  /** Full document title, e.g. "STRATOS - Ansh Pathak". */
   title: string
   /** Meta description / og:description. Kept short by the caller (see clampText). */
   description: string
@@ -29,7 +29,8 @@ export function clampText(text: string, max: number): string {
   const cut = clean.slice(0, max - 1)
   const lastSpace = cut.lastIndexOf(' ')
   const trimmed = lastSpace > max * 0.5 ? cut.slice(0, lastSpace) : cut
-  return `${trimmed.replace(/[\s,;:.–—-]+$/, '')}…`
+  // Hyphen last so it is a literal, not a range endpoint.
+  return `${trimmed.replace(/[\s,;:.–-]+$/, '')}…`
 }
 
 function normalizePath(path: string): string {
@@ -44,7 +45,7 @@ function normalizePath(path: string): string {
  * updated, and every change is reverted on unmount so route changes never leak
  * one page's metadata onto another.
  *
- * Call this UNCONDITIONALLY — above any early return — or the hook order breaks.
+ * Call this UNCONDITIONALLY - above any early return - or the hook order breaks.
  */
 export function useDocumentHead({ title, description, canonicalPath }: DocumentHeadOptions): void {
   useEffect(() => {

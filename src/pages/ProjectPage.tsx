@@ -10,10 +10,10 @@ export function ProjectPage() {
   const canonicalSlug = slug ? resolveProjectSlug(slug) : undefined
   const project = canonicalSlug ? getProjectBySlug(canonicalSlug) : undefined
 
-  // Must run before any early return — hook order has to stay identical across renders.
+  // Must run before any early return - hook order has to stay identical across renders.
   useDocumentHead({
     title: project
-      ? `${project.title} — ${portfolio.identity.name}`
+      ? `${project.title} - ${portfolio.identity.name}`
       : `${portfolio.identity.name} | ${portfolio.identity.title}`,
     description: clampText(project ? project.tagline : portfolio.identity.tagline, 160),
     canonicalPath: project ? `/projects/${project.slug}` : '/',

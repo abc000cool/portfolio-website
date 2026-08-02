@@ -58,25 +58,25 @@ export const projectPages: ProjectPage[] = [
     ],
     sections: [
       {
-        title: 'ACES — Atmospheric Condition & Standard Earth Systems',
+        title: 'ACES - Atmospheric Condition & Standard Earth Systems',
         status: 'Complete',
         description:
           'The foundation of the simulator. Computes atmospheric properties as a function of altitude using the International Standard Atmosphere (ISA). Models temperature, pressure, and density from sea level through the troposphere (up to 15 km), covering the operational envelope of most subsonic aircraft.',
       },
       {
-        title: 'RLM — Raw Logistic Modulator',
+        title: 'RLM - Raw Logistic Modulator',
         status: 'Complete',
         description:
           'Serves as a liaison between input aircraft values and core physics-based calculations. Takes raw input data (geometry, weight, propulsion, aerodynamic coefficients) and converts them into standardized, numeric variables, preventing physically impossible scenarios.',
       },
       {
-        title: 'OSC — Optimal Statistics Calculator',
+        title: 'OSC - Optimal Statistics Calculator',
         status: 'Complete',
         description:
           'Extracts meaningful performance metrics from raw numerical outputs. Delivers performance curves, contour plots, and critical metric values including minimum thrust required, maximum level flight speed, and optimal climb rates.',
       },
       {
-        title: 'RS — Report Summarizer',
+        title: 'RS - Report Summarizer',
         status: 'Complete',
         description:
           'Synthesizes all raw data and statistics into written/visual format for end users. Powered by an AI Language Model for near-instantaneous reports once simulation completes.',
@@ -202,7 +202,7 @@ export const projectPages: ProjectPage[] = [
       {
         title: 'Mission tools & reporting',
         description:
-          'Rocket payload mapper, aerocapture and capture-burn modeling, historical mission overlay, difficulty scoring, CSV export, shareable permalinks, and PDF mission/tour reports — plus metric/imperial and color-palette toggles with a GL error boundary for constrained GPUs.',
+          'Rocket payload mapper, aerocapture and capture-burn modeling, historical mission overlay, difficulty scoring, CSV export, shareable permalinks, and PDF mission/tour reports - plus metric/imperial and color-palette toggles with a GL error boundary for constrained GPUs.',
       },
     ],
     capabilities: [
@@ -235,9 +235,9 @@ export const projectPages: ProjectPage[] = [
     status: 'US Patent',
     category: 'US-Patented Spacecraft Design',
     tagline:
-      'US-patented platform that captures orbital debris, compacts it into pellets, and fires them out of orbit — the recoil doubles as thrust',
+      'US-patented platform that captures orbital debris, compacts it into pellets, and fires them out of orbit - the recoil doubles as thrust',
     overview:
-      "SWEEP (Space Waste Electromagnetic Ejection Platform) is a US-patented spacecraft design addressing space debris proliferation in Earth's orbit. The system combines autonomous algorithms, debris processing, electromagnetic railgun propulsion, and gyroscopic control to capture debris, compact it into pellets, and eject it from orbit — using recoil thrust to maneuver between targets without expending traditional propellant.",
+      "SWEEP (Space Waste Electromagnetic Ejection Platform) is a US-patented spacecraft design addressing space debris proliferation in Earth's orbit. The system combines autonomous algorithms, debris processing, electromagnetic railgun propulsion, and gyroscopic control to capture debris, compact it into pellets, and eject it from orbit - using recoil thrust to maneuver between targets without expending traditional propellant.",
     externalUrl: 'https://sweep-feff1.web.app/',
     sections: [
       {
@@ -273,7 +273,7 @@ export const projectPages: ProjectPage[] = [
     tagline:
       'Navier-Stokes traffic modeling that predicts congestion waves in real time and issues speed guidance to dissipate them',
     overview:
-      'FlowState applies principles of fluid mechanics to simulate traffic patterns and deliver optimal driving recommendations that dissipate congestion faster. The platform models traffic as fluid flow using computational fluid dynamics and Navier-Stokes-based approaches to predict congestion waves in real time. Adaptive speed guidance helps drivers collectively reduce stop-and-go patterns, improve average flow speeds, and lower fuel consumption per platoon—with research indicating substantial jam reduction at modest connected-vehicle penetration.',
+      'FlowState applies principles of fluid mechanics to simulate traffic patterns and deliver optimal driving recommendations that dissipate congestion faster. The platform models traffic as fluid flow using computational fluid dynamics and Navier-Stokes-based approaches to predict congestion waves in real time. Adaptive speed guidance helps drivers collectively reduce stop-and-go patterns, improve average flow speeds, and lower fuel consumption per platoon-with research indicating substantial jam reduction at modest connected-vehicle penetration.',
     externalUrl: 'https://flowstatetraffic.us/',
     sections: [
       {
@@ -305,7 +305,7 @@ export const projectPages: ProjectPage[] = [
           'The same literature reports a 5.2 km/h gain in average flow speed',
           '5% autonomous-vehicle penetration is the cited minimum threshold for measurable impact',
           'Smoother flow is credited with 20% fuel savings per platoon',
-          'These figures come from published work — they are design targets, not measurements taken from this simulator',
+          'These figures come from published work - they are design targets, not measurements taken from this simulator',
         ],
       },
       {
@@ -328,7 +328,7 @@ export const projectPages: ProjectPage[] = [
     title: 'The Resonance Foundation',
     status: 'Active',
     category: '501(c)(3) Nonprofit',
-    tagline: 'A 501(c)(3) I founded — music education and performances reaching thousands across DFW',
+    tagline: 'A 501(c)(3) I founded - music education and performances reaching thousands across DFW',
     overview:
       'Founded a 501(c)(3) nonprofit committed to making music education accessible. Reached thousands of individuals across DFW with performances and events that bring music instruction and community engagement to families who might not otherwise have access.',
     sections: [
@@ -340,7 +340,7 @@ export const projectPages: ProjectPage[] = [
       {
         title: 'Leadership',
         description:
-          'Built and led a registered nonprofit from the ground up — handling programming, events, and the organizational work required to sustain a 501(c)(3).',
+          'Built and led a registered nonprofit from the ground up - handling programming, events, and the organizational work required to sustain a 501(c)(3).',
       },
     ],
     externalUrl: 'https://www.theresonancefoundation.org/',

@@ -21,7 +21,7 @@ export function useIntroViewport(): { isMobile: boolean; displayScale: number } 
       const vh = window.innerHeight
       const mobile = vw < 768
 
-      // Phone layout uses responsive sizing — no CSS scale transform (avoids double-compression)
+      // Phone layout uses responsive sizing - no CSS scale transform (avoids double-compression)
       if (mobile) {
         setDisplayScale(1)
         return

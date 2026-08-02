@@ -235,7 +235,7 @@ function IntroTitle({ compact = false }: { compact?: boolean }) {
   )
 }
 
-/** Unified mobile MacBook — closed screen crossfades to dashboard; no overlay squash. */
+/** Unified mobile MacBook - closed screen crossfades to dashboard; no overlay squash. */
 function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
   const unitRef = useRef<HTMLDivElement>(null)
   const closedRef = useRef<HTMLDivElement>(null)
@@ -276,7 +276,7 @@ function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
             <MacbookScreenContent progress={progress} compact />
           </div>
 
-          {/* Closed — proper MacBook sleep screen */}
+          {/* Closed - proper MacBook sleep screen */}
           <div
             ref={closedRef}
             className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a10] via-[#08080c] to-[#12121a]"
@@ -303,7 +303,7 @@ function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
         </div>
       </div>
 
-      {/* Keyboard base — flush with lid */}
+      {/* Keyboard base - flush with lid */}
       <div className="relative -mt-px overflow-hidden rounded-b-xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10 ring-t-0 pb-1.5">
         <div className="relative h-6 w-full">
           <div className="absolute inset-x-0 mx-auto h-2.5 w-[78%] rounded-b-md bg-[#050507]" />

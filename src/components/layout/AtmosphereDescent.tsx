@@ -1,7 +1,7 @@
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useLightExperience } from '../../hooks/useTouchDevice'
 
-/** Static atmosphere for mobile/Safari — no scroll-driven React updates. */
+/** Static atmosphere for mobile/Safari - no scroll-driven React updates. */
 export function AtmosphereDescent() {
   const reduced = useReducedMotion()
   const light = useLightExperience()

@@ -15,7 +15,7 @@ const LONG_JUMP_VIEWPORTS = 3
 const MIN_TRAVEL_DURATION = 0.35
 const MAX_TRAVEL_DURATION = 0.75
 
-/** Ease-out cubic — decelerates into the target without a long tail. */
+/** Ease-out cubic - decelerates into the target without a long tail. */
 const travelEasing = (t: number) => 1 - Math.pow(1 - t, 3)
 
 function prefersReducedMotion(): boolean {
@@ -41,14 +41,14 @@ export function initLenis(reducedMotion: boolean, touchDevice = false): Lenis | 
     // (Animate.advance prefers duration+easing when both are set). A fixed
     // duration re-times the whole settle on every wheel tick, which is what
     // made the page feel like it was lagging a frame behind the input. A lerp
-    // of 0.1 is a frame-rate-damped catch-up — smooth, but it lands fast.
+    // of 0.1 is a frame-rate-damped catch-up - smooth, but it lands fast.
     lerp: 0.1,
     smoothWheel: true,
     wheelMultiplier: 1,
     touchMultiplier: 1.5,
   })
 
-  // Lenis drives native scroll, so ScrollTrigger just needs update ticks —
+  // Lenis drives native scroll, so ScrollTrigger just needs update ticks -
   // no scrollerProxy (that pattern is for transform-based scrollers and
   // breaks every scrub/pin when misapplied).
   lenis.on('scroll', ScrollTrigger.update)

@@ -1,26 +1,21 @@
 import { SECTION_IDS } from '../data/portfolio'
-import { SECTION_WAYPOINT_SIDES, waypointX, type WaypointSide } from './waypointLayout'
+import { SECTION_WAYPOINT_SIDES, waypointX } from './waypointLayout'
 
 export interface Waypoint {
   id: string
   x: number
   y: number
   index: number
-  side: WaypointSide
+  side: 'left' | 'center' | 'right'
 }
 
 const PROBE_RATIO = 0.42
 
-/**
- * Samples in the arc-length lookup table. The path is a handful of cubics over
- * a document tens of thousands of pixels tall; 1500 uniform samples put the
- * interpolation error well under a pixel and let the scroll handler run without
- * a single `getPointAtLength` call (each of those is a synchronous geometry
- * solve inside the SVG engine).
- */
-const PATH_SAMPLE_COUNT = 1500
-
-function waypointY(id: string, rect: DOMRect, containerTop: number): number {
+function waypointY(
+  id: string,
+  rect: DOMRect,
+  containerTop: number,
+): number {
   const sectionTop = rect.top + window.scrollY - containerTop
 
   if (id === 'intro') {
@@ -54,16 +49,11 @@ export function measureWaypoints(container: HTMLElement): Waypoint[] {
   return waypoints
 }
 
-/**
- * Vertical-dominant S-curve through the waypoints. Control points sit directly
- * above/below their waypoint, so the curve is bounded by the rail band and can
- * never bow out into the content column.
- */
-export function buildSmoothPath(waypoints: Waypoint[], _width: number): string {
-  void _width
+export function buildSmoothPath(waypoints: Waypoint[], width: number): string {
   if (waypoints.length === 0) return ''
   if (waypoints.length === 1) return `M ${waypoints[0].x} ${waypoints[0].y}`
 
+  const sweep = width * 0.26
   let d = `M ${waypoints[0].x} ${waypoints[0].y}`
 
   for (let i = 1; i < waypoints.length; i++) {
@@ -71,10 +61,12 @@ export function buildSmoothPath(waypoints: Waypoint[], _width: number): string {
     const curr = waypoints[i]
     const dy = Math.max(64, curr.y - prev.y)
 
-    const c1y = prev.y + dy * 0.45
-    const c2y = curr.y - dy * 0.45
+    const c1x = prev.x + (prev.side === 'left' ? sweep : prev.side === 'right' ? -sweep : 0)
+    const c2x = curr.x + (curr.side === 'right' ? sweep : curr.side === 'left' ? -sweep : 0)
+    const c1y = prev.y + dy * 0.5
+    const c2y = curr.y - dy * 0.5
 
-    d += ` C ${prev.x} ${c1y}, ${curr.x} ${c2y}, ${curr.x} ${curr.y}`
+    d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${curr.x} ${curr.y}`
   }
 
   return d
@@ -85,186 +77,100 @@ export function getPathLength(pathEl: SVGPathElement | null): number {
   return pathEl.getTotalLength()
 }
 
-/* ------------------------------------------------------------------ *
- * Arc-length lookup table
- * ------------------------------------------------------------------ */
-
-export interface PathSamples {
-  /** Interleaved x,y pairs, uniformly spaced by arc length. */
-  points: Float32Array
-  count: number
-  total: number
-}
-
-export interface PathPoint {
-  x: number
-  y: number
-}
-
-/** Build the lookup table. One pass of `getPointAtLength`, then never again. */
-export function samplePath(
-  pathEl: SVGPathElement,
-  count = PATH_SAMPLE_COUNT,
-): PathSamples {
-  const total = pathEl.getTotalLength()
-  const n = Math.max(2, count)
-  const points = new Float32Array(n * 2)
-
-  if (total <= 0) return { points, count: n, total: 0 }
-
-  for (let i = 0; i < n; i++) {
-    const pt = pathEl.getPointAtLength((i / (n - 1)) * total)
-    points[i * 2] = pt.x
-    points[i * 2 + 1] = pt.y
-  }
-
-  return { points, count: n, total }
-}
-
-/** Interpolated point at normalized arc-length progress. Writes into `out`. */
-export function pointAt(samples: PathSamples, t: number, out: PathPoint): PathPoint {
-  const n = samples.count
-  const clamped = t <= 0 ? 0 : t >= 1 ? 1 : t
-  const idx = clamped * (n - 1)
-  const i0 = Math.floor(idx)
-  const i1 = i0 >= n - 1 ? n - 1 : i0 + 1
-  const f = idx - i0
-
-  const ax = samples.points[i0 * 2]
-  const ay = samples.points[i0 * 2 + 1]
-
-  out.x = ax + (samples.points[i1 * 2] - ax) * f
-  out.y = ay + (samples.points[i1 * 2 + 1] - ay) * f
-  return out
-}
-
-const headA: PathPoint = { x: 0, y: 0 }
-const headB: PathPoint = { x: 0, y: 0 }
-
-/** Tangent heading in degrees at normalized progress, looking `lookahead` px ahead. */
-export function headingAt(samples: PathSamples, t: number, lookahead: number): number {
-  if (samples.total <= 0) return 0
-
-  const dt = Math.min(0.5, lookahead / samples.total)
-  const a = Math.max(0, Math.min(1 - dt, t))
-  const b = Math.min(1, a + dt)
-
-  pointAt(samples, a, headA)
-  pointAt(samples, b, headB)
-
-  return (Math.atan2(headB.y - headA.y, headB.x - headA.x) * 180) / Math.PI
-}
-
 /**
- * Arc-length at each waypoint (monotonic), resolved against the lookup table
- * rather than re-solving the path geometry per waypoint.
+ * Arc-length at each waypoint along the rendered SVG path (monotonic).
  */
 export function computeWaypointArcLengths(
-  samples: PathSamples,
+  pathEl: SVGPathElement,
   waypoints: Waypoint[],
 ): number[] {
+  const total = pathEl.getTotalLength()
   if (waypoints.length === 0) return []
   if (waypoints.length === 1) return [0]
 
-  const n = samples.count
   const lengths: number[] = [0]
   let searchFrom = 0
 
   for (let wi = 1; wi < waypoints.length; wi++) {
     const wp = waypoints[wi]
-    let bestIdx = searchFrom
+    let bestLen = searchFrom
     let bestDist = Infinity
+    const steps = 120
 
-    for (let i = searchFrom; i < n; i++) {
-      const dx = samples.points[i * 2] - wp.x
-      const dy = samples.points[i * 2 + 1] - wp.y
-      const dist = dx * dx + dy * dy
+    for (let s = 0; s <= steps; s++) {
+      const len = searchFrom + (s / steps) * (total - searchFrom)
+      const pt = pathEl.getPointAtLength(len)
+      const dist = Math.hypot(pt.x - wp.x, pt.y - wp.y)
       if (dist < bestDist) {
         bestDist = dist
-        bestIdx = i
+        bestLen = len
       }
     }
 
-    lengths.push((bestIdx / (n - 1)) * samples.total)
-    searchFrom = bestIdx
+    lengths.push(Math.max(bestLen, lengths[lengths.length - 1] ?? 0))
+    searchFrom = lengths[lengths.length - 1]
   }
 
   return lengths
 }
 
-/* ------------------------------------------------------------------ *
- * Cached measurements
- * ------------------------------------------------------------------ */
+function probeY(scrollY: number, containerTop: number): number {
+  return scrollY - containerTop + window.innerHeight * PROBE_RATIO
+}
 
 /**
- * Everything the scroll handler needs, measured once per layout. The handler
- * used to call `getElementById` twice and read three rects per tick, in between
- * writing stroke dash values — a forced reflow on every single scroll event.
+ * Maps scroll position to 0–1 progress along the SVG path (by arc length).
  */
-export interface PathMetrics {
-  waypoints: Waypoint[]
-  arcLengths: number[]
-  samples: PathSamples
-  totalLength: number
-  containerTop: number
-  introTop: number
-  introHeight: number
-  viewportHeight: number
-  heroIndex: number
-}
-
-export function buildPathMetrics(
-  container: HTMLElement,
-  pathEl: SVGPathElement,
+export function scrollProgressToPathProgress(
+  scrollY: number,
   waypoints: Waypoint[],
-): PathMetrics {
-  const samples = samplePath(pathEl)
-  const arcLengths = computeWaypointArcLengths(samples, waypoints)
-  const scrollY = window.scrollY
-  const intro = document.getElementById('intro')
+  arcLengths: number[],
+  totalPathLength: number,
+): number {
+  if (waypoints.length < 2 || totalPathLength <= 0 || arcLengths.length < 2) return 0
 
-  return {
-    waypoints,
-    arcLengths,
-    samples,
-    totalLength: samples.total,
-    containerTop: container.getBoundingClientRect().top + scrollY,
-    introTop: intro ? intro.getBoundingClientRect().top + scrollY : 0,
-    introHeight: intro ? intro.offsetHeight : 0,
-    viewportHeight: window.innerHeight,
-    heroIndex: waypoints.findIndex((w) => w.id === 'hero'),
-  }
-}
+  const container = document.getElementById('main-content')
+  if (!container) return 0
 
-/** Maps scroll position to 0–1 progress along the path, by arc length. */
-export function pathProgressAt(scrollY: number, m: PathMetrics): number {
-  const { waypoints, arcLengths, totalLength } = m
-  if (waypoints.length < 2 || totalLength <= 0 || arcLengths.length < 2) return 0
+  const containerTop = container.getBoundingClientRect().top + window.scrollY
+  const py = probeY(scrollY, containerTop)
 
-  const py = scrollY - m.containerTop + m.viewportHeight * PROBE_RATIO
   const firstY = waypoints[0].y
   const lastY = waypoints[waypoints.length - 1].y
 
   if (py <= firstY) return 0
   if (py >= lastY) return 1
 
-  // Long intro scroll: map scroll distance through the intro to the intro→hero arc.
-  if (m.introHeight > 0 && m.heroIndex === 1 && py <= waypoints[1].y) {
-    const through = Math.max(0, scrollY - m.introTop + m.containerTop)
-    const t = Math.min(1, through / m.introHeight)
-    return (arcLengths[0] + t * (arcLengths[1] - arcLengths[0])) / totalLength
+  const introEl = document.getElementById('intro')
+  const heroIdx = waypoints.findIndex((w) => w.id === 'hero')
+
+  // Long intro scroll: map scroll distance through intro to the intro→hero arc segment
+  if (introEl && heroIdx === 1) {
+    const introHeight = introEl.offsetHeight
+    const heroY = waypoints[heroIdx].y
+    const introDocTop = introEl.getBoundingClientRect().top + scrollY
+    const scrollThroughIntro = Math.max(0, scrollY - introDocTop + containerTop)
+
+    if (introHeight > 0 && py <= heroY) {
+      const t = Math.min(1, scrollThroughIntro / introHeight)
+      const start = arcLengths[0]
+      const end = arcLengths[1]
+      return (start + t * (end - start)) / totalPathLength
+    }
   }
 
   for (let i = 0; i < waypoints.length - 1; i++) {
     const a = waypoints[i]
     const b = waypoints[i + 1]
     if (py >= a.y && py <= b.y) {
-      const t = b.y === a.y ? 0 : (py - a.y) / (b.y - a.y)
-      return (arcLengths[i] + t * (arcLengths[i + 1] - arcLengths[i])) / totalLength
+      const t = (py - a.y) / (b.y - a.y)
+      const start = arcLengths[i]
+      const end = arcLengths[i + 1]
+      return (start + t * (end - start)) / totalPathLength
     }
   }
 
-  return 1
+  return py >= lastY ? 1 : 0
 }
 
 /** Normalized arc-length progress for a waypoint checkpoint (for dot highlighting). */

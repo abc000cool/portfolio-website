@@ -89,7 +89,7 @@ export function MissionHUD() {
               className="absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap rounded-full border border-indigo-400/30 bg-[rgba(10,10,18,0.85)] px-3.5 py-1.5 backdrop-blur-md"
             >
               <span className="text-[10px] font-medium tracking-[0.2em] text-indigo-200 uppercase">
-                Waypoint — {toast}
+                Waypoint - {toast}
               </span>
             </motion.div>
           )}

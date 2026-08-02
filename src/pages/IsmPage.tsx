@@ -13,7 +13,7 @@ import { clampText, useDocumentHead } from '../hooks/useDocumentHead'
 /**
  * Single source of truth for each ISM subpage's heading, intro copy and share metadata.
  * scripts/prerender-meta.mjs parses this literal out of this file's source at build
- * time — keep it a plain object of quoted strings.
+ * time - keep it a plain object of quoted strings.
  */
 const ISM_SECTION_META: Record<string, { title: string; description: string }> = {
   research: {
@@ -283,11 +283,11 @@ export function IsmPage() {
   const { section } = useParams<{ section?: string }>()
   const sectionMeta = section ? ISM_SECTION_META[section] : undefined
 
-  // Must run before any early return — hook order has to stay identical across renders.
+  // Must run before any early return - hook order has to stay identical across renders.
   useDocumentHead({
     title: sectionMeta
-      ? `${sectionMeta.title} — ${portfolio.identity.name}`
-      : `${portfolio.ism.programName} — ${portfolio.identity.name}`,
+      ? `${sectionMeta.title} - ${portfolio.identity.name}`
+      : `${portfolio.ism.programName} - ${portfolio.identity.name}`,
     description: clampText(
       sectionMeta ? sectionMeta.description : portfolio.ism.description,
       160,

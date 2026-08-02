@@ -24,7 +24,7 @@ export function Starfield() {
   /**
    * A painted canvas needs both a device that can afford it and a reader who
    * wants motion. The previous guard rendered the canvas whenever
-   * `light && reduced` but skipped the paint loop for `light` — so a
+   * `light && reduced` but skipped the paint loop for `light` - so a
    * reduced-motion phone got an empty canvas and no background at all.
    */
   const staticField = light || reduced
