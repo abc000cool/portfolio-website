@@ -407,18 +407,28 @@ function SailCraft({ progressRef }: { progressRef: ProgressRef }) {
     computeCraftState(p, time, craft)
     const deploy = smoothstep(range01(p, 0.12, 0.26))
 
+    /*
+     * The sail used to scale from ~0, so the opening frame of this scene was a
+     * sun and two faint rings with no spacecraft anywhere - it read as a failed
+     * render rather than as "not deployed yet". It now rests at roughly a third
+     * of full span and opens from there, so there is always a craft on screen
+     * while the deployment beat still reads.
+     */
+    const REST_SPAN = 0.46
+    const sailSpan = REST_SPAN + (1 - REST_SPAN) * deploy
+
     if (groupRef.current) {
       groupRef.current.position.copy(craft.position)
     }
     if (sailRef.current) {
       lookTarget.copy(craft.position).add(craft.thrustDir)
       sailRef.current.lookAt(lookTarget)
-      sailRef.current.scale.setScalar(Math.max(0.001, 0.82 * deploy))
+      sailRef.current.scale.setScalar(0.82 * sailSpan)
     }
     petalRefs.current.forEach((petal, index) => {
       if (!petal) return
       const stagger = smoothstep(range01(deploy, index * 0.08, 0.7 + index * 0.08))
-      petal.scale.setScalar(Math.max(0.001, stagger))
+      petal.scale.setScalar(Math.max(0.45, stagger))
     })
   })
 

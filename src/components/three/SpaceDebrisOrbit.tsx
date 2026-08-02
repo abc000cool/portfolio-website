@@ -44,13 +44,16 @@ function CameraRig({ progressRef }: { progressRef: ProgressRef }) {
     const target = targetRef.current
 
     position.set(
-      THREE.MathUtils.lerp(4.6, 3.25, intercept) + pullback * 0.8,
-      THREE.MathUtils.lerp(2.2, 1.35, intercept) + pullback * 0.4,
-      THREE.MathUtils.lerp(5.4, 4.25, operation) + pullback * 0.55,
+      THREE.MathUtils.lerp(4.2, 3.25, intercept) + pullback * 0.8,
+      THREE.MathUtils.lerp(2.0, 1.35, intercept) + pullback * 0.4,
+      THREE.MathUtils.lerp(5.1, 4.25, operation) + pullback * 0.55,
     )
+    // Opening frame is aimed between Earth and the vehicle rather than at the
+    // origin; aiming at the origin pushed the vehicle into the right-hand edge
+    // of the viewer, where it was clipped before the capture even started.
     target.set(
-      THREE.MathUtils.lerp(0, 0.68, intercept) - pullback * 0.4,
-      THREE.MathUtils.lerp(0.05, 0.45, operation),
+      THREE.MathUtils.lerp(0.42, 0.68, intercept) - pullback * 0.4,
+      THREE.MathUtils.lerp(0.28, 0.45, operation),
       0,
     )
     camera.position.lerp(position, 0.1)
@@ -255,11 +258,70 @@ function CmgAssembly({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
+const CAPTURE_PIECES = 6
+
+/**
+ * Debris funnelling into the tunnel mouth.
+ *
+ * This replaced a single octahedron that shrank in place, which read as one
+ * object disappearing rather than as a vehicle collecting a field. Six pieces
+ * enter on staggered windows and converge on the chamber, so the capture is
+ * legible as a sequence: they queue, they stream in, the chamber lights up.
+ *
+ * Rendered inside the rig group, so the pieces travel with the vehicle.
+ */
+function CaptureStream({ progressRef }: { progressRef: ProgressRef }) {
+  const meshes = useRef<(THREE.Mesh | null)[]>([])
+
+  useFrame(() => {
+    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+
+    meshes.current.forEach((mesh, i) => {
+      if (!mesh) return
+      // Staggered so they arrive one after another instead of all at once.
+      const start = 0.24 + i * 0.048
+      const t = smoothstep(range01(p, start, start + 0.17))
+
+      const queueX = 1.08 + i * 0.38
+      const lateral = (deterministic(i, 7) - 0.5) * 0.62
+      const vertical = (deterministic(i, 11) - 0.5) * 0.54
+
+      // Converge on the chamber, flattening the spread as they approach.
+      mesh.position.set(
+        THREE.MathUtils.lerp(queueX, 0.14, t),
+        THREE.MathUtils.lerp(vertical, 0, t),
+        THREE.MathUtils.lerp(lateral, 0, t),
+      )
+      // Compacted into a pellet as it enters, rather than simply vanishing.
+      const size = 0.1 + deterministic(i, 3) * 0.055
+      mesh.scale.setScalar(THREE.MathUtils.lerp(size, 0.018, t))
+      mesh.rotation.x += 0.021 + i * 0.003
+      mesh.rotation.y += 0.014
+      mesh.visible = t < 0.99
+    })
+  })
+
+  return (
+    <group>
+      {Array.from({ length: CAPTURE_PIECES }, (_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            meshes.current[i] = el
+          }}
+        >
+          <octahedronGeometry args={[1, 0]} />
+          <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.25} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 function SweepVehicle({ progressRef }: { progressRef: ProgressRef }) {
   const rigRef = useRef<THREE.Group>(null)
   const chamberRef = useRef<THREE.MeshStandardMaterial>(null)
   const railRef = useRef<THREE.MeshStandardMaterial>(null)
-  const targetRef = useRef<THREE.Mesh>(null)
 
   useFrame(() => {
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
@@ -269,21 +331,17 @@ function SweepVehicle({ progressRef }: { progressRef: ProgressRef }) {
     const recoil = smoothstep(range01(p, 0.6, 0.7)) * (1 - smoothstep(range01(p, 0.72, 0.82)))
 
     if (rigRef.current) {
+      // Starts inside the frame. It used to begin at x=2.3, which put the
+      // capture tunnel half outside the viewer for the whole approach.
       rigRef.current.position.set(
-        THREE.MathUtils.lerp(2.3, 0.75, enter) - recoil * 0.12,
-        THREE.MathUtils.lerp(1.15, 0.55, enter),
-        THREE.MathUtils.lerp(0.8, 0, enter),
+        THREE.MathUtils.lerp(1.62, 0.75, enter) - recoil * 0.12,
+        THREE.MathUtils.lerp(0.92, 0.55, enter),
+        THREE.MathUtils.lerp(0.55, 0, enter),
       )
-      rigRef.current.rotation.y = THREE.MathUtils.lerp(-0.55, -0.12, enter)
+      rigRef.current.rotation.y = THREE.MathUtils.lerp(-0.4, -0.12, enter)
     }
     if (chamberRef.current) chamberRef.current.emissiveIntensity = 0.25 + compress * 3.5
     if (railRef.current) railRef.current.emissiveIntensity = 0.4 + fire * 6
-    if (targetRef.current) {
-      const capture = smoothstep(range01(p, 0.28, 0.5))
-      targetRef.current.position.x = THREE.MathUtils.lerp(1.35, 0.16, capture)
-      targetRef.current.scale.setScalar(THREE.MathUtils.lerp(1, 0.08, capture))
-      targetRef.current.rotation.x += 0.018
-    }
   })
 
   return (
@@ -320,10 +378,7 @@ function SweepVehicle({ progressRef }: { progressRef: ProgressRef }) {
           opacity={0.82}
         />
       </mesh>
-      <mesh ref={targetRef} position={[1.35, 0.1, 0]}>
-        <octahedronGeometry args={[0.12, 0]} />
-        <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.25} />
-      </mesh>
+      <CaptureStream progressRef={progressRef} />
       <CmgAssembly progressRef={progressRef} />
 
       <group position={[0.42, -0.18, 0]}>
