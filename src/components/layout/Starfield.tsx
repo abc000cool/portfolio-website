@@ -11,6 +11,9 @@ interface Star {
   speed: number
 }
 
+const STATIC_FIELD =
+  'radial-gradient(1px 1px at 20% 30%, rgba(232,236,244,0.35), transparent), radial-gradient(1px 1px at 60% 70%, rgba(232,236,244,0.25), transparent), radial-gradient(1px 1px at 80% 20%, rgba(232,236,244,0.2), transparent)'
+
 export function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isVisible = useIntersectionPause(canvasRef)
@@ -18,15 +21,21 @@ export function Starfield() {
   const light = useLightExperience()
   const mouseRef = useRef({ x: 0.5, y: 0.5 })
 
+  /**
+   * A painted canvas needs both a device that can afford it and a reader who
+   * wants motion. The previous guard rendered the canvas whenever
+   * `light && reduced` but skipped the paint loop for `light` — so a
+   * reduced-motion phone got an empty canvas and no background at all.
+   */
+  const staticField = light || reduced
+
   useEffect(() => {
-    if (light) return
+    if (staticField) return
     const canvas = canvasRef.current
     if (!canvas) return
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-
-    const starCount = reduced ? 30 : 90
 
     const resize = () => {
       canvas.width = window.innerWidth
@@ -35,7 +44,7 @@ export function Starfield() {
     resize()
     window.addEventListener('resize', resize)
 
-    const stars: Star[] = Array.from({ length: starCount }, () => ({
+    const stars: Star[] = Array.from({ length: 90 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       size: Math.random() * 1.2 + 0.3,
@@ -52,7 +61,6 @@ export function Starfield() {
     window.addEventListener('mousemove', onMove)
 
     let animId = 0
-    let shootingStar: { x: number; y: number; len: number; life: number } | null = null
 
     const draw = () => {
       if (!isVisible) {
@@ -75,32 +83,6 @@ export function Starfield() {
         ctx.fill()
       }
 
-      if (!reduced && Math.random() < 0.0008 && !shootingStar) {
-        shootingStar = {
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height * 0.5,
-          len: 80,
-          life: 1,
-        }
-      }
-
-      if (shootingStar) {
-        const { x, y, len, life } = shootingStar
-        const grad = ctx.createLinearGradient(x, y, x + len, y + len * 0.3)
-        grad.addColorStop(0, `rgba(255,255,255,${life})`)
-        grad.addColorStop(1, 'rgba(255,255,255,0)')
-        ctx.strokeStyle = grad
-        ctx.lineWidth = 2
-        ctx.beginPath()
-        ctx.moveTo(x, y)
-        ctx.lineTo(x + len, y + len * 0.3)
-        ctx.stroke()
-        shootingStar.life -= 0.03
-        shootingStar.x += 8
-        shootingStar.y += 2
-        if (shootingStar.life <= 0) shootingStar = null
-      }
-
       animId = requestAnimationFrame(draw)
     }
 
@@ -111,16 +93,15 @@ export function Starfield() {
       window.removeEventListener('resize', resize)
       window.removeEventListener('mousemove', onMove)
     }
-  }, [isVisible, reduced, light])
+  }, [isVisible, staticField])
 
-  if (light && !reduced) {
+  if (staticField) {
     return (
       <div
         className="fixed inset-0 pointer-events-none opacity-60"
         style={{
           zIndex: 'var(--z-starfield)',
-          backgroundImage:
-            'radial-gradient(1px 1px at 20% 30%, rgba(232,236,244,0.35), transparent), radial-gradient(1px 1px at 60% 70%, rgba(232,236,244,0.25), transparent), radial-gradient(1px 1px at 80% 20%, rgba(232,236,244,0.2), transparent)',
+          backgroundImage: STATIC_FIELD,
           backgroundSize: '200px 200px, 280px 280px, 240px 240px',
         }}
         aria-hidden="true"

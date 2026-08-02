@@ -26,6 +26,8 @@ export interface Paper {
   venue: string
   year: number
   abstract: string
+  /** Short plain-language summary for card/list surfaces (the full abstract stays on the detail page). */
+  summary?: string
   /** Optional HTML for subscripts/superscripts in abstracts. */
   abstractHtml?: string
   externalUrl?: string
@@ -61,9 +63,9 @@ export interface Experience {
 export const portfolio = {
   identity: {
     name: 'Ansh Pathak',
-    title: 'Aspiring Aerospace Engineer',
+    title: 'Aerospace research · US patent',
     tagline:
-      'A driven high school senior with a passion for aerospace engineering, quantum mechanics, and innovative solutions. Building the future through STEM, one project at a time.',
+      'US patent holder for SWEEP, a space-debris capture platform presented at AAS 248. Six papers and preprints, a flight simulator validated to 1.5% against a Boeing 737-800, and a mentor at NASA Goddard.',
     school: 'Heritage High School',
     location: 'Frisco, TX',
     email: 'pathakansh10@gmail.com',
@@ -74,19 +76,21 @@ export const portfolio = {
       { label: 'Email', url: 'mailto:pathakansh10@gmail.com' },
     ] as SocialLink[],
     quote: {
-      text: 'What we do in life, echos in eternity',
+      text: 'What we do in life, echoes in eternity',
       attribution: 'Maximus Decimus Meridius',
     },
   },
   about: {
-    bio: 'I am a driven and adept senior at Heritage High School with a strong passion for STEM fields, especially aerospace engineering and quantum mechanics. Backed by 7+ years of programming and engineering experience and a demonstrated ability to solve complex problems and create innovative solutions, I actively seek opportunities to pursue professional development, innovate, lead, and apply my skills in real-world projects through hands-on work, rigor, and impactful collaborations.',
+    bio: 'I design and simulate aerospace systems. SWEEP, my space-debris capture platform, holds a US patent. STRATOS, my flight-performance simulator, predicts Boeing 737-800 stall speed to within 1.5%. Six papers and preprints follow one thread: quantum and classical optimization for aircraft and spacecraft. Away from the desk, I play snare in the Heritage drumline and hold a Guinness World Records title.',
     missionStatement:
-      'Through my independent study, I wish to litanize my pursuit of knowledge in the broader field of aerospace engineering, and in the specificity of flight mechanics. I want to start with flight mechanics and then observe applications to this field with either optimization or quantum applications. I will gain the skills and learn about the expertise needed to professionally contribute to the industry in my future career through my final project and mentorship.',
+      'Through my independent study I want to go deep on aerospace engineering, and on flight mechanics in particular: build the fundamentals first, then push them toward optimization and quantum applications. The original work and the mentorship are how I find out what it actually takes to contribute to the industry.',
     highlights: [
-      'US Patent Holder — developed SWEEP, a novel solution to space debris proliferation',
-      'FIRST World Championship Qualifier — outstanding robotics contributions with Team 6369',
+      'US patent holder — SWEEP, a spacecraft design that clears orbital debris',
+      'Mentored by Dr. Giuseppe Cataldo, Assistant Chief for Technology at NASA Goddard Space Flight Center',
+      'Six research papers and preprints — space debris, morphing airfoils, inertial navigation, solar sails, laminar flow, traffic',
+      'FIRST World Championship qualifier — Impact and Engineering Inspiration Awards with Team 6369',
       'Quantum Computing Practicum — studied quantum algorithms with UT Dallas faculty',
-      'Nonprofit Founder — founded The Resonance Foundation, a 501(c)(3) music education nonprofit',
+      'Founder of The Resonance Foundation, a 501(c)(3) music education nonprofit',
     ],
   },
   projects: projectPages.map((p) => ({
@@ -109,6 +113,8 @@ export const portfolio = {
       title: 'Space Debris Mitigation',
       venue: 'AAS 248 — Pasadena, CA',
       year: 2026,
+      summary:
+        'SWEEP, a US-patented spacecraft that captures orbital debris, compacts it into dense pellets, and fires them out of orbit from electromagnetic railguns — using the recoil to maneuver. Presented at AAS 248.',
       abstract:
         "Research on novel approaches to address the growing problem of space debris in Earth's orbit, including spacecraft design and operational algorithms. This work explores active debris removal strategies, mission planning optimization, and the development of practical solutions for space sustainability.",
     },
@@ -118,6 +124,8 @@ export const portfolio = {
       title: 'Traffic Optimization Through Fluid Dynamics',
       venue: 'Pending',
       year: 2026,
+      summary:
+        'Treats traffic as fluid flow, using Navier-Stokes modeling to find bottlenecks and predict congestion waves in real time, then issues adaptive speed guidance that dissipates them faster than passive routing.',
       abstract:
         'Applies principles of fluid mechanics to model traffic patterns and deliver driving recommendations that dissipate congestion faster. Traffic is treated as fluid flow using computational fluid dynamics and Navier-Stokes-based modeling to identify bottlenecks and predict congestion waves in real time. Adaptive speed guidance is calculated so collective driver behavior can reduce stop-and-go patterns, improve average flow speeds, and lower fuel consumption—with research indicating substantial jam reduction and meaningful speed improvements at modest connected-vehicle penetration rates.',
     },
@@ -128,6 +136,8 @@ export const portfolio = {
         'Probabilistic Optimization of Continuous-Morphing Airfoil Geometries via Gaussian Process Surrogates and QAOA-Based Discrete Sampling',
       venue: 'Pending',
       year: 2026,
+      summary:
+        'Pairs Gaussian-process surrogate models with a quantum sampler (QAOA) to search morphing-airfoil shapes. The best design, checked in XFOIL, cut drag 9.3% and raised lift 37% over a NACA 2412 baseline.',
       abstract:
         'Continuously morphing airfoils reshape during flight to match changing aerodynamic conditions, enabling performance that fixed geometry designs fundamentally cannot achieve. We present a four-phase pipeline combining Gaussian Process surrogate modeling with QAOA as a diversity-oriented sampler for morphing airfoil optimization, validated against XFOIL with improved drag and lift over a NACA 2412 baseline.',
       abstractHtml:
@@ -142,6 +152,8 @@ export const portfolio = {
       year: 2026,
       externalUrl: 'https://qcin-nav.vercel.app/',
       githubUrl: 'https://github.com/abc000cool/qcin-nav',
+      summary:
+        'An open-source simulator of a cold-atom and classical hybrid navigator. Across 27,648 runs it holds a median 7.6 m after five minutes of GNSS jamming — 4.9× tighter than classical-only — and shows which error sources dominate.',
       abstract:
         'A validated open-source simulator of a cold-atom interferometer + classical IMU hybrid navigator (Cheiney–Lautier–Wang architecture in a 15-state error-state EKF), paired with a global Sobol′ variance decomposition of its error budget across two opposite aerospace regimes: an atmospheric UAV under GNSS jamming, and a multi-day cislunar coast. Across 27,648 simulations and eight passing validation tests, the hybrid holds a median 7.6 m after five minutes of jamming (about 4.9× tighter than classical-only) and 124 km after a 4.98-day lunar coast versus 38,800 km unaided (313×). The study shows the remaining atmospheric error is dominated by gyroscope bias and platform vibration, while the cislunar floor is governed by classical accelerometer bias and coast duration—not cold-atom stability alone.',
       abstractHtml:
@@ -156,6 +168,8 @@ export const portfolio = {
       year: 2026,
       externalUrl: 'https://solar-sail-nko.vercel.app/',
       githubUrl: 'https://github.com/abc000cool/solar-sail-nko-site',
+      summary:
+        'Maps which solar-sail orbits stay reachable once a realistic optical sail replaces the ideal reflector: required lightness rises a median 1.23×, and a 55.5° thrust-cone ceiling removes 4.9% of the Earth-synchronous family.',
       abstract:
         'Heliocentric displaced non-Keplerian orbits (NKOs) enable solar-observation, high-latitude Earth-observation, and space-weather mission concepts that no Keplerian orbit can access — but prior feasibility maps rely on an ideal reflector. This work computes the joint Pareto envelope of achievable displacement and minimum transfer time under the full six-coefficient McInnes optical force model, together with a controllability penalty map across the (ρ, z) parameter space. The optical model raises the required lightness number by a median factor of 1.23 relative to the ideal reflector, and its 55.5° thrust-cone ceiling removes 4.9% of the ideal-feasible territory of the Earth-synchronous family relevant to sub-L1 space-weather missions. Across two decades of sail loading (5–150 g/m²), the minimum time to reach the displacement envelope from a 1-au parking orbit is nearly invariant at 0.36–0.39 years. Built on an open-source pseudospectral optimal-control pipeline (CasADi + IPOPT) with 750 converged transfers at 100% solver convergence.',
       abstractHtml:
@@ -170,6 +184,8 @@ export const portfolio = {
       year: 2026,
       externalUrl: 'https://transition-atlas.vercel.app/',
       githubUrl: 'https://github.com/abc000cool/nlf-transition-atlas',
+      summary:
+        'Sweeps 7,020 XFOIL solutions of a NASA laminar-flow airfoil to show how far the transition point moves with a single environment parameter, then validates against 1981 Langley wind-tunnel data to 0.023c RMS.',
       abstract:
         "Every prediction of a laminar-flow wing hinges on the transition point, and in XFOIL that point is set by a single environment parameter: Ncrit. This work sweeps the full general-aviation envelope of the NASA NLF(1)-0416 airfoil — 12 Reynolds numbers, 9 amplification thresholds, 65 angles of attack — and publishes the result as a queryable sensitivity atlas: 7,020 converged solutions (96.2%) with local derivatives, elasticities, Morris screening, and Sobol variance decomposition. A from-scratch Chebyshev-collocation Orr–Sommerfeld solver, verified against Orszag and Jordinson, integrates forty fixed-frequency amplification curves over XFOIL's own boundary layers and isolates the systematic bias of the envelope approximation: +0.010–0.035c aft in attached flow, about 2.2 Ncrit units of equivalent offset. Validation against a fully re-digitized set of 108 transition measurements from the original 1981 Langley wind-tunnel report closes the loop at 0.023c RMS — the measurement resolution — with 82% of predictions inside their orifice bracket.",
       abstractHtml:
@@ -177,10 +193,12 @@ export const portfolio = {
     },
   ] as Paper[],
   stats: [
-    { label: 'US Patent Holder', display: 'SWEEP' },
-    { label: 'World Championship Qualifier', value: 2, suffix: 'x (FIRST)', static: true },
-    { label: 'BPA National Finalist', display: 'Top 10' },
-    { label: 'Top 0.5% AIME Scorer', display: 'AMC 12' },
+    { label: 'US patent — SWEEP debris platform', display: '1' },
+    { label: 'Research papers & preprints', display: '6' },
+    { label: 'AMC 12 competitors — AIME qualifier', display: 'Top 0.5%' },
+    { label: 'FIRST World Championship qualifier', display: '3x' },
+    { label: 'BPA National Leadership Conference', display: 'Top 10' },
+    { label: 'STRATOS stall-speed error vs Boeing 737-800', display: '1.5%' },
   ] as Stat[],
   experiences: [
     {
@@ -190,7 +208,7 @@ export const portfolio = {
       period: 'Jan 2025 – Present',
       type: 'Teaching',
       description:
-        'Instructed and mentored elementary and middle school students in STEM disciplines and robotics to foster interest through hands-on activities and personally tailored lessons. Broken down complex concepts into age-appropriate lessons, allowing students to grasp advanced disciplines. Represented STEMTree at local outreach events, inspiring and captivating families through direct demonstration of STEM; promoted accessibility to direct FLL-style robotics to children at a young age.',
+        'Instructed and mentored elementary and middle school students in STEM disciplines and robotics to foster interest through hands-on activities and personally tailored lessons. Broke down complex concepts into age-appropriate lessons, allowing students to grasp advanced disciplines. Represented STEMTree at local outreach events, inspiring and captivating families through direct demonstration of STEM; promoted accessibility to direct FLL-style robotics to children at a young age.',
     },
     {
       id: 'exp-bigfuture',
@@ -226,42 +244,41 @@ export const portfolio = {
       category: 'Achievement',
       title: 'Bhagavad Gita Memorizer & World Record Participant',
       description:
-        "Memorized 800+ verses (10,000+ Sanskrit words) of Srimad Bhagavad Gita, consistently spending 30-40+ hours weekly for over a year. Guinness Book of World Records Title Holder for 'Largest simultaneous Hindu text recital' requiring 2+ years of consistent preparation.",
+        "Memorized 800+ verses — 10,000+ Sanskrit words — of the Srimad Bhagavad Gita across a year of 30-40 hour weeks. Guinness World Records title holder for 'Largest simultaneous Hindu text recital', which took 2+ years of preparation.",
     },
     {
       id: 'award-first',
       category: 'Robotics',
       title: 'FIRST Robotics Awards',
       description:
-        'Received the prestigious FIRST Impact Award, Engineering Inspiration Award, and (2x) Autonomous Award with Team 6369. Qualified for (3 times) Texas State and FIRST World Championships; Won FIT Belton, Amarillo, & San Antonio Competitions.',
+        'FIRST Impact Award and Engineering Inspiration Award with Team 6369, plus the Autonomous Award twice. Three-time Texas State and FIRST World Championship qualifier; won the FIT Belton, Amarillo, and San Antonio competitions.',
     },
     {
       id: 'award-aime',
       category: 'Mathematics',
       title: 'AIME Qualifier',
       description:
-        'Scored 118.5/150 on the AMC 12; Qualified for American Invitational Mathematics Examination (AIME). Scored 7/15 on the AIME, landing in the top 0.5% of all AMC competitors.',
+        'Scored 118.5/150 on the AMC 12 to qualify for the American Invitational Mathematics Examination (AIME), then 7/15 on the AIME — the top 0.5% of all AMC competitors.',
     },
     {
       id: 'award-music',
       category: 'Music',
       title: 'Heritage HS Wind Ensemble & Drumline',
       description:
-        'Rigorously rehearse and compete in Marching Band, Concert Band, and Percussion Ensemble environments. Extremely strong time commitment, climbing over 40+ hours a week during peak times. 2025 1st Place International Percussion Ensemble Winner — Performed on a world stage at PASIC50 in Indianapolis. 2022-23 All-Region Percussion Ensemble, 2023-24 All-Region Band, 2024-25 All-Region Band. 2025 North Texas Drumline Contest Outstanding Snare Line. 2024 North Texas Drumline Contest Winner. 2023 McKinney Marching 1st Place Percussion. 2023-24 & 2024-25 Bass Line; 2025-26 Snare Line.',
+        '1st place at the 2025 International Percussion Ensemble competition, performed at PASIC50 in Indianapolis. Outstanding Snare Line at the 2025 North Texas Drumline Contest, and contest winner in 2024. Three-time All-Region selection; currently on snare, at 40+ hours a week during peak season.',
     },
     {
       id: 'award-bpa',
       category: 'Leadership',
       title: 'Business Professionals of America (BPA)',
       description:
-        'Chapter Vice President. 2025 & 2026 Regional Champion (1st Place, 2x State Qualifier) & 2x National Torch Award Recipient. 2026 National Leadership Conference Finalist (Top 10).',
+        'Chapter Vice President. Regional Champion in 2025 and 2026 (1st place, two-time State qualifier) and a two-time National Torch Award recipient. Top 10 finalist at the 2026 National Leadership Conference.',
     },
     {
       id: 'award-conrad',
       category: 'Innovation',
       title: 'Conrad Challenge Innovator',
-      description:
-        '2026 Conrad Challenge Innovator — participating in the prestigious innovation competition.',
+      description: '2026 Conrad Challenge Innovator.',
     },
     {
       id: 'award-cs-club',
@@ -287,7 +304,7 @@ export const portfolio = {
     district: 'Frisco ISD',
     tagline: 'Choose excellence. Exemplify character.',
     description:
-      'Admission into ISM is highly competitive, requiring students to demonstrate strong commitment and high academic standing. This elective, available to juniors and seniors in Frisco ISD, enables students to independently explore a career field they\'re passionate about. Through extensive research, professional interviews, and mentorship, students gain hands-on experience and invaluable insights into their chosen industry.',
+      'I spent my ISM year building STRATOS, a flight-performance simulator, under Dr. Giuseppe Cataldo, Assistant Chief for Technology at NASA Goddard — alongside five research assessments on quantum aerospace, CFD, autonomous flight, and supersonic versus subsonic flight, plus interviews with engineers at Lockheed Martin, NASA, and an aerospace startup. ISM is a competitive Frisco ISD elective that lets juniors and seniors study one career field independently through research, professional interviews, and mentorship.',
     image: '/ism-program.png',
     focus: 'Aerospace engineering and flight mechanics',
   },

@@ -2,6 +2,11 @@ interface RocketShipProps {
   className?: string
 }
 
+/**
+ * The rocket moves on every scroll tick, so nothing on it may be filtered:
+ * a `feDropShadow` on a transforming group re-rasterizes the whole subtree
+ * each frame. The shadow is a flat dark underlay instead.
+ */
 export function RocketShip({ className = '' }: RocketShipProps) {
   return (
     <g className={className}>
@@ -24,14 +29,19 @@ export function RocketShip({ className = '' }: RocketShipProps) {
           <stop offset="60%" stopColor="#6366f1" stopOpacity="0.35" />
           <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
         </radialGradient>
-        <filter id="rocket-shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#000" floodOpacity="0.35" />
-        </filter>
       </defs>
 
       <ellipse cx="0" cy="14" rx="5" ry="8" fill="url(#exhaust-glow)" opacity="0.7" />
 
-      <g filter="url(#rocket-shadow)">
+      {/* Contact shadow: one extra fill, no filter region to re-rasterize. */}
+      <path
+        d="M 0 -19 L 6.5 7 L 6.5 19 L -6.5 19 L -6.5 7 Z"
+        fill="#06060a"
+        opacity="0.4"
+        transform="translate(0.6 1.6)"
+      />
+
+      <g>
         <path d="M -5 8 L -9 18 L -5 16 Z" fill="url(#rocket-fin)" />
         <path d="M 5 8 L 9 18 L 5 16 Z" fill="url(#rocket-fin)" />
         <path d="M 0 -18 L 5.5 6 L 0 4 L -5.5 6 Z" fill="url(#rocket-nose)" />

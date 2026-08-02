@@ -958,7 +958,7 @@ export function SolarSailNKO({
           dpr={[1, 1.5]}
           gl={{
             alpha: true,
-            antialias: true,
+            antialias: false,
             powerPreference: 'high-performance',
             toneMapping: THREE.ACESFilmicToneMapping,
           }}

@@ -1,7 +1,12 @@
 import { type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { useLightExperience } from '../../hooks/useTouchDevice'
-import { EARLY_VIEWPORT, revealHidden, revealVisible } from '../../lib/revealMotion'
+import {
+  EARLY_VIEWPORT,
+  revealHidden,
+  revealTransition,
+  revealVisible,
+} from '../../lib/revealMotion'
 
 interface ScanWipeProps {
   children: ReactNode
@@ -11,6 +16,11 @@ interface ScanWipeProps {
   delay?: number
 }
 
+/**
+ * The workhorse body reveal — a flat lift-and-fade, used by every content
+ * block. It is deliberately the quiet one: RedactedHeading carries the
+ * emphasis, and this runs underneath it without competing.
+ */
 export function ScanWipe(props: ScanWipeProps) {
   const { children, className = '', delay = 0.1, active } = props
   const light = useLightExperience()
@@ -28,7 +38,7 @@ export function ScanWipe(props: ScanWipeProps) {
       className={className}
       initial={hidden}
       {...reveal}
-      transition={{ duration: light ? 0.5 : 0.85, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={revealTransition(delay)}
     >
       {children}
     </motion.div>

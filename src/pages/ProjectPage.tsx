@@ -1,22 +1,33 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { getProjectBySlug, projectPages, resolveProjectSlug } from '../data/projectPages'
+import { portfolio } from '../data/portfolio'
 import { SubpageShell } from '../components/layout/SubpageShell'
 import { MissionPatch } from '../components/ui/MissionPatch'
+import { clampText, useDocumentHead } from '../hooks/useDocumentHead'
 
 export function ProjectPage() {
   const { slug } = useParams<{ slug: string }>()
+  const canonicalSlug = slug ? resolveProjectSlug(slug) : undefined
+  const project = canonicalSlug ? getProjectBySlug(canonicalSlug) : undefined
 
-  if (slug && slug !== resolveProjectSlug(slug)) {
-    return <Navigate to={`/projects/${resolveProjectSlug(slug)}`} replace />
+  // Must run before any early return — hook order has to stay identical across renders.
+  useDocumentHead({
+    title: project
+      ? `${project.title} — ${portfolio.identity.name}`
+      : `${portfolio.identity.name} | ${portfolio.identity.title}`,
+    description: clampText(project ? project.tagline : portfolio.identity.tagline, 160),
+    canonicalPath: project ? `/projects/${project.slug}` : '/',
+  })
+
+  if (slug && canonicalSlug && slug !== canonicalSlug) {
+    return <Navigate to={`/projects/${canonicalSlug}`} replace />
   }
-
-  const project = slug ? getProjectBySlug(slug) : undefined
 
   if (!project) {
     return <Navigate to="/" replace />
   }
 
-  const index = projectPages.findIndex((p) => p.slug === slug)
+  const index = projectPages.findIndex((p) => p.slug === project.slug)
   const prev = index > 0 ? projectPages[index - 1] : null
   const next = index < projectPages.length - 1 ? projectPages[index + 1] : null
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { gsap } from '../../lib/scrollTrigger'
 
 interface LaunchSequenceProps {
@@ -7,17 +7,22 @@ interface LaunchSequenceProps {
 }
 
 export function LaunchSequence({ active, onComplete }: LaunchSequenceProps) {
-  const [visible, setVisible] = useState(false)
+  // Callers pass an inline arrow, so `onComplete` is a new function every parent
+  // render. Reading it through a ref keeps it out of the timeline effect's deps.
+  const onCompleteRef = useRef(onComplete)
 
   useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  // Visibility is `active` itself. It used to be separate state set inside this
+  // effect, so the .launch-rocket / .launch-trail nodes gsap selects below were
+  // not in the DOM yet on the effect's first run.
+  useEffect(() => {
     if (!active) return
-    setVisible(true)
 
     const tl = gsap.timeline({
-      onComplete: () => {
-        setVisible(false)
-        onComplete()
-      },
+      onComplete: () => onCompleteRef.current(),
     })
 
     tl.fromTo(
@@ -35,9 +40,9 @@ export function LaunchSequence({ active, onComplete }: LaunchSequenceProps) {
     return () => {
       tl.kill()
     }
-  }, [active, onComplete])
+  }, [active])
 
-  if (!visible) return null
+  if (!active) return null
 
   return (
     <div

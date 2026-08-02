@@ -97,10 +97,10 @@
 
 .mobile-nav__section-label {
   font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.16em;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.85);
+  color: rgba(165, 178, 196, 0.95);
   margin: 1.25rem 0 0.5rem;
 }
 
@@ -177,18 +177,10 @@
   background: #e0e7ff;
 }
 
-@media (max-width: 767px) {
-  .research-showcase__sticky {
-    top: 4.25rem;
-    min-height: calc(100dvh - 4.25rem);
-    padding: 1rem 0 1.5rem;
-  }
-
-  .research-showcase__card {
-    padding: 1.25rem !important;
-  }
-
-  .research-showcase-block {
-    padding: 2rem 0;
-  }
-}
+/*
+ * Removed: a `@media (max-width: 767px)` block that styled
+ * .research-showcase__sticky / .research-showcase__card / .research-showcase-block.
+ * ResearchSection swaps to <MobileResearchCard> whenever useIsMobileLayout()
+ * matches — that is (max-width: 1023px) — so none of those three classes are
+ * ever in the DOM below 768px and the block emitted CSS that could not apply.
+ */
