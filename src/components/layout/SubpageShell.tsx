@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { MotionConfig } from 'motion/react'
 import { portfolio } from '../../data/portfolio'
 import { externalLinkRel } from '../../lib/externalLink'
 import { Starfield } from './Starfield'
@@ -17,7 +18,10 @@ export function SubpageShell({
   backTo?: string
 }) {
   return (
-    <>
+    // Subpages were the only routes not wrapped in this, so every motion
+    // component under /projects, /research and /ism ignored the reader's
+    // reduced-motion preference.
+    <MotionConfig reducedMotion="user">
       <Starfield />
       <AtmosphereDescent />
       <CustomCursor />
@@ -54,6 +58,6 @@ export function SubpageShell({
           </div>
         </div>
       </footer>
-    </>
+    </MotionConfig>
   )
 }

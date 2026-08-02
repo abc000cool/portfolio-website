@@ -8,6 +8,29 @@ import {
   ismResearchAssessments,
 } from '../data/ismPages'
 import { SubpageShell } from '../components/layout/SubpageShell'
+import { clampText, useDocumentHead } from '../hooks/useDocumentHead'
+
+/**
+ * Single source of truth for each ISM subpage's heading, intro copy and share metadata.
+ * scripts/prerender-meta.mjs parses this literal out of this file's source at build
+ * time — keep it a plain object of quoted strings.
+ */
+const ISM_SECTION_META: Record<string, { title: string; description: string }> = {
+  research: {
+    title: 'ISM Research Assessments',
+    description:
+      'Independent research assessments exploring aerospace engineering and flight mechanics.',
+  },
+  interviews: {
+    title: 'Professional Interviews',
+    description:
+      'Conversations with industry professionals providing insights into the aerospace field.',
+  },
+  mentorship: {
+    title: 'Mentorship Experience',
+    description: 'Guided learning experience with an industry professional in aerospace engineering.',
+  },
+}
 
 function PdfLink({ href }: { href: string }) {
   return (
@@ -116,10 +139,10 @@ function IsmResearchPage() {
     <>
       <header className="mb-10">
         <p className="section-label">ISM Program</p>
-        <h1 className="font-display text-3xl md:text-4xl text-white mb-3">ISM Research Assessments</h1>
-        <p className="text-slate-400 leading-relaxed">
-          Independent research assessments exploring aerospace engineering and flight mechanics.
-        </p>
+        <h1 className="font-display text-3xl md:text-4xl text-white mb-3">
+          {ISM_SECTION_META.research.title}
+        </h1>
+        <p className="text-slate-400 leading-relaxed">{ISM_SECTION_META.research.description}</p>
       </header>
       <div className="space-y-6">
         {ismResearchAssessments.map((a) => (
@@ -152,10 +175,10 @@ function IsmInterviewsPage() {
     <>
       <header className="mb-10">
         <p className="section-label">ISM Program</p>
-        <h1 className="font-display text-3xl md:text-4xl text-white mb-3">Professional Interviews</h1>
-        <p className="text-slate-400 leading-relaxed">
-          Conversations with industry professionals providing insights into the aerospace field.
-        </p>
+        <h1 className="font-display text-3xl md:text-4xl text-white mb-3">
+          {ISM_SECTION_META.interviews.title}
+        </h1>
+        <p className="text-slate-400 leading-relaxed">{ISM_SECTION_META.interviews.description}</p>
       </header>
       <div className="space-y-6">
         {ismInterviews.map((interview) => (
@@ -192,10 +215,10 @@ function IsmMentorshipPage() {
     <>
       <header className="mb-10">
         <p className="section-label">ISM Program</p>
-        <h1 className="font-display text-3xl md:text-4xl text-white mb-3">Mentorship Experience</h1>
-        <p className="text-slate-400 leading-relaxed">
-          Guided learning experience with an industry professional in aerospace engineering.
-        </p>
+        <h1 className="font-display text-3xl md:text-4xl text-white mb-3">
+          {ISM_SECTION_META.mentorship.title}
+        </h1>
+        <p className="text-slate-400 leading-relaxed">{ISM_SECTION_META.mentorship.description}</p>
       </header>
 
       <article className="glass-card p-6 md:p-8 mb-10">
@@ -254,10 +277,23 @@ function IsmMentorshipPage() {
   )
 }
 
-const ISM_SUBPAGES = new Set(['research', 'interviews', 'mentorship'])
+const ISM_SUBPAGES = new Set(Object.keys(ISM_SECTION_META))
 
 export function IsmPage() {
   const { section } = useParams<{ section?: string }>()
+  const sectionMeta = section ? ISM_SECTION_META[section] : undefined
+
+  // Must run before any early return — hook order has to stay identical across renders.
+  useDocumentHead({
+    title: sectionMeta
+      ? `${sectionMeta.title} — ${portfolio.identity.name}`
+      : `${portfolio.ism.programName} — ${portfolio.identity.name}`,
+    description: clampText(
+      sectionMeta ? sectionMeta.description : portfolio.ism.description,
+      160,
+    ),
+    canonicalPath: sectionMeta ? `/ism/${section}` : '/ism',
+  })
 
   if (section && !ISM_SUBPAGES.has(section)) {
     return <Navigate to="/ism" replace />

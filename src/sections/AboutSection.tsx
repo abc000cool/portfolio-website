@@ -6,6 +6,8 @@ import { TelemetryTicker } from '../components/ui/TelemetryTicker'
 import { useSectionReveal } from '../hooks/useSectionReveal'
 import { gsap } from '../lib/scrollTrigger'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { useInView } from '../hooks/useInView'
+import { useIsMobileLayout } from '../hooks/useTouchDevice'
 
 import { sectionShellClass } from '../lib/waypointLayout'
 
@@ -18,6 +20,18 @@ export function AboutSection() {
   const active = useSectionReveal('about', sectionRef)
   const schematicRef = useRef<SVGPathElement>(null)
   const reduced = useReducedMotion()
+
+  /*
+   * The globe is 1.2 kB of geometry that drags in the ~880 kB three.js vendor
+   * chunk. Below 1024px it is that chunk's only consumer on the whole page, so
+   * phones downloaded and parsed all of it to draw three wireframe primitives.
+   * Desktop keeps the globe but only mounts it once the section is near, so it
+   * no longer competes with the intro animation for the main thread.
+   */
+  const orbitRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobileLayout()
+  const orbitNear = useInView(orbitRef, { threshold: 0, rootMargin: '0px 0px 40% 0px' })
+  const showOrbit = !isMobile && orbitNear
 
   useEffect(() => {
     if (!active || !schematicRef.current || reduced) return
@@ -89,9 +103,15 @@ export function AboutSection() {
               </p>
             </div>
           </div>
-          <Suspense fallback={<div className="h-[300px]" />}>
-            <EarthOrbit className="h-[300px] md:h-[350px]" />
-          </Suspense>
+          {/* Height is reserved whether or not the canvas mounts, so document
+              height never changes mid-scroll — the flight path measures it. */}
+          <div ref={orbitRef} className="h-[300px] md:h-[350px]">
+            {showOrbit && (
+              <Suspense fallback={<div className="h-full" />}>
+                <EarthOrbit className="h-full" />
+              </Suspense>
+            )}
+          </div>
           <svg
             className="absolute -bottom-8 -left-4 w-48 h-48 opacity-30"
             viewBox="0 0 100 100"
