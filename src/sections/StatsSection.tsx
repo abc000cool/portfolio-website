@@ -67,7 +67,7 @@ export function StatsSection() {
           </RedactedHeading>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-16">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mb-16">
           {portfolio.stats.map((stat, i) => (
             <motion.div
               key={stat.label}

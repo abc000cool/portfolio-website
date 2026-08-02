@@ -5,6 +5,19 @@
 @import './airfoil-viewer.css';
 @import './site-nav.css';
 
+/*
+ * Tailwind v4 only emits `font-*` utilities for families declared in an @theme
+ * block. Without this, `.font-display` and `.font-body` compiled to nothing and
+ * every element using them silently fell back to the body face — including the
+ * largest text on the landing screen. The plain custom properties in tokens.css
+ * are kept because stylesheets also reference var(--font-display) directly.
+ */
+@theme {
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
 @layer base {
   *,
   *::before,
@@ -174,10 +187,19 @@
     border-color: var(--color-border-strong);
   }
 
+  /*
+   * Phones and tablets drop the blur entirely rather than reducing it. The
+   * starfield already degrades to a static CSS gradient at this width, so there
+   * is almost nothing behind the card to blur — but the filter still costs a
+   * full-surface composite per card on the weakest GPUs. Desktop keeps its blur:
+   * --color-surface is 96% transparent, and the starfield and flight path would
+   * otherwise read straight through every card.
+   */
   @media (max-width: 1023px), (pointer: coarse) {
     .glass-card {
-      -webkit-backdrop-filter: blur(8px);
-      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background: rgba(255, 255, 255, 0.055);
     }
   }
 
@@ -273,6 +295,161 @@
     }
   }
 
+  /* ------------------------------------------------------------------
+     Project cards
+     Each card sets --accent from its own mission patch, so the rail, glow,
+     spotlight, primary action and hover border differ per project instead of
+     six cards sharing one indigo.
+     ------------------------------------------------------------------ */
+  .project-card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .project-card:hover,
+  .project-card:focus-within {
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+
+  /* Left rail — the always-on identity cue. Grows on hover/focus. */
+  .project-card__rail {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(
+      to bottom,
+      var(--accent),
+      color-mix(in srgb, var(--accent) 15%, transparent)
+    );
+    opacity: 0.55;
+    transition: opacity 0.3s ease, width 0.3s ease;
+  }
+
+  .project-card:hover .project-card__rail,
+  .project-card:focus-within .project-card__rail {
+    opacity: 1;
+    width: 3px;
+  }
+
+  .project-card__patch {
+    filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--accent) 35%, transparent));
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .project-card:hover .project-card__patch {
+    transform: scale(1.06) rotate(-3deg);
+  }
+
+  .project-card__category {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--accent) 70%, #cbd5e1);
+  }
+
+  .project-card__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: #e2e8f0;
+    white-space: nowrap;
+  }
+
+  .project-card__led {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+  }
+
+  /*
+   * Spec readout. grid-template-rows 0fr -> 1fr animates height without a
+   * measured pixel value, so no JS, no re-render, and no layout read per frame.
+   */
+  .project-card__readout {
+    display: grid;
+    grid-template-rows: 0fr;
+    margin-bottom: 0;
+    transition: grid-template-rows 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      margin-bottom 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .project-card:hover .project-card__readout,
+  .project-card:focus-within .project-card__readout {
+    grid-template-rows: 1fr;
+    margin-bottom: 1.25rem;
+  }
+
+  .project-card__readout-inner {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .project-card__spec {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .project-card__spec:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .project-card__spec-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-subtle);
+  }
+
+  .project-card__spec-value {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #e2e8f0;
+    text-align: right;
+  }
+
+  .project-card__action-primary {
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: #fff;
+  }
+
+  .project-card__action-primary:hover {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-card__readout,
+    .project-card__rail,
+    .project-card__patch {
+      transition: none;
+    }
+
+    .project-card:hover .project-card__patch {
+      transform: none;
+    }
+  }
+
   /* Mouse-tracking spotlight on cards */
   .spotlight-card {
     position: relative;
@@ -285,7 +462,7 @@
     inset: 0;
     background: radial-gradient(
       460px circle at var(--mx, 50%) var(--my, 50%),
-      rgba(129, 140, 248, 0.13),
+      color-mix(in srgb, var(--accent, #818cf8) 16%, transparent),
       transparent 65%
     );
     opacity: 0;
@@ -307,5 +484,206 @@
     .marquee__track {
       animation: none;
     }
+  }
+}
+
+/* ==========================================================================
+   PRINT / "Save as PDF"
+   Admissions and recruiting review is a file-based process, so the page has to
+   survive Ctrl+P. On screen this is a dark, fixed-overlay, canvas-driven
+   document; on paper all of that has to become a plain white reading copy.
+   Left unlayered on purpose so it outranks Tailwind's utility layer.
+   ========================================================================== */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  /* Flatten the dark theme. Black ink on the paper's own white; backgrounds,
+     glows, blurs and scroll-reveal transforms all dropped. */
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    background-image: none !important;
+    background-clip: border-box !important;
+    -webkit-background-clip: border-box !important;
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    border-color: #c7ccd6 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+    mix-blend-mode: normal !important;
+    /* Sections never scrolled into view still carry the hidden reveal state
+       inline (opacity 0 / translateY / blur). Without this, most pages of the
+       printout come out blank. */
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    font-size: 11pt;
+  }
+
+  /* Decorative and fixed layers: starfield canvas, atmosphere, flight path SVG,
+     mission HUD, custom cursor, easter-egg overlays, both navs, skip link. */
+  .page-glow,
+  .hero-vignette,
+  .fixed,
+  [aria-hidden='true'],
+  nav[aria-label='Main navigation'],
+  .mobile-nav__toggle,
+  .mobile-nav__backdrop,
+  .mobile-nav__panel,
+  .skip-link,
+  .marquee,
+  .research-viewer,
+  .airfoil-viewer,
+  canvas {
+    display: none !important;
+  }
+
+  /* The intro is a scroll-driven laptop prop — 200vh of animation that carries
+     no text a reader can use on paper. The sections below it carry everything. */
+  #intro {
+    display: none !important;
+  }
+
+  /* Full-viewport scroll choreography collapses to normal flow. */
+  .section-shell {
+    min-height: auto !important;
+    display: block !important;
+    padding: 0 0 1.5rem !important;
+  }
+
+  .section-inner,
+  .section-inner.wide--narrow {
+    max-width: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .research-showcase__scroll-zone {
+    height: auto !important;
+  }
+
+  .research-showcase__sticky,
+  .sticky {
+    position: static !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .research-showcase__grid {
+    display: block !important;
+  }
+
+  .research-showcase-block {
+    padding: 0 0 1.25rem !important;
+  }
+
+  /* Anything collapsed or clipped for space on screen opens up on paper. */
+  .overflow-hidden {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  [class*='line-clamp'] {
+    display: block !important;
+    overflow: visible !important;
+    max-height: none !important;
+    -webkit-line-clamp: unset !important;
+  }
+
+  /* Keep a card on one page, and never orphan a heading at a page foot. */
+  .glass-card,
+  .crt-terminal,
+  .research-showcase__card,
+  .research-showcase__metric,
+  .research-showcase-block,
+  .tag-badge,
+  article,
+  blockquote,
+  figure,
+  li,
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .section-label,
+  .section-heading {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Cards read as cards without their fills. */
+  .glass-card,
+  .crt-terminal,
+  .research-showcase__metric,
+  .research-showcase__conference-card-badge {
+    border: 1px solid #c7ccd6 !important;
+    border-radius: 4px !important;
+  }
+
+  .crt-terminal::before,
+  .crt-terminal::after {
+    display: none !important;
+  }
+
+  .crt-terminal input,
+  .crt-terminal textarea {
+    border-bottom: 1px solid #c7ccd6 !important;
+  }
+
+  /* Viewport-height shells have nothing to fill on paper. */
+  .min-h-screen,
+  [class*='min-h-['] {
+    min-height: 0 !important;
+  }
+
+  /* Subpage <main> reserves 7rem of top padding to clear the fixed nav bar,
+     which is not printed — that would otherwise be a blank first page. */
+  main {
+    padding-top: 0 !important;
+  }
+
+  /*
+   * A printed link is dead unless the destination comes with it.
+   * The position/size resets undo .link-underline::after, whose absolutely
+   * positioned 1px sliver would otherwise inherit this rule and fill with text.
+   */
+  a[href^='http']::after {
+    content: ' <' attr(href) '>';
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    inset: auto !important;
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    font-weight: 400;
+    word-break: break-all;
+  }
+
+  a {
+    text-decoration: underline;
   }
 }

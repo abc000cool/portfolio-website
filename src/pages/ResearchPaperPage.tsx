@@ -1,10 +1,20 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { getPaperBySlug, portfolio } from '../data/portfolio'
 import { SubpageShell } from '../components/layout/SubpageShell'
+import { clampText, useDocumentHead } from '../hooks/useDocumentHead'
 
 export function ResearchPaperPage() {
   const { slug } = useParams<{ slug: string }>()
   const paper = slug ? getPaperBySlug(slug) : undefined
+
+  // Must run before any early return — hook order has to stay identical across renders.
+  useDocumentHead({
+    title: paper
+      ? `${clampText(paper.title, 80)} — ${portfolio.identity.name}`
+      : `${portfolio.identity.name} | ${portfolio.identity.title}`,
+    description: paper ? clampText(paper.abstract, 160) : clampText(portfolio.identity.tagline, 160),
+    canonicalPath: paper ? `/research/${paper.slug}` : '/',
+  })
 
   if (!paper) {
     return <Navigate to="/" replace />

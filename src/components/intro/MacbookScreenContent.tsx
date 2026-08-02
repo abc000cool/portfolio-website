@@ -2,8 +2,13 @@ import { useState } from 'react'
 import { useMotionValue, useMotionValueEvent, type MotionValue } from 'motion/react'
 import { portfolio } from '../../data/portfolio'
 
-const CHART_POINTS = '0,38 14,34 28,30 42,31 56,24 70,20 84,14 100,10'
-
+/**
+ * The screen used to render a hardcoded polyline captioned "Altitude profile —
+ * flight 047" beside a literal LIVE dot. It was the most prominent thing on the
+ * landing screen and none of it was real. It now reads the actual record from
+ * portfolio.ts, so the dashboard says something true and updates itself when
+ * the data does.
+ */
 interface MacbookScreenContentProps {
   progress?: MotionValue<number>
   compact?: boolean
@@ -32,14 +37,14 @@ export function MacbookScreenContent({
           <span className="w-1.5 h-1.5 rounded-full bg-[#ff5f57]" />
           <span className="w-1.5 h-1.5 rounded-full bg-[#febc2e]" />
           <span className="w-1.5 h-1.5 rounded-full bg-[#28c840]" />
-          <span className="ml-1.5 text-[7px] text-slate-500 font-mono truncate">
+          <span className="ml-1.5 text-[9px] text-slate-500 font-mono truncate">
             {launch ? 'launch active' : 'mission-control'}
           </span>
         </div>
 
         <div className="p-2.5 flex flex-col gap-2 h-[calc(100%-1.25rem)]">
           <div>
-            <p className="text-[7px] uppercase tracking-widest text-indigo-400/90 mb-0.5">
+            <p className="text-[9px] uppercase tracking-widest text-indigo-400/90 mb-0.5">
               Mission dashboard
             </p>
             <h2 className="font-display text-[11px] text-white font-semibold leading-tight truncate">
@@ -48,43 +53,32 @@ export function MacbookScreenContent({
             <p className="text-[8px] text-slate-500 truncate">{portfolio.identity.title}</p>
           </div>
 
-          <div className="flex-1 min-h-0 rounded border border-white/[0.06] bg-white/[0.02] p-1.5">
-            <svg viewBox="0 0 100 42" preserveAspectRatio="none" className="w-full h-full">
-              <defs>
-                <linearGradient id="chart-fill-mobile" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#818cf8" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#818cf8" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <polygon points={`0,42 ${CHART_POINTS} 100,42`} fill="url(#chart-fill-mobile)" />
-              <polyline
-                points={CHART_POINTS}
-                fill="none"
-                stroke="#a5b4fc"
-                strokeWidth="1"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-
-          <div className="grid grid-cols-2 gap-1.5">
-            {portfolio.stats.slice(0, 2).map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded border border-white/[0.06] bg-white/[0.03] px-1.5 py-1 text-center"
-              >
-                <p className="text-[9px] font-semibold text-white leading-none">
+          <div className="flex-1 min-h-0 rounded border border-white/[0.06] bg-white/[0.02] p-1.5 flex flex-col justify-between">
+            {portfolio.stats.slice(0, 4).map((stat) => (
+              <div key={stat.label} className="flex items-baseline justify-between gap-1.5">
+                <span className="text-[8px] text-slate-400 leading-tight truncate">
+                  {stat.label}
+                </span>
+                <span className="text-[9px] font-semibold text-white tabular-nums shrink-0">
                   {stat.display ?? stat.value}
-                </p>
-                <p className="text-[6px] text-slate-500 mt-0.5 leading-tight">{stat.label}</p>
+                </span>
               </div>
             ))}
+          </div>
+
+          <div className="rounded border border-emerald-500/20 bg-emerald-500/[0.06] px-1.5 py-1">
+            <p className="text-[8px] uppercase tracking-widest text-emerald-300/90 m-0 leading-none mb-0.5">
+              Open for opportunities
+            </p>
+            <p className="text-[9px] text-slate-300 leading-tight m-0">
+              Internships, research &amp; collaboration
+            </p>
           </div>
         </div>
 
         {launch && (
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-center py-1 bg-indigo-600/25 border-t border-indigo-400/30">
-            <span className="text-[7px] font-mono tracking-widest text-indigo-200 uppercase">
+            <span className="text-[9px] font-mono tracking-widest text-indigo-200 uppercase">
               Launch sequence
             </span>
           </div>
@@ -121,38 +115,26 @@ export function MacbookScreenContent({
             <p className="text-[10px] text-slate-500">{portfolio.identity.title}</p>
           </div>
 
-          {/* Telemetry chart */}
-          <div className="flex-1 min-h-0 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5">
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[8px] uppercase tracking-widest text-slate-500">
-                Altitude profile — flight 047
-              </p>
-              <span className="flex items-center gap-1 text-[8px] text-emerald-400">
-                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                LIVE
-              </span>
-            </div>
-            <svg viewBox="0 0 100 42" preserveAspectRatio="none" className="w-full h-[calc(100%-1.25rem)]">
-              <defs>
-                <linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#818cf8" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#818cf8" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              {[10, 20, 30].map((y) => (
-                <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="#ffffff09" strokeWidth="0.4" />
+          {/* Flight record — the real body of work, read straight from the data */}
+          <div className="flex-1 min-h-0 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 flex flex-col">
+            <p className="text-[8px] uppercase tracking-widest text-slate-500 mb-1.5">
+              Flight record
+            </p>
+            <div className="flex-1 min-h-0 flex flex-col justify-between">
+              {portfolio.stats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex items-baseline justify-between gap-2 border-b border-white/[0.05] last:border-b-0 py-[3px]"
+                >
+                  <span className="text-[8px] text-slate-400 leading-tight truncate">
+                    {stat.label}
+                  </span>
+                  <span className="text-[9px] font-semibold text-white tabular-nums shrink-0">
+                    {stat.display ?? stat.value}
+                  </span>
+                </div>
               ))}
-              <polygon points={`0,42 ${CHART_POINTS} 100,42`} fill="url(#chart-fill)" />
-              <polyline
-                points={CHART_POINTS}
-                fill="none"
-                stroke="#a5b4fc"
-                strokeWidth="1"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-              <circle cx="100" cy="10" r="1.6" fill="#c7d2fe" />
-            </svg>
+            </div>
           </div>
 
           {/* Opportunities */}
@@ -171,22 +153,15 @@ export function MacbookScreenContent({
 
         {/* Right column */}
         <div className="col-span-2 flex flex-col gap-3 min-h-0">
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-2">
-            {portfolio.stats.slice(0, 4).map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-2 py-1.5 text-center flex flex-col items-center justify-center"
-              >
-                <p className="text-xs font-semibold text-white tabular-nums leading-tight">
-                  {stat.display ?? stat.value}
-                  {!stat.display && stat.suffix && (
-                    <span className="text-[8px] text-slate-500 font-normal">{stat.suffix}</span>
-                  )}
-                </p>
-                <p className="text-[7px] text-slate-500 mt-0.5 leading-tight">{stat.label}</p>
-              </div>
-            ))}
+          {/* Headline credential — the record list carries the rest, so this
+              stays a single tile rather than repeating four of them. */}
+          <div className="rounded-lg bg-indigo-500/[0.07] border border-indigo-400/20 px-2.5 py-2">
+            <p className="text-[9px] uppercase tracking-widest text-indigo-300/80 leading-none mb-1">
+              Patent holder
+            </p>
+            <p className="text-[10px] text-white leading-snug m-0">
+              SWEEP — orbital debris capture &amp; ejection platform
+            </p>
           </div>
 
           {/* Orbit visual */}
@@ -217,7 +192,7 @@ export function MacbookScreenContent({
                 />
               </circle>
             </svg>
-            <p className="absolute bottom-1.5 left-2.5 text-[7px] uppercase tracking-widest text-slate-600">
+            <p className="absolute bottom-1.5 left-2.5 text-[9px] uppercase tracking-widest text-slate-600">
               Orbital sim
             </p>
           </div>
@@ -227,7 +202,7 @@ export function MacbookScreenContent({
             {portfolio.disciplines.slice(0, 4).map((d) => (
               <span
                 key={d}
-                className="text-[7px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300"
+                className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300"
               >
                 {d}
               </span>

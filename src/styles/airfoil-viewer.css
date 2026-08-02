@@ -1,4 +1,4 @@
-/* Shared 3D research viewer chrome */
+﻿/* Shared 3D research viewer chrome */
 .research-viewer,
 .airfoil-viewer {
   width: 100%;
@@ -51,7 +51,7 @@
 .research-viewer__telemetry-label,
 .airfoil-viewer__telemetry-label {
   margin: 0 0 0.2rem;
-  font-size: 0.46rem;
+  font-size: 0.58rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgba(129, 140, 248, 0.85);
@@ -83,7 +83,7 @@
 .research-viewer__telemetry-grid dt,
 .airfoil-viewer__telemetry-grid dt {
   margin: 0;
-  font-size: 0.44rem;
+  font-size: 0.58rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgba(148, 163, 184, 0.8);
@@ -115,7 +115,7 @@
 .research-viewer__conference-presented {
   display: block;
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.46rem;
+  font-size: 0.58rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(201, 169, 98, 0.85);
@@ -134,7 +134,7 @@
 
 .research-viewer__conference-location {
   display: block;
-  font-size: 0.52rem;
+  font-size: 0.6rem;
   color: #94a3b8;
   line-height: 1.35;
 }
@@ -181,7 +181,7 @@
 .research-viewer__legend-item,
 .airfoil-viewer__legend-item {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.52rem;
+  font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(148, 163, 184, 0.85);
@@ -257,7 +257,7 @@
 
 .research-viewer__legend-item--flow::before,
 .airfoil-viewer__legend-item--flow::before {
-  content: '→';
+  content: 'â†’';
   margin-right: 0.2rem;
   color: #818cf8;
 }
@@ -424,7 +424,7 @@
 
 .qcin-phase__copy small {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.45rem;
+  font-size: 0.58rem;
   letter-spacing: 0.06em;
   color: rgba(148, 163, 184, 0.9);
 }
@@ -489,7 +489,7 @@
 
 .viewer-phase__copy small {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.45rem;
+  font-size: 0.58rem;
   letter-spacing: 0.06em;
   color: rgba(148, 163, 184, 0.9);
 }
@@ -576,7 +576,7 @@
 .research-showcase__conference-card-kicker {
   display: block;
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.52rem;
+  font-size: 0.6rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgba(201, 169, 98, 0.9);

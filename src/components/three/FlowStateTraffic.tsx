@@ -541,8 +541,7 @@ export function FlowStateTraffic({
         <Canvas
           camera={{ position: [-4.2, 5.8, 5.4], fov: 38, near: 0.1, far: 35 }}
           dpr={[1, 1.5]}
-          shadows
-          gl={{ alpha: true, antialias: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
+          gl={{ alpha: true, antialias: false, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
           frameloop={isVisible && active ? 'always' : 'demand'}
           style={{ background: 'transparent' }}
         >

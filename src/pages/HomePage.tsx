@@ -6,7 +6,8 @@ import { useReducedMotion } from '../hooks/useReducedMotion'
 import { usePreferNativeScroll } from '../hooks/useTouchDevice'
 import { useKonamiCode } from '../hooks/useKonamiCode'
 import { useLaunchCode } from '../hooks/useLaunchCode'
-import { MissionProvider, useWaypointReached } from '../context/MissionContext'
+import { MissionProvider } from '../context/MissionContext'
+import { useWaypointReached } from '../context/missionState'
 
 import { Starfield } from '../components/layout/Starfield'
 import { AtmosphereDescent } from '../components/layout/AtmosphereDescent'
@@ -39,31 +40,6 @@ function ParallaxBack() {
         backgroundSize: '90px 90px',
       }}
     />
-  )
-}
-
-const MID_MARKERS = [
-  { left: '8%', top: '18%' },
-  { left: '88%', top: '12%' },
-  { left: '14%', top: '46%' },
-  { left: '92%', top: '58%' },
-  { left: '6%', top: '78%' },
-  { left: '84%', top: '88%' },
-]
-
-function ParallaxMid() {
-  return (
-    <div className="absolute inset-[-15%]">
-      {MID_MARKERS.map((pos, i) => (
-        <span
-          key={i}
-          className="absolute font-mono text-indigo-300/[0.08] select-none"
-          style={{ ...pos, fontSize: i % 2 === 0 ? '1.4rem' : '1rem' }}
-        >
-          +
-        </span>
-      ))}
-    </div>
   )
 }
 
@@ -156,7 +132,7 @@ export function HomePage() {
         <main id="main-content" ref={mainRef} className="relative">
           <FlightPath containerRef={mainRef} />
 
-          <ParallaxLayers back={<ParallaxBack />} mid={<ParallaxMid />}>
+          <ParallaxLayers back={<ParallaxBack />}>
             <MacbookIntro />
             <HeroSection />
             <AboutSection />

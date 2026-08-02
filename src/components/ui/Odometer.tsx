@@ -20,20 +20,24 @@ function Digit({
   delay: number
   static?: boolean
 }) {
-  const [current, setCurrent] = useState(staticValue ? target : 0)
   const reduced = useReducedMotion()
+  // Static stats and reduced-motion readers skip the count-up. Both cases used
+  // to be a setState inside the effect, which cost an extra render pass and
+  // briefly painted 0 before snapping to the real number.
+  const skipCountUp = Boolean(staticValue) || reduced
+  const [current, setCurrent] = useState(skipCountUp ? target : 0)
+  const [lastSnapshot, setLastSnapshot] = useState(`${target}|${skipCountUp}`)
   const started = useRef(false)
 
+  const snapshot = `${target}|${skipCountUp}`
+  if (snapshot !== lastSnapshot) {
+    setLastSnapshot(snapshot)
+    if (skipCountUp) setCurrent(target)
+  }
+
   useEffect(() => {
-    if (staticValue) {
-      setCurrent(target)
-      return
-    }
+    if (skipCountUp) return
     if (!active || started.current) return
-    if (reduced) {
-      setCurrent(target)
-      return
-    }
 
     started.current = true
     const timeout = setTimeout(() => {
@@ -52,7 +56,7 @@ function Digit({
     }, delay)
 
     return () => clearTimeout(timeout)
-  }, [active, target, delay, reduced, staticValue])
+  }, [active, target, delay, skipCountUp])
 
   const digits = String(current).padStart(String(target).length, '0')
 

@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local working artifacts (not part of the site)
+_june-snapshot-backup/
+scripts/shots/

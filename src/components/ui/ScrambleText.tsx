@@ -10,13 +10,19 @@ interface ScrambleTextProps {
 
 export function ScrambleText({ text, className = '' }: ScrambleTextProps) {
   const [display, setDisplay] = useState(text)
+  const [lastText, setLastText] = useState(text)
   const reduced = useReducedMotion()
 
+  // React's documented render-phase adjustment. This used to be a setState
+  // inside the effect, which cost an extra render pass and showed one frame of
+  // scrambled glyphs to readers who asked for reduced motion.
+  if (text !== lastText) {
+    setLastText(text)
+    setDisplay(text)
+  }
+
   useEffect(() => {
-    if (reduced) {
-      setDisplay(text)
-      return
-    }
+    if (reduced) return
 
     let iteration = 0
     const maxIterations = text.length * 3

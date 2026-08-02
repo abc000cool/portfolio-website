@@ -18,7 +18,8 @@
   --color-warning: #f87171;
   --color-text: #f1f5f9;
   --color-text-muted: #94a3b8;
-  --color-text-subtle: #64748b;
+  /* #64748b on the #06060a ground failed AA for body-size text. */
+  --color-text-subtle: #8b98ab;
 
   --font-display: 'Syne', system-ui, sans-serif;
   --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
