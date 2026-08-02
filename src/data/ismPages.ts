@@ -105,10 +105,10 @@ export const ismInterviews: IsmInterview[] = [
   {
     number: 2,
     name: 'Dr. Giuseppe Cataldo',
-    role: 'Assistant Chief of Technology at NASA',
+    role: 'Assistant Chief for Technology at NASA Goddard',
     date: 'November 6, 2025',
     summary:
-      "Interview with NASA's Assistant Chief of Technology who manages over $30 million in budget and has 20+ research publications. Discussed his journey from MIT research to NASA, the mission lifecycle process, and the importance of professional growth. Received invaluable advice on pursuing summer internships and diversifying engineering knowledge.",
+      "Interview with NASA Goddard's Assistant Chief for Technology — later my ISM mentor — who manages over $30 million in budget and has 20+ research publications. Discussed his journey from MIT research to NASA, the mission lifecycle process, and the importance of professional growth. Received invaluable advice on pursuing summer internships and diversifying engineering knowledge.",
     insights: [
       'Learn as much as possible across disciplines',
       'Pursue summer internships for growth',

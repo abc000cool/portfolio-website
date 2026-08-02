@@ -1,10 +1,11 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import { useMotionValue, useMotionValueEvent, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
-import { useMotionProgressRef } from '../../hooks/useMotionProgressRef'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useThrottledMotionValue } from '../../hooks/useThrottledMotionValue'
 import {
   FEATURED_AIRFOIL_PROFILES,
@@ -25,6 +26,24 @@ const LIFT_COLOR = '#86efac'
 const DRAG_COLOR = '#fbbf24'
 
 type ProgressRef = React.RefObject<number | null>
+
+/** Pointer-drag override for angle of attack. Blend 0 = scroll owns the model. */
+interface ManualControl {
+  active: boolean
+  /** Target angle in degrees while the visitor is in control. */
+  aoa: number
+  /** 0 → scroll-scrubbed attitude, 1 → dragged attitude. */
+  blend: number
+  /** Per-frame approach rate; 1 = snap (prefers-reduced-motion). */
+  rate: number
+}
+type ManualRef = React.RefObject<ManualControl>
+
+const MANUAL_AOA_MIN = -6
+const MANUAL_AOA_MAX = 14
+const MANUAL_DEG_PER_PX = 0.05
+/** Idle time after release before scroll takes the model back. */
+const MANUAL_RELEASE_MS = 1500
 
 function range01(value: number, start: number, end: number) {
   return THREE.MathUtils.clamp((value - start) / (end - start), 0, 1)
@@ -230,11 +249,15 @@ function AirfoilModel({
   active,
   profiles,
   morphRef,
+  manualRef,
+  appliedAoaRef,
 }: {
   progressRef: ProgressRef
   active: boolean
   profiles: AirfoilProfile[]
   morphRef: React.RefObject<MorphState | null>
+  manualRef: ManualRef
+  appliedAoaRef: React.RefObject<number>
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.Mesh>(null)
@@ -297,12 +320,16 @@ function AirfoilModel({
       if (meshRef.current) meshRef.current.geometry = geometry
       if (outlineRef.current) outlineRef.current.geometry = outline
     }
+    const manual = manualRef.current
+    manual.blend += ((manual.active ? 1 : 0) - manual.blend) * manual.rate
+    if (!manual.active && manual.blend < 0.001) manual.blend = 0
+
+    const scrollAoa = THREE.MathUtils.lerp(2, morph.aoa, smoothstep(range01(p, 0.18, 0.48)))
+    const appliedAoa = THREE.MathUtils.lerp(scrollAoa, manual.aoa, manual.blend)
+    appliedAoaRef.current = appliedAoa
+
     if (groupRef.current) {
-      groupRef.current.rotation.z = THREE.MathUtils.lerp(
-        THREE.MathUtils.degToRad(2),
-        THREE.MathUtils.degToRad(morph.aoa),
-        smoothstep(range01(p, 0.18, 0.48)),
-      )
+      groupRef.current.rotation.z = THREE.MathUtils.degToRad(appliedAoa)
       groupRef.current.rotation.y = THREE.MathUtils.lerp(0.05, -0.08, range01(p, 0.75, 1))
     }
   })
@@ -366,10 +393,14 @@ function TunnelScene({
   progressRef,
   active,
   profiles,
+  manualRef,
+  appliedAoaRef,
 }: {
   progressRef: ProgressRef
   active: boolean
   profiles: AirfoilProfile[]
+  manualRef: ManualRef
+  appliedAoaRef: React.RefObject<number>
 }) {
   const morphRef = useRef<MorphState | null>(null)
   return (
@@ -385,7 +416,14 @@ function TunnelScene({
       <WindTunnel />
       <StingMount />
       <FlowRibbons progressRef={progressRef} morphRef={morphRef} />
-      <AirfoilModel progressRef={progressRef} active={active} profiles={profiles} morphRef={morphRef} />
+      <AirfoilModel
+        progressRef={progressRef}
+        active={active}
+        profiles={profiles}
+        morphRef={morphRef}
+        manualRef={manualRef}
+        appliedAoaRef={appliedAoaRef}
+      />
       <ForceBalance progressRef={progressRef} morphRef={morphRef} />
     </>
   )
@@ -435,38 +473,134 @@ export function MorphingAirfoil({
 }: MorphingAirfoilProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isVisible = useIntersectionPause(containerRef)
-  const progressRef = useMotionProgressRef(progress, scrollProgress)
+  const progressRef = useRef(scrollProgress)
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
   const profiles = variant === 'featured' ? FEATURED_AIRFOIL_PROFILES : RESEARCH_AIRFOIL_PROFILES
   const liveProgress = useThrottledMotionValue(source, 100)
+  const reduced = useReducedMotion()
+  const finePointer = useMediaQuery('(pointer: fine)', false)
+
+  const manualRef = useRef<ManualControl>({ active: false, aoa: 4, blend: 0, rate: 0.12 })
+  const appliedAoaRef = useRef(2)
+  const dragRef = useRef<{ id: number; startX: number; startAoa: number } | null>(null)
+  const releaseTimerRef = useRef<number | null>(null)
+  const [manualAoa, setManualAoa] = useState<number | null>(null)
+
+  // Reduced motion: no eased hand-off, the attitude just changes.
+  useEffect(() => {
+    manualRef.current.rate = reduced ? 1 : 0.12
+  }, [reduced])
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
   }, [progress, scrollProgress, fallbackProgress])
   useEffect(() => {
-    progressRef.current = progress?.get() ?? scrollProgress
-  }, [progress, scrollProgress, progressRef])
+    progressRef.current = source.get()
+  }, [source, scrollProgress])
   useMotionValueEvent(source, 'change', (value) => {
-    progressRef.current = value
+    // While the visitor is dragging, scroll progress is not consumed — the scene
+    // holds still so the drag is the only thing moving.
+    if (!manualRef.current.active) progressRef.current = value
   })
 
+  const clearReleaseTimer = () => {
+    if (releaseTimerRef.current !== null) {
+      window.clearTimeout(releaseTimerRef.current)
+      releaseTimerRef.current = null
+    }
+  }
+
+  useEffect(
+    () => () => {
+      if (releaseTimerRef.current !== null) window.clearTimeout(releaseTimerRef.current)
+    },
+    [],
+  )
+
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!finePointer || event.pointerType !== 'mouse' || event.button !== 0) return
+      clearReleaseTimer()
+      const startAoa = THREE.MathUtils.clamp(
+        manualRef.current.active ? manualRef.current.aoa : appliedAoaRef.current,
+        MANUAL_AOA_MIN,
+        MANUAL_AOA_MAX,
+      )
+      dragRef.current = { id: event.pointerId, startX: event.clientX, startAoa }
+      manualRef.current.active = true
+      manualRef.current.aoa = startAoa
+      setManualAoa(startAoa)
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      } catch {
+        // Pointer already released — the move/up handlers still work without capture.
+      }
+    },
+    [finePointer],
+  )
+
+  const handlePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current
+    if (!drag || drag.id !== event.pointerId) return
+    const next = THREE.MathUtils.clamp(
+      drag.startAoa + (event.clientX - drag.startX) * MANUAL_DEG_PER_PX,
+      MANUAL_AOA_MIN,
+      MANUAL_AOA_MAX,
+    )
+    manualRef.current.aoa = next
+    setManualAoa((current) => (current !== null && Math.abs(current - next) < 0.1 ? current : next))
+  }, [])
+
+  const handlePointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current
+    if (!drag || drag.id !== event.pointerId) return
+    dragRef.current = null
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      }
+    } catch {
+      // Capture already gone.
+    }
+    releaseTimerRef.current = window.setTimeout(() => {
+      releaseTimerRef.current = null
+      manualRef.current.active = false
+      // Scroll may have moved on while the model was held; resync before handing back.
+      progressRef.current = source.get()
+      setManualAoa(null)
+    }, MANUAL_RELEASE_MS)
+  }, [source])
+
   const telemetry = getTelemetry(liveProgress, profiles)
+  const manual = manualAoa !== null
+  const displayAoa = manual ? (manualAoa as number) : telemetry.morph.aoa
 
   return (
-    <div ref={containerRef}>
+    <div
+      ref={containerRef}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      style={finePointer ? { cursor: manual ? 'grabbing' : 'grab', touchAction: 'pan-y' } : undefined}
+    >
       <ResearchViewerFrame
         className={`${className} research-viewer--airfoil`}
         progressPercent={Math.round(liveProgress * 100)}
+        hint={finePointer ? 'Drag ⇄ to set angle of attack' : undefined}
         telemetry={
           <ViewerTelemetry
             label="Wind tunnel"
             rows={[
-              { key: 'Phase', value: telemetry.phase },
+              { key: 'Phase', value: manual ? 'Manual attitude' : telemetry.phase },
               { key: 'Profile', value: telemetry.morph.profile.label },
-              { key: 'Cₗ', value: telemetry.morph.cl.toFixed(2) },
-              { key: 'Cᴅ', value: telemetry.morph.cd.toFixed(3) },
-              { key: 'Mode', value: telemetry.mode },
+              // Coefficients are the profile's measured values, so they are held
+              // (not recomputed) while the visitor is flying the model by hand.
+              { key: 'Cₗ', value: manual ? '—' : telemetry.morph.cl.toFixed(2) },
+              { key: 'Cᴅ', value: manual ? '—' : telemetry.morph.cd.toFixed(3) },
+              { key: 'α', value: `${displayAoa.toFixed(1)}°` },
+              { key: 'Mode', value: manual ? 'MANUAL' : telemetry.mode },
             ]}
           />
         }
@@ -481,18 +615,26 @@ export function MorphingAirfoil({
         <Canvas
           camera={{ position: [2.7, 1.25, 4.75], fov: 38, near: 0.1, far: 30 }}
           dpr={[1, 1.5]}
-          shadows
-          gl={{ alpha: true, antialias: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
+          gl={{ alpha: true, antialias: false, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
           frameloop={isVisible && active ? 'always' : 'demand'}
           style={{ background: 'transparent' }}
         >
           <Suspense fallback={null}>
-            <TunnelScene progressRef={progressRef} active={isVisible && active} profiles={profiles} />
+            <TunnelScene
+              progressRef={progressRef}
+              active={isVisible && active}
+              profiles={profiles}
+              manualRef={manualRef}
+              appliedAoaRef={appliedAoaRef}
+            />
           </Suspense>
         </Canvas>
         <div className="viewer-phase" aria-hidden="true">
           <span className="viewer-phase__index">{String(Math.min(4, Math.floor(liveProgress * 5)) + 1).padStart(2, '0')}</span>
-          <span className="viewer-phase__copy"><strong>{telemetry.phase}</strong><small>{telemetry.detail}</small></span>
+          <span className="viewer-phase__copy">
+            <strong>{manual ? 'Manual attitude' : telemetry.phase}</strong>
+            <small>{manual ? 'Drag sets α — coefficients held' : telemetry.detail}</small>
+          </span>
         </div>
       </ResearchViewerFrame>
     </div>

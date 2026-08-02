@@ -949,10 +949,9 @@ export function HybridQuantumNav({
         <Canvas
           camera={{ position: [-0.72, 0.2, 4.35], fov: 38, near: 0.1, far: 40 }}
           dpr={[1, 1.5]}
-          shadows
           gl={{
             alpha: true,
-            antialias: true,
+            antialias: false,
             powerPreference: 'high-performance',
             toneMapping: THREE.ACESFilmicToneMapping,
           }}

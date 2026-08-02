@@ -688,10 +688,9 @@ export function TransitionAtlas({
         <Canvas
           camera={{ position: [-0.45, 0.24, 4.9], fov: 38, near: 0.1, far: 40 }}
           dpr={[1, 1.5]}
-          shadows
           gl={{
             alpha: true,
-            antialias: true,
+            antialias: false,
             powerPreference: 'high-performance',
             toneMapping: THREE.ACESFilmicToneMapping,
           }}

@@ -1,9 +1,21 @@
 @import 'tailwindcss';
 @import './tokens.css';
-@import './metal-panel.css';
 @import './crt-terminal.css';
 @import './airfoil-viewer.css';
 @import './site-nav.css';
+
+/*
+ * Tailwind v4 only emits `font-*` utilities for families declared in an @theme
+ * block. Without this, `.font-display` and `.font-body` compiled to nothing and
+ * every element using them silently fell back to the body face. The plain
+ * custom properties in tokens.css are kept because components and stylesheets
+ * also reference var(--font-display) / var(--font-mono) directly.
+ */
+@theme {
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
 
 @layer base {
   *,
@@ -34,16 +46,6 @@
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  body.custom-cursor {
-    cursor: none;
-  }
-
-  body.custom-cursor a,
-  body.custom-cursor button,
-  body.custom-cursor [role='button'] {
-    cursor: none;
   }
 
   h1,
@@ -93,6 +95,7 @@
     outline-offset: 3px;
   }
 
+  /* #fff on --color-accent is 2.98:1. Dark ink on the same fill is 6.7:1. */
   .skip-link {
     position: absolute;
     top: -100%;
@@ -100,10 +103,17 @@
     z-index: 100;
     padding: 0.75rem 1.25rem;
     background: var(--color-accent);
-    color: #fff;
-    font-weight: 600;
+    color: var(--color-on-accent);
+    font-weight: 700;
+    border: 1px solid var(--color-accent-soft);
     border-radius: var(--radius-md);
     transition: top 0.2s ease;
+  }
+
+  .skip-link:hover,
+  .skip-link:focus {
+    color: var(--color-on-accent);
+    background: var(--color-accent-soft);
   }
 
   .skip-link:focus {
@@ -174,10 +184,23 @@
     border-color: var(--color-border-strong);
   }
 
+  /*
+   * backdrop-filter forces a full-surface readback on every paint, which is the
+   * single most expensive thing these cards do on phones and tablets. Below the
+   * desktop breakpoint the starfield is already a static CSS gradient, so a flat
+   * near-opaque fill is visually near-identical and costs nothing. The desktop
+   * blur must stay: --color-surface is 96% transparent, so without it the
+   * background reads straight through every card.
+   */
   @media (max-width: 1023px), (pointer: coarse) {
     .glass-card {
-      -webkit-backdrop-filter: blur(8px);
-      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background: var(--color-surface-flat);
+    }
+
+    .glass-card:hover {
+      background: var(--color-surface-flat-hover);
     }
   }
 
@@ -221,10 +244,6 @@
     }
   }
 
-  .intro-section {
-    min-height: 100vh;
-  }
-
   .page-deploy {
     position: relative;
     z-index: 2;
@@ -247,29 +266,6 @@
   @media (prefers-reduced-motion: reduce) {
     .tag-badge.pop-in {
       animation: none;
-    }
-  }
-
-  /* Infinite marquee */
-  .marquee {
-    overflow: hidden;
-    mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
-    -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
-  }
-
-  .marquee__track {
-    display: flex;
-    width: max-content;
-    animation: marqueeScroll 36s linear infinite;
-  }
-
-  .marquee:hover .marquee__track {
-    animation-play-state: paused;
-  }
-
-  @keyframes marqueeScroll {
-    to {
-      transform: translateX(-50%);
     }
   }
 
@@ -302,10 +298,207 @@
     position: relative;
     z-index: 1;
   }
+}
 
-  @media (prefers-reduced-motion: reduce) {
-    .marquee__track {
-      animation: none;
-    }
+/* ==========================================================================
+   PRINT / "Save as PDF"
+   Admissions and recruiting review is a file-based process: this page has to
+   survive Ctrl+P. On screen the site is a dark, fixed-overlay, canvas-driven
+   document; on paper all of that has to become a plain white reading copy.
+   Left unlayered on purpose so it outranks Tailwind's utility layer.
+   ========================================================================== */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  /* Flatten the dark theme. Everything gets black ink on the paper's own white;
+     backgrounds, glows, blurs and scroll-reveal transforms are all dropped. */
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    background-image: none !important;
+    background-clip: border-box !important;
+    -webkit-background-clip: border-box !important;
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    border-color: #c7ccd6 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+    mix-blend-mode: normal !important;
+    /* Sections that were never scrolled into view still carry the hidden
+       reveal state inline (opacity 0 / translateY / blur). Without this the
+       printout is mostly blank pages. */
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    font-size: 11pt;
+  }
+
+  /* Decorative and fixed layers: starfield canvas, atmosphere, flight path SVG,
+     mission HUD, easter-egg overlays, both navs, skip link.
+     Every one of these is either a Tailwind `fixed` layer or aria-hidden. */
+  .page-glow,
+  .hero-vignette,
+  .fixed,
+  [aria-hidden='true'],
+  nav[aria-label='Main navigation'],
+  .mobile-nav__toggle,
+  .mobile-nav__backdrop,
+  .mobile-nav__panel,
+  .skip-link,
+  .research-viewer,
+  .airfoil-viewer,
+  canvas {
+    display: none !important;
+  }
+
+  /* The intro used to be a scroll-driven 3D prop and was hidden here. It is now
+     the name, credential, record and contact status — the single most printable
+     block on the page — so it only loses its full-viewport sizing. */
+  .mission-console {
+    min-height: 0 !important;
+    padding: 0 0 1.25rem !important;
+  }
+
+  /* Full-viewport scroll choreography collapses to normal flow. */
+  .section-shell {
+    min-height: auto !important;
+    display: block !important;
+    padding: 0 0 1.5rem !important;
+  }
+
+  .section-inner,
+  .section-inner.wide--narrow {
+    max-width: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .research-showcase__scroll-zone {
+    height: auto !important;
+  }
+
+  .research-showcase__sticky,
+  .sticky {
+    position: static !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .research-showcase__grid {
+    display: block !important;
+  }
+
+  .research-showcase-block {
+    padding: 0 0 1.25rem !important;
+  }
+
+  /* Anything collapsed or clipped for space on screen opens up on paper. */
+  .overflow-hidden {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  [class*='line-clamp'] {
+    display: block !important;
+    overflow: visible !important;
+    max-height: none !important;
+    -webkit-line-clamp: unset !important;
+  }
+
+  /* Keep a card on one page, and never orphan a heading at a page foot. */
+  .glass-card,
+  .crt-terminal,
+  .research-showcase__card,
+  .research-showcase__metric,
+  .research-showcase-block,
+  .tag-badge,
+  article,
+  blockquote,
+  figure,
+  li,
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .section-label,
+  .section-heading {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Cards read as cards without their fills. */
+  .glass-card,
+  .crt-terminal,
+  .research-showcase__metric,
+  .research-showcase__conference-card-badge {
+    border: 1px solid #c7ccd6 !important;
+    border-radius: 4px !important;
+  }
+
+  .crt-terminal::before,
+  .crt-terminal::after {
+    display: none !important;
+  }
+
+  .crt-terminal input,
+  .crt-terminal textarea {
+    border-bottom: 1px solid #c7ccd6 !important;
+  }
+
+  /* Viewport-height shells have nothing to fill on paper. */
+  .min-h-screen,
+  [class*='min-h-['] {
+    min-height: 0 !important;
+  }
+
+  /* Subpage <main> reserves 7rem of top padding to clear the fixed nav bar,
+     which is not printed — that would otherwise be a blank first page. */
+  main {
+    padding-top: 0 !important;
+  }
+
+  /*
+   * A printed link is dead unless the destination comes with it.
+   * The position/size resets undo .link-underline::after, whose absolutely
+   * positioned 1px sliver this rule would otherwise inherit and fill with text.
+   */
+  a[href^='http']::after {
+    content: ' <' attr(href) '>';
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    inset: auto !important;
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    font-weight: 400;
+    word-break: break-all;
+  }
+
+  a {
+    text-decoration: underline;
   }
 }

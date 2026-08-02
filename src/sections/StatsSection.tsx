@@ -5,42 +5,17 @@ import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
 import { useSectionReveal } from '../hooks/useSectionReveal'
 import { sectionShellClass } from '../lib/waypointLayout'
-import { Odometer } from '../components/ui/Odometer'
 import type { Stat } from '../data/portfolio'
 import { useLightExperience } from '../hooks/useTouchDevice'
 import { revealHidden, revealVisible } from '../lib/revealMotion'
 
-function StatValue({
-  stat,
-  active,
-  delay,
-}: {
-  stat: Stat
-  active: boolean
-  delay: number
-}) {
-  if (stat.display) {
-    return (
-      <div className="flex justify-center items-baseline gap-1">
-        <span className="font-display text-3xl md:text-4xl font-semibold text-white tracking-tight">
-          {stat.display}
-        </span>
-        {stat.suffix && <span className="font-body text-sm text-slate-500">{stat.suffix}</span>}
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex justify-center">
-      <Odometer
-        value={stat.value ?? 0}
-        suffix={stat.suffix}
-        delay={delay}
-        active={active}
-        static={stat.static}
-      />
-    </div>
-  )
+/**
+ * Every tile renders through one path at one type size, so a mixed set
+ * ("1", "Top 0.5%", "1.5%") still reads as a single row of equals.
+ */
+function statValue(stat: Stat): string {
+  if (stat.display) return stat.display
+  return stat.value != null ? String(stat.value) : '—'
 }
 
 export function StatsSection() {
@@ -63,26 +38,35 @@ export function StatsSection() {
         <p className="section-label">Recognition</p>
         <div id="stats-heading" className="mb-12">
           <RedactedHeading active={active} as="h2">
-            Awards &amp; experiences
+            Awards &amp; experience
           </RedactedHeading>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-16">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mb-16">
           {portfolio.stats.map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={hidden}
               animate={active ? visible : hidden}
-              transition={{ duration: light ? 0.5 : 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-              className="glass-card spotlight-card p-6 md:p-8 text-center"
+              transition={{ duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+              className="glass-card spotlight-card p-6 md:p-7 text-center flex flex-col items-center justify-start"
               onMouseMove={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()
                 e.currentTarget.style.setProperty('--mx', `${e.clientX - rect.left}px`)
                 e.currentTarget.style.setProperty('--my', `${e.clientY - rect.top}px`)
               }}
             >
-              <StatValue stat={stat} delay={i * 200} active={active} />
-              <p className="text-xs font-medium tracking-wide text-slate-500 mt-3">{stat.label}</p>
+              <p className="flex items-baseline justify-center gap-1 m-0 font-display text-2xl sm:text-3xl md:text-4xl font-semibold text-white tracking-tight leading-none text-balance">
+                {statValue(stat)}
+                {stat.suffix && (
+                  <span className="font-body text-sm font-normal text-slate-500">
+                    {stat.suffix}
+                  </span>
+                )}
+              </p>
+              <p className="mt-3 m-0 text-sm leading-snug text-slate-400 text-balance">
+                {stat.label}
+              </p>
             </motion.div>
           ))}
         </div>

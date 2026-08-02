@@ -1,0 +1,585 @@
+/*
+ * Mission console — the landing screen (#intro).
+ *
+ * Replaces the 200vh MacBook scroll. This is the thing that used to be hiding
+ * inside the laptop lid, rendered at full size with real data: every value on
+ * the panel comes from src/data/portfolio.ts.
+ *
+ * Rules this file exists to keep:
+ *  - One screen. min-height is 100svh and the content budget fits inside it;
+ *    nothing here is scroll-driven.
+ *  - First frame correct. All sizing is CSS (clamp + media queries), so there
+ *    is no JS measurement to correct after paint.
+ *  - Legibility floor: 0.75rem (12px) on desktop, 0.6875rem (11px) on mobile,
+ *    via --fs-micro-lg / --fs-micro in tokens.css.
+ *  - The entrance is one deliberate sequence — a stagger and a single sweep —
+ *    and it is fully disabled under prefers-reduced-motion.
+ */
+
+.mission-console {
+  position: relative;
+  /* Matches .section-shell: above the fixed parallax layers, below the nav. */
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.9rem, 2.4vh, 1.6rem);
+  min-height: 100vh;
+  min-height: 100svh;
+  padding-inline: clamp(1rem, 4vw, 3rem);
+  /* Clears the fixed site nav without pushing the panel off a short laptop. */
+  padding-top: clamp(4.5rem, 10.5vh, 6.5rem);
+  padding-bottom: clamp(1.25rem, 3.5vh, 2.25rem);
+}
+
+/* ---------------------------------------------------------------- panel -- */
+
+.mc-panel {
+  position: relative;
+  width: 100%;
+  max-width: 68rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(130% 90% at 6% -12%, rgba(99, 102, 241, 0.16), transparent 58%),
+    linear-gradient(180deg, rgba(19, 19, 30, 0.82), rgba(8, 8, 14, 0.92));
+  box-shadow:
+    0 40px 90px -60px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Instrument-bezel corner brackets. */
+.mc-corner {
+  position: absolute;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1px solid rgba(201, 169, 98, 0.45);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.mc-corner--tl {
+  top: 0.5rem;
+  left: 0.5rem;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.mc-corner--tr {
+  top: 0.5rem;
+  right: 0.5rem;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.mc-corner--bl {
+  bottom: 0.5rem;
+  left: 0.5rem;
+  border-right: 0;
+  border-top: 0;
+}
+
+.mc-corner--br {
+  bottom: 0.5rem;
+  right: 0.5rem;
+  border-left: 0;
+  border-top: 0;
+}
+
+/* Single power-on sweep. Runs once, ends invisible, never blocks a pointer. */
+.mc-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(165, 180, 252, 0.13) 50%,
+    transparent 58%
+  );
+  transform: translateX(-100%);
+  animation: mcSweep 1.5s cubic-bezier(0.45, 0, 0.15, 1) 0.2s both;
+}
+
+@keyframes mcSweep {
+  from {
+    transform: translateX(-100%);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* ----------------------------------------------------------------- rail -- */
+
+.mc-rail {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  /* The inline padding also has to clear the corner brackets. */
+  padding: 0.7rem clamp(1.45rem, 2.4vw, 1.75rem);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro-lg);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.mc-rail--top {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mc-rail__designation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-aluminum);
+  white-space: nowrap;
+}
+
+.mc-rail__mark {
+  color: var(--color-accent-soft);
+  flex: none;
+}
+
+.mc-rail__origin {
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Amber tick bezel: long ticks every 72px, short ticks every 12px. */
+.mc-bezel {
+  position: relative;
+  z-index: 1;
+  height: 0.5625rem;
+  border-bottom: 1px solid var(--color-border);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(201, 169, 98, 0.5) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 12px);
+  background-size: 100% 0.5625rem, 100% 0.3125rem;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+}
+
+/* ----------------------------------------------------------------- body -- */
+
+.mc-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: clamp(1.4rem, 3.2vw, 2.75rem);
+  padding: clamp(1.35rem, 3vw, 2.4rem) clamp(1.15rem, 2.4vw, 2.25rem);
+}
+
+@media (min-width: 62rem) {
+  .mc-body {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.95fr);
+    align-items: start;
+  }
+}
+
+.mc-identity {
+  min-width: 0;
+}
+
+.mc-title {
+  margin: 0;
+}
+
+.mc-title__name {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.15rem, 7.4vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: #fff;
+}
+
+.mc-title__credential {
+  display: block;
+  margin-top: 0.55rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: clamp(1rem, 2.2vw, 1.375rem);
+  line-height: 1.3;
+  letter-spacing: 0;
+  color: var(--color-accent-soft);
+  text-transform: none;
+}
+
+/*
+ * The full positioning statement is desktop-only on purpose: on a phone the
+ * screen belongs to the name, the record and the call to action. The same
+ * sentence is the first paragraph of the profile section directly below.
+ */
+.mc-tagline {
+  display: none;
+  margin: 1.1rem 0 0;
+  max-width: 46ch;
+  font-size: clamp(0.9375rem, 1.15vw, 1.0625rem);
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 62rem) {
+  .mc-tagline {
+    display: block;
+  }
+}
+
+.mc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: clamp(1.2rem, 2.6vw, 1.75rem);
+}
+
+.mc-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8rem 1.55rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.mc-cta--primary {
+  border: 1px solid #fff;
+  background: #fff;
+  color: #0b0b12;
+  box-shadow: 0 0 30px -8px rgba(129, 140, 248, 0.5);
+}
+
+.mc-cta--primary:hover,
+.mc-cta--primary:focus-visible {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-soft);
+  color: #0b0b12;
+}
+
+.mc-cta--ghost {
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.mc-cta--ghost:hover,
+.mc-cta--ghost:focus-visible {
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+/* -------------------------------------------------------------- readout -- */
+
+.mc-readout {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.022);
+  padding: clamp(0.9rem, 1.8vw, 1.2rem) clamp(0.95rem, 1.8vw, 1.25rem);
+}
+
+.mc-readout__title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--fs-micro-lg);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.mc-readout__list {
+  margin: 0.35rem 0 0;
+}
+
+.mc-record {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: baseline;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+.mc-record:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.mc-record__label {
+  margin: 0;
+  font-size: var(--fs-micro-lg);
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.mc-record__value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: #fff;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-record__suffix {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--fs-micro-lg);
+  color: var(--color-text-subtle);
+}
+
+/* --------------------------------------------------------------- status -- */
+
+.mc-status {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.85rem;
+  padding: 0.8rem clamp(1.45rem, 2.4vw, 1.75rem);
+  border-top: 1px solid var(--color-border);
+}
+
+.mc-status__label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro-lg);
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-phosphor);
+  white-space: nowrap;
+}
+
+.mc-status__marker {
+  font-size: var(--fs-micro-lg);
+  line-height: 1;
+}
+
+.mc-status__text {
+  margin: 0;
+  flex: 1 1 16rem;
+  min-width: 0;
+  font-size: var(--fs-micro-lg);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.mc-status__link {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro-lg);
+  line-height: 1.4;
+  color: var(--color-accent-soft);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(165, 180, 252, 0.3);
+  white-space: nowrap;
+}
+
+.mc-status__link:hover {
+  color: #fff;
+  border-bottom-color: rgba(255, 255, 255, 0.6);
+}
+
+/* ----------------------------------------------------------- scroll cue -- */
+
+.mc-scroll {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro-lg);
+  line-height: 1;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+  /* Decorative: never let it intercept a tap meant for a CTA. */
+  pointer-events: none;
+}
+
+.mc-scroll__arrow {
+  animation: mcNudge 2.4s ease-in-out infinite;
+}
+
+@keyframes mcNudge {
+  0%,
+  100% {
+    transform: translateY(-2px);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(3px);
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------- entrance -- */
+
+@keyframes mcRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/*
+ * `backwards` holds the from-state through the delay, and the keyframe has no
+ * `to` — the resting state is the element's own style. Turning the animation
+ * off therefore leaves a complete, static console.
+ */
+.mc-enter {
+  animation: mcRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--mc-delay, 0ms);
+}
+
+/* --------------------------------------------------------------- mobile -- */
+
+@media (max-width: 47.99rem) {
+  .mc-rail {
+    font-size: var(--fs-micro);
+    letter-spacing: 0.12em;
+    padding-block: 0.6rem;
+  }
+
+  /* Two uppercase mono strings do not fit one phone-width rail. */
+  .mc-rail__school {
+    display: none;
+  }
+
+  .mc-bezel {
+    display: none;
+  }
+
+  .mc-corner {
+    width: 0.6rem;
+    height: 0.6rem;
+  }
+
+  .mc-record {
+    padding: 0.5rem 0;
+  }
+
+  .mc-record__value {
+    font-size: 1rem;
+  }
+
+  .mc-status {
+    gap: 0.3rem 0.7rem;
+    padding-block: 0.7rem;
+  }
+
+  .mc-status__label,
+  .mc-status__text,
+  .mc-status__link,
+  .mc-scroll {
+    font-size: var(--fs-micro);
+  }
+
+  .mc-cta {
+    flex: 1 1 auto;
+    padding: 0.75rem 1.1rem;
+  }
+}
+
+/*
+ * Short viewports — small phones (640–736px tall), landscape phones, laptop
+ * windows. The console still has to be one screen there, so the chrome gives
+ * up its breathing room before any of the record does.
+ */
+@media (max-height: 46rem) {
+  .mission-console {
+    gap: clamp(0.6rem, 1.6vh, 1rem);
+    padding-top: clamp(3.75rem, 9vh, 5rem);
+    padding-bottom: clamp(0.9rem, 2.5vh, 1.5rem);
+  }
+
+  .mc-title__name {
+    font-size: clamp(1.9rem, 6vw, 3.25rem);
+  }
+
+  .mc-body {
+    padding-block: 1.05rem;
+  }
+
+  .mc-actions {
+    margin-top: 1rem;
+  }
+
+  .mc-readout {
+    padding: 0.8rem 0.9rem;
+  }
+
+  .mc-record {
+    padding: 0.38rem 0;
+  }
+
+  .mc-record__label {
+    line-height: 1.35;
+  }
+
+  .mc-status {
+    padding-block: 0.6rem;
+  }
+
+  /* The address is a second copy of the "Get in touch" action; it goes first. */
+  .mc-status__link {
+    display: none;
+  }
+}
+
+/* Narrow phones: keep every record label to as few lines as possible. */
+@media (max-width: 24rem) {
+  .mc-record__label {
+    font-size: var(--fs-micro);
+  }
+
+  .mc-record__value {
+    font-size: 0.9375rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-enter {
+    animation: none;
+  }
+
+  .mc-panel::after {
+    display: none;
+  }
+
+  .mc-scroll__arrow {
+    animation: none;
+    opacity: 0.8;
+  }
+}

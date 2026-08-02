@@ -1,3 +1,10 @@
+/*
+ * CRT terminal — the deliberate final beat of the page.
+ * Every green here derives from a single token (--color-phosphor) via
+ * color-mix. The file previously mixed two unrelated greens: #3dff8a for the
+ * glows and #86efac for the text, which read as an accident rather than a
+ * choice.
+ */
 .crt-terminal {
   position: relative;
   padding: 2rem;
@@ -5,9 +12,9 @@
   border-radius: 12px;
   border: 3px solid #1a2a18;
   box-shadow:
-    inset 0 0 60px rgba(61, 255, 138, 0.05),
+    inset 0 0 60px color-mix(in srgb, var(--color-phosphor) 5%, transparent),
     inset 0 0 20px rgba(0, 0, 0, 0.8),
-    0 0 30px rgba(61, 255, 138, 0.1);
+    0 0 30px color-mix(in srgb, var(--color-phosphor) 10%, transparent);
   transform: perspective(800px) rotateX(2deg);
   overflow: hidden;
 }
@@ -45,7 +52,7 @@
   z-index: 3;
   font-family: var(--font-mono);
   color: var(--color-phosphor);
-  text-shadow: 0 0 8px rgba(61, 255, 138, 0.6);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--color-phosphor) 55%, transparent);
 }
 
 .crt-terminal__prompt {
@@ -69,17 +76,27 @@
   50% { opacity: 0; }
 }
 
+/*
+ * font-size must stay at or above 16px. Mobile Safari zooms the whole viewport
+ * when a focused form control is smaller than that, and 0.95rem (15.2px) put
+ * all three contact fields 0.8px under the threshold.
+ */
 .crt-terminal input,
 .crt-terminal textarea {
   width: 100%;
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(61, 255, 138, 0.3);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-phosphor) 30%, transparent);
   color: var(--color-phosphor);
   font-family: var(--font-mono);
-  font-size: 0.95rem;
+  font-size: 1rem;
   padding: 0.5rem 0;
   outline: none;
+}
+
+.crt-terminal input::placeholder,
+.crt-terminal textarea::placeholder {
+  color: color-mix(in srgb, var(--color-phosphor) 55%, transparent);
 }
 
 .crt-terminal input:focus,
@@ -89,10 +106,10 @@
 
 .crt-terminal label {
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--fs-micro-lg);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(61, 255, 138, 0.6);
+  color: color-mix(in srgb, var(--color-phosphor) 78%, transparent);
   margin-bottom: 0.25rem;
   margin-top: 1rem;
 }

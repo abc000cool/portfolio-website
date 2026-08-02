@@ -3,6 +3,10 @@
   --color-bg-elevated: #0c0c14;
   --color-surface: rgba(255, 255, 255, 0.04);
   --color-surface-hover: rgba(255, 255, 255, 0.07);
+  /* Blur-free stand-ins for --color-surface on mobile / coarse-pointer devices,
+     where backdrop-filter is expensive and the backdrop is a flat gradient anyway. */
+  --color-surface-flat: rgba(16, 16, 26, 0.94);
+  --color-surface-flat-hover: rgba(24, 24, 38, 0.96);
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-strong: rgba(255, 255, 255, 0.14);
 
@@ -12,26 +16,35 @@
   --color-accent-soft: #a5b4fc;
   --color-accent-muted: #6366f1;
   --color-cockpit-amber: #c9a962;
+  /* Brighter instrument amber used by the 3D viewers and their legend swatches. */
+  --color-amber-signal: #fbbf24;
   --color-phosphor: #86efac;
   --color-aluminum: #cbd5e1;
   --color-orbit-blue: #818cf8;
   --color-warning: #f87171;
   --color-text: #f1f5f9;
   --color-text-muted: #94a3b8;
-  --color-text-subtle: #64748b;
+  /* Lifted from #64748b (4.25:1 on --color-bg) to clear WCAG AA. */
+  --color-text-subtle: #8b98ab;
+  /* Dark ink for use on light/accent fills — #fff on --color-accent is only 2.98:1. */
+  --color-on-accent: #06060a;
 
   --font-display: 'Syne', system-ui, sans-serif;
-  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 
+  /* Readability floor. Nothing on the site should render below --fs-micro. */
+  --fs-micro: 0.6875rem;
+  --fs-micro-lg: 0.75rem;
+
   --z-starfield: 0;
   --z-parallax: 10;
-  --z-flight-path: 1;
+  /* FlightPath renders its waypoint layer above the ParallaxLayers content
+     wrapper (2) and below the HUD. It uses a literal in TSX; keep these equal. */
+  --z-flight-path: 3;
   --z-content: 10;
   --z-hud: 40;
   --z-altimeter: 50;
-  --z-cursor: 60;
   --z-easter-egg: 70;
 
   --section-padding: clamp(5rem, 12vh, 9rem);

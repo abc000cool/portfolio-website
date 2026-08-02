@@ -1,40 +1,17 @@
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+  MissionStateContext,
+  MissionUpdaterContext,
+  PHASE_EPSILON,
+  REVEAL_EPSILON,
+  type MissionCheckpoint,
+  type MissionState,
+} from './missionState'
 
-export interface MissionCheckpoint {
-  id: string
-  /** Normalized arc-length progress (0–1) where this waypoint sits on the flight path. */
-  at: number
-}
-
-interface MissionState {
-  /** Sticky — once the rocket reaches a waypoint, it stays reached. */
-  reached: Record<string, boolean>
-  /** Current mission phase (last waypoint crossed); follows scroll in both directions. */
-  phase: string
-}
-
-interface MissionUpdater {
-  update: (progress: number, checkpoints: MissionCheckpoint[]) => void
-  markAllReached: (checkpoints: MissionCheckpoint[]) => void
-}
-
-/** Reveal slightly before exact arrival so headings near a section top aren't blank. */
-const REVEAL_EPSILON = 0.04
-const PHASE_EPSILON = 0.015
-
-const MissionStateContext = createContext<MissionState>({ reached: {}, phase: 'intro' })
-const MissionUpdaterContext = createContext<MissionUpdater>({
-  update: () => {},
-  markAllReached: () => {},
-})
-
+/**
+ * Exports the provider and nothing else — the contexts, hooks and types live in
+ * `./missionState` so Fast Refresh can keep this module's state across edits.
+ */
 export function MissionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<MissionState>({ reached: {}, phase: 'intro' })
 
@@ -76,16 +53,4 @@ export function MissionProvider({ children }: { children: ReactNode }) {
       <MissionStateContext.Provider value={state}>{children}</MissionStateContext.Provider>
     </MissionUpdaterContext.Provider>
   )
-}
-
-export function useMissionState(): MissionState {
-  return useContext(MissionStateContext)
-}
-
-export function useWaypointReached(id: string): boolean {
-  return useContext(MissionStateContext).reached[id] === true
-}
-
-export function useMissionUpdater(): MissionUpdater {
-  return useContext(MissionUpdaterContext)
 }

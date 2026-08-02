@@ -1,11 +1,5 @@
 import { useRef, useState } from 'react'
-import {
-  AnimatePresence,
-  motion,
-  useScroll,
-  useTransform,
-  type MotionValue,
-} from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { portfolio } from '../data/portfolio'
 import { useSectionReveal } from '../hooks/useSectionReveal'
@@ -15,31 +9,20 @@ import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { MissionPatch } from '../components/ui/MissionPatch'
 import { sectionShellClass } from '../lib/waypointLayout'
 import { useReducedMotion } from '../hooks/useReducedMotion'
-import { useMediaQuery } from '../hooks/useMediaQuery'
 
 const selectedProjects = portfolio.projects.filter((p) => p.group !== 'other')
 const otherProjects = portfolio.projects.filter((p) => p.group === 'other')
 
-/** Scroll share before any project card appears — title reveals first. */
-const INTRO_END = 0.1
-const REVEAL_END = 0.92
-
-function smoothstep(t: number): number {
-  const x = Math.max(0, Math.min(1, t))
-  return x * x * (3 - 2 * x)
-}
-
-/** Fade in once per card; stays visible after reveal. */
-function revealCardOpacity(progress: number, index: number, total: number): number {
-  const usable = REVEAL_END - INTRO_END
-  const seg = usable / total
-  const start = INTRO_END + index * seg
-  const fadeInEnd = start + seg * 0.38
-
-  if (progress < start) return 0
-  if (progress < fadeInEnd) return smoothstep((progress - start) / (fadeInEnd - start))
-  return 1
-}
+/**
+ * Card footer controls. Pill sizing keeps every control at a ~40px tap target
+ * (WCAG 2.2 target size) instead of the 16px text links this replaced.
+ */
+const actionBase =
+  'inline-flex items-center gap-1.5 rounded-full px-3.5 py-2.5 text-[0.8125rem] leading-5 font-medium no-underline transition-colors'
+const actionPrimary =
+  'border border-indigo-400/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20 hover:text-white'
+const actionSecondary =
+  'border border-white/10 bg-transparent text-slate-300 hover:border-white/25 hover:text-white'
 
 function ProjectCard({
   project,
@@ -68,7 +51,6 @@ function ProjectCard({
   return (
     <article
       className="glass-card spotlight-card p-6 md:p-7 flex flex-col h-full"
-      data-cursor="target"
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
       style={{ transition: 'transform 0.25s ease, border-color 0.3s ease, background 0.3s ease' }}
@@ -98,40 +80,35 @@ function ProjectCard({
         ))}
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-3 pt-4 border-t border-white/[0.06]">
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            to={`/projects/${project.slug}`}
-            className="link-underline text-xs font-medium text-indigo-300 no-underline"
+      <div className="mt-auto flex flex-wrap items-center gap-3 pt-5 border-t border-white/[0.06]">
+        <Link to={`/projects/${project.slug}`} className={`${actionBase} ${actionPrimary}`}>
+          View project <span aria-hidden="true">→</span>
+        </Link>
+        {project.externalUrl && (
+          <a
+            href={project.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${actionBase} ${actionSecondary}`}
           >
-            View project →
-          </Link>
-          {project.externalUrl && (
-            <a
-              href={project.externalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link-underline text-xs font-medium text-slate-400 hover:text-white no-underline"
-            >
-              Live site →
-            </a>
-          )}
-          {project.githubUrl && (
-            <a
-              href={project.githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link-underline text-xs font-medium text-slate-400 hover:text-white no-underline"
-            >
-              GitHub →
-            </a>
-          )}
-        </div>
+            Live site <span aria-hidden="true">↗</span>
+          </a>
+        )}
+        {project.githubUrl && (
+          <a
+            href={project.githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${actionBase} ${actionSecondary}`}
+          >
+            GitHub <span aria-hidden="true">↗</span>
+          </a>
+        )}
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
           aria-expanded={expanded}
-          className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-white bg-transparent border-none cursor-pointer transition-colors"
+          className={`${actionBase} ${actionSecondary} cursor-pointer`}
         >
           Details
           <motion.svg
@@ -141,6 +118,7 @@ function ProjectCard({
             height="10"
             viewBox="0 0 10 10"
             fill="none"
+            aria-hidden="true"
           >
             <path d="M1 3 L5 7 L9 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </motion.svg>
@@ -153,7 +131,7 @@ function ProjectCard({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
             <p className="mt-4 text-sm text-slate-400 leading-relaxed">{project.details}</p>
@@ -177,7 +155,7 @@ function OtherProjectsGrid() {
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-10% 0px' }}
-            transition={{ duration: 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
           >
             <ProjectCard project={project} />
           </motion.div>
@@ -187,109 +165,21 @@ function OtherProjectsGrid() {
   )
 }
 
-function PinnedHeading({ progress }: { progress: MotionValue<number> }) {
-  const opacity = useTransform(progress, [0, INTRO_END], [0, 1])
-  const y = useTransform(progress, [0, INTRO_END + 0.02], [28, 0])
-  const labelOpacity = useTransform(progress, [0, INTRO_END * 0.7], [0, 1])
-
-  return (
-    <motion.div style={{ opacity, y }} className="mb-10 md:mb-12">
-      <motion.p style={{ opacity: labelOpacity }} className="section-label">
-        Work
-      </motion.p>
-      <div id="projects-heading">
-        <h2 className="section-heading">Selected projects</h2>
-      </div>
-    </motion.div>
-  )
-}
-
-function PinnedRevealCard({
-  index,
-  total,
-  progress,
-  children,
-}: {
-  index: number
-  total: number
-  progress: MotionValue<number>
-  children: React.ReactNode
-}) {
-  const opacity = useTransform(progress, (v) => revealCardOpacity(v, index, total))
-  const y = useTransform(progress, (v) => {
-    const start = INTRO_END + index * ((REVEAL_END - INTRO_END) / total)
-    const fadeInEnd = start + ((REVEAL_END - INTRO_END) / total) * 0.38
-    if (v < start) return 36
-    if (v < fadeInEnd) {
-      const t = smoothstep((v - start) / (fadeInEnd - start))
-      return 36 * (1 - t)
-    }
-    return 0
-  })
-
-  return (
-    <motion.div style={{ opacity, y }}>
-      {children}
-    </motion.div>
-  )
-}
-
+/**
+ * Projects renders as a plain responsive grid.
+ *
+ * It used to run a scroll-scrubbed pinned mode across a ~400vh container, where
+ * card opacity was a function of scroll progress. Every deliberate jump into
+ * this section — the hero CTA, the nav's "All projects", every project-page
+ * back link — landed at progress 0, i.e. an empty viewport. The grid below is
+ * the same content, visible the instant you arrive.
+ */
 export function ProjectsSection() {
-  const wrapRef = useRef<HTMLDivElement>(null)
   const sectionRef = useRef<HTMLElement>(null)
   const reached = useSectionReveal('projects', sectionRef)
-  const reduced = useReducedMotion()
-  const isNarrow = useMediaQuery('(max-width: 1023px)')
   const light = useLightExperience()
   const cardHidden = revealHidden(light)
   const cardVisible = revealVisible(light)
-
-  const { scrollYProgress } = useScroll({
-    target: wrapRef,
-    offset: ['start start', 'end end'],
-  })
-
-  const pinned = !reduced && !isNarrow
-  const selectedCount = selectedProjects.length
-
-  const heading = (
-    <>
-      <p className="section-label">Work</p>
-      <div id="projects-heading" className="mb-12">
-        <RedactedHeading active={reached}>Selected projects</RedactedHeading>
-      </div>
-    </>
-  )
-
-  if (!pinned) {
-    return (
-      <section
-        ref={sectionRef}
-        id="projects"
-        data-mission-waypoint
-        data-waypoint-side="right"
-        className={sectionShellClass('right')}
-        aria-labelledby="projects-heading"
-      >
-        <div className="section-inner wide">
-          {heading}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {selectedProjects.map((project, i) => (
-              <motion.div
-                key={project.id}
-                initial={cardHidden}
-                animate={reached ? cardVisible : cardHidden}
-                transition={{ duration: light ? 0.5 : 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <ProjectCard project={project} />
-              </motion.div>
-            ))}
-          </div>
-          <OtherProjectsGrid />
-        </div>
-      </section>
-    )
-  }
 
   return (
     <section
@@ -297,33 +187,26 @@ export function ProjectsSection() {
       id="projects"
       data-mission-waypoint
       data-waypoint-side="right"
-      className="relative shell-right"
+      className={sectionShellClass('right')}
       aria-labelledby="projects-heading"
     >
-      <div
-        ref={wrapRef}
-        className="relative"
-        style={{ height: `${Math.max(260, 140 + selectedCount * 52)}vh` }}
-      >
-        <div className="sticky top-0 flex min-h-screen flex-col justify-center px-[clamp(1.5rem,5vw,4rem)] py-20">
-          <div className="section-inner wide w-full">
-            <PinnedHeading progress={scrollYProgress} />
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {selectedProjects.map((project, i) => (
-                <PinnedRevealCard
-                  key={project.id}
-                  index={i}
-                  total={selectedCount}
-                  progress={scrollYProgress}
-                >
-                  <ProjectCard project={project} />
-                </PinnedRevealCard>
-              ))}
-            </div>
-          </div>
+      <div className="section-inner wide">
+        <p className="section-label">Work</p>
+        <div id="projects-heading" className="mb-12">
+          <RedactedHeading active={reached}>Selected projects</RedactedHeading>
         </div>
-      </div>
-      <div className="section-inner wide px-[clamp(1.5rem,5vw,4rem)] pb-20">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {selectedProjects.map((project, i) => (
+            <motion.div
+              key={project.id}
+              initial={cardHidden}
+              animate={reached ? cardVisible : cardHidden}
+              transition={{ duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <ProjectCard project={project} />
+            </motion.div>
+          ))}
+        </div>
         <OtherProjectsGrid />
       </div>
     </section>

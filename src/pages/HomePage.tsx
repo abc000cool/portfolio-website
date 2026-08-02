@@ -6,16 +6,16 @@ import { useReducedMotion } from '../hooks/useReducedMotion'
 import { usePreferNativeScroll } from '../hooks/useTouchDevice'
 import { useKonamiCode } from '../hooks/useKonamiCode'
 import { useLaunchCode } from '../hooks/useLaunchCode'
-import { MissionProvider, useWaypointReached } from '../context/MissionContext'
+import { MissionProvider } from '../context/MissionContext'
+import { useWaypointReached } from '../context/missionState'
 
 import { Starfield } from '../components/layout/Starfield'
 import { AtmosphereDescent } from '../components/layout/AtmosphereDescent'
 import { FlightPath } from '../components/layout/FlightPath'
 import { MissionHUD } from '../components/layout/MissionHUD'
 import { SiteNav } from '../components/layout/SiteNav'
-import { CustomCursor } from '../components/layout/CustomCursor'
 import { ParallaxLayers } from '../components/layout/ParallaxLayers'
-import { MacbookIntro } from '../components/intro/MacbookIntro'
+import { IntroSequence } from '../components/intro/IntroSequence'
 
 import { LaunchSequence } from '../components/easter-eggs/LaunchSequence'
 import { HyperspaceWarp } from '../components/easter-eggs/HyperspaceWarp'
@@ -42,38 +42,16 @@ function ParallaxBack() {
   )
 }
 
-const MID_MARKERS = [
-  { left: '8%', top: '18%' },
-  { left: '88%', top: '12%' },
-  { left: '14%', top: '46%' },
-  { left: '92%', top: '58%' },
-  { left: '6%', top: '78%' },
-  { left: '84%', top: '88%' },
-]
-
-function ParallaxMid() {
-  return (
-    <div className="absolute inset-[-15%]">
-      {MID_MARKERS.map((pos, i) => (
-        <span
-          key={i}
-          className="absolute font-mono text-indigo-300/[0.08] select-none"
-          style={{ ...pos, fontSize: i % 2 === 0 ? '1.4rem' : '1rem' }}
-        >
-          +
-        </span>
-      ))}
-    </div>
-  )
-}
-
+/**
+ * Reports where the reader is on the flight path — nothing else. The previous
+ * version stamped `new Date()` into a "MISSION COMPLETE" line, which invented a
+ * fresh mission date on every single page load.
+ */
 function FlightLogLine() {
   const complete = useWaypointReached('contact')
   return (
     <p className="font-mono text-[11px] tracking-wider text-slate-600 m-0">
-      {complete
-        ? `MISSION COMPLETE — ${new Date().toISOString().slice(0, 10)} — ALL SYSTEMS NOMINAL`
-        : 'MISSION IN PROGRESS — TELEMETRY NOMINAL'}
+      {complete ? 'FLIGHT PATH COMPLETE — END OF MISSION' : 'FLIGHT PATH IN PROGRESS'}
     </p>
   )
 }
@@ -150,14 +128,13 @@ export function HomePage() {
         <Starfield />
         <AtmosphereDescent />
         <MissionHUD />
-        <CustomCursor />
         <SiteNav />
 
         <main id="main-content" ref={mainRef} className="relative">
           <FlightPath containerRef={mainRef} />
 
-          <ParallaxLayers back={<ParallaxBack />} mid={<ParallaxMid />}>
-            <MacbookIntro />
+          <ParallaxLayers back={<ParallaxBack />}>
+            <IntroSequence />
             <HeroSection />
             <AboutSection />
             <ProjectsSection />

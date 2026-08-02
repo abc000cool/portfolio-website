@@ -1,4 +1,13 @@
-/* Shared 3D research viewer chrome */
+/*
+ * Shared 3D research viewer chrome.
+ *
+ * READABILITY FLOOR: this file carries the most technical content on the site
+ * (telemetry read-outs, conference attribution, legends) and used to set it in
+ * 0.44rem–0.62rem type — roughly 7px to 10px. Nothing here now renders below
+ * --fs-micro (11px); --fs-micro-lg (12px) marks the values that need to read
+ * louder than their labels. Letter-spacing was pulled in to pay for the extra
+ * width the larger type needs.
+ */
 .research-viewer,
 .airfoil-viewer {
   width: 100%;
@@ -37,8 +46,9 @@
   top: 0.55rem;
   left: 0.55rem;
   z-index: 2;
-  width: 8.25rem;
-  padding: 0.45rem 0.55rem;
+  width: 11rem;
+  max-width: calc(100% - 1.1rem);
+  padding: 0.5rem 0.6rem;
   border-radius: 0.4rem;
   border: 1px solid rgba(129, 140, 248, 0.22);
   background: rgba(6, 6, 10, 0.9);
@@ -50,26 +60,27 @@
 
 .research-viewer__telemetry-label,
 .airfoil-viewer__telemetry-label {
-  margin: 0 0 0.2rem;
-  font-size: 0.46rem;
-  letter-spacing: 0.16em;
+  margin: 0 0 0.3rem;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.11em;
+  line-height: 1.25;
   text-transform: uppercase;
-  color: rgba(129, 140, 248, 0.85);
+  color: rgba(165, 180, 252, 0.95);
 }
 
 .research-viewer__telemetry-profile,
 .airfoil-viewer__telemetry-profile {
-  margin: 0 0 0.35rem;
-  font-size: 0.56rem;
-  line-height: 1.3;
+  margin: 0 0 0.4rem;
+  font-size: var(--fs-micro-lg);
+  line-height: 1.35;
   color: #cbd5e1;
 }
 
 .research-viewer__telemetry-grid,
 .airfoil-viewer__telemetry-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.28rem 0.45rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.4rem 0.5rem;
   margin: 0;
 }
 
@@ -77,22 +88,25 @@
 .airfoil-viewer__telemetry-grid div {
   display: flex;
   flex-direction: column;
-  gap: 0.04rem;
+  gap: 0.08rem;
+  min-width: 0;
 }
 
 .research-viewer__telemetry-grid dt,
 .airfoil-viewer__telemetry-grid dt {
   margin: 0;
-  font-size: 0.44rem;
-  letter-spacing: 0.1em;
+  font-size: var(--fs-micro);
+  line-height: 1.2;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.8);
+  color: rgba(148, 163, 184, 0.95);
 }
 
 .research-viewer__telemetry-grid dd,
 .airfoil-viewer__telemetry-grid dd {
   margin: 0;
-  font-size: 0.58rem;
+  font-size: var(--fs-micro-lg);
+  line-height: 1.25;
   font-weight: 600;
   color: #f1f5f9;
 }
@@ -102,7 +116,7 @@
   top: 0.55rem;
   right: 0.55rem;
   z-index: 3;
-  max-width: 9.5rem;
+  max-width: 12rem;
   padding: 0.5rem 0.65rem;
   border-radius: 0.45rem;
   border: 1px solid rgba(201, 169, 98, 0.45);
@@ -115,10 +129,11 @@
 .research-viewer__conference-presented {
   display: block;
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.46rem;
-  letter-spacing: 0.14em;
+  font-size: var(--fs-micro);
+  line-height: 1.25;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(201, 169, 98, 0.85);
+  color: rgba(212, 184, 122, 0.95);
 }
 
 .research-viewer__conference-title {
@@ -134,8 +149,8 @@
 
 .research-viewer__conference-location {
   display: block;
-  font-size: 0.52rem;
-  color: #94a3b8;
+  font-size: var(--fs-micro);
+  color: var(--color-text-muted);
   line-height: 1.35;
 }
 
@@ -173,18 +188,26 @@
   pointer-events: none;
 }
 
-.research-viewer__hint {
-  padding: 0 0.75rem 0.55rem;
-  margin: 0;
+/*
+ * Unlayered, so this beats the `text-[10px]` utility the markup still carries.
+ *
+ * The sibling `.research-viewer__hint` rule was removed: the in-viewer hint is
+ * now a pinned pill styled entirely with utilities inside ResearchViewerFrame.tsx,
+ * and no markup carries that class any more.
+ */
+.research-showcase__viewer-hint {
+  font-size: var(--fs-micro);
+  line-height: 1.4;
 }
 
 .research-viewer__legend-item,
 .airfoil-viewer__legend-item {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.52rem;
-  letter-spacing: 0.12em;
+  font-size: var(--fs-micro);
+  line-height: 1.3;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.85);
+  color: rgba(148, 163, 184, 0.95);
 }
 
 .research-viewer__legend-item--lift::before,
@@ -207,7 +230,7 @@
   height: 0.5rem;
   margin-right: 0.3rem;
   border-radius: 999px;
-  background: #c9a962;
+  background: var(--color-cockpit-amber);
   vertical-align: middle;
 }
 
@@ -280,7 +303,7 @@
 }
 
 .research-viewer__legend-item--qcin-classical::before {
-  background: #fbbf24;
+  background: var(--color-amber-signal);
 }
 
 .research-viewer__legend-item--qcin-cai::before {
@@ -309,8 +332,8 @@
 }
 
 .research-viewer__legend-item--sail-photon::before {
-  background: #fbbf24;
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+  background: var(--color-amber-signal);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-amber-signal) 50%, transparent);
 }
 
 .research-viewer__legend-item--sail-ring::before {
@@ -353,8 +376,8 @@
 }
 
 .research-viewer__legend-item--rail::before {
-  background: #fbbf24;
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+  background: var(--color-amber-signal);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-amber-signal) 50%, transparent);
 }
 
 .research-viewer__legend-item--guidance::before {
@@ -377,7 +400,7 @@
 .research-viewer--transition .research-viewer__legend {
   right: 0.7rem;
   bottom: 0.7rem;
-  left: 10rem;
+  left: 12rem;
   justify-content: flex-end;
 }
 
@@ -394,15 +417,15 @@
 
 .qcin-phase__index {
   display: grid;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   place-items: center;
   border: 1px solid rgba(165, 180, 252, 0.35);
   border-radius: 0.4rem;
   background: rgba(4, 7, 17, 0.82);
   box-shadow: inset 0 0 16px rgba(99, 102, 241, 0.12);
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.58rem;
+  font-size: var(--fs-micro-lg);
   color: #c7d2fe;
 }
 
@@ -415,18 +438,20 @@
 
 .qcin-phase__copy strong {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.58rem;
+  font-size: var(--fs-micro);
+  line-height: 1.3;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #f1f5f9;
 }
 
 .qcin-phase__copy small {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.45rem;
-  letter-spacing: 0.06em;
-  color: rgba(148, 163, 184, 0.9);
+  font-size: var(--fs-micro);
+  line-height: 1.35;
+  letter-spacing: 0.03em;
+  color: rgba(148, 163, 184, 0.95);
 }
 
 .research-viewer--airfoil .research-viewer__telemetry,
@@ -442,7 +467,7 @@
 .research-viewer--debris .research-viewer__legend {
   right: 0.7rem;
   bottom: 0.7rem;
-  left: 10rem;
+  left: 12rem;
   justify-content: flex-end;
 }
 
@@ -459,15 +484,15 @@
 
 .viewer-phase__index {
   display: grid;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   place-items: center;
   border: 1px solid rgba(165, 180, 252, 0.35);
   border-radius: 0.4rem;
   background: rgba(4, 7, 17, 0.82);
   box-shadow: inset 0 0 16px rgba(99, 102, 241, 0.12);
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.58rem;
+  font-size: var(--fs-micro-lg);
   color: #c7d2fe;
 }
 
@@ -480,18 +505,20 @@
 
 .viewer-phase__copy strong {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.58rem;
+  font-size: var(--fs-micro);
+  line-height: 1.3;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #f1f5f9;
 }
 
 .viewer-phase__copy small {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.45rem;
-  letter-spacing: 0.06em;
-  color: rgba(148, 163, 184, 0.9);
+  font-size: var(--fs-micro);
+  line-height: 1.35;
+  letter-spacing: 0.03em;
+  color: rgba(148, 163, 184, 0.95);
 }
 
 /* Research showcase blocks */
@@ -576,10 +603,11 @@
 .research-showcase__conference-card-kicker {
   display: block;
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.52rem;
-  letter-spacing: 0.16em;
+  font-size: var(--fs-micro);
+  line-height: 1.3;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(201, 169, 98, 0.9);
+  color: rgba(212, 184, 122, 0.95);
 }
 
 .research-showcase__conference-card-title {
@@ -593,8 +621,8 @@
 
 .research-showcase__conference-card-location {
   display: block;
-  font-size: 0.72rem;
-  color: #94a3b8;
+  font-size: var(--fs-micro-lg);
+  color: var(--color-text-muted);
 }
 
 .research-showcase__metrics {
@@ -633,8 +661,8 @@
 }
 
 .research-showcase__metric-label {
-  font-size: 0.62rem;
-  line-height: 1.35;
+  font-size: var(--fs-micro);
+  line-height: 1.4;
   color: var(--color-text-subtle);
 }
 
@@ -657,5 +685,26 @@
 @media (min-width: 1024px) {
   .research-showcase__viewer {
     min-height: 420px;
+  }
+}
+
+/*
+ * Match the blur-free treatment .glass-card gets on mobile / coarse pointers.
+ * .research-showcase__card sets its own background, so it would otherwise keep
+ * the transparent fill after the blur behind it is removed, and the telemetry
+ * overlay would keep paying for a backdrop-filter on top of a live canvas.
+ */
+@media (max-width: 1023px), (pointer: coarse) {
+  .research-showcase__card {
+    background:
+      linear-gradient(145deg, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+      var(--color-surface-flat);
+  }
+
+  .research-viewer__telemetry,
+  .airfoil-viewer__telemetry {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(6, 6, 10, 0.96);
   }
 }
