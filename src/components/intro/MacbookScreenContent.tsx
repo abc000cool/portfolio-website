@@ -19,7 +19,7 @@ const CONSOLE_STATS = portfolio.stats.slice(0, 5)
 interface MacbookScreenContentProps {
   progress?: MotionValue<number>
   compact?: boolean
-  /** Scroll progress at which launch UI appears (lower on mobile). */
+  /** Scroll progress at which launch UI appears (earlier on mobile). */
   launchAt?: number
 }
 
@@ -31,7 +31,16 @@ export function MacbookScreenContent({
   const fallback = useMotionValue(0)
   const reduced = useReducedMotion()
   const [launch, setLaunch] = useState(false)
-  const launchThreshold = launchAt ?? (compact ? 0.2 : 0.48)
+  /*
+   * Fires well before the laptop starts fading out.
+   *
+   * At the old 0.48 the banner arrived at almost exactly the moment the laptop
+   * began to fade (0.50 on desktop, gone by 0.72), so the launch sequence was
+   * only ever seen mid-dissolve. Triggering earlier gives it a stretch at full
+   * opacity before the fade begins, roughly tripling how long it is legible,
+   * without changing the intro's length or any other beat.
+   */
+  const launchThreshold = launchAt ?? (compact ? 0.13 : 0.33)
 
   useMotionValueEvent(progress ?? fallback, 'change', (v) => {
     const next = v >= launchThreshold
