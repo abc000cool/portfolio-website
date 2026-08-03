@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { motion } from 'motion/react'
 import { portfolio } from '../data/portfolio'
 import { externalLinkRel } from '../lib/externalLink'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
@@ -19,6 +20,29 @@ const btnSecondary =
   'border-[rgba(134,239,172,0.35)] bg-transparent text-[var(--color-phosphor)] hover:bg-[rgba(134,239,172,0.08)] hover:border-[var(--color-phosphor)]'
 
 type CopyState = 'idle' | 'copied' | 'failed'
+
+/**
+ * The three status lines above the address are a boot log, so they print in
+ * order rather than appearing as one paragraph block. Opacity only and no
+ * translate: a terminal line does not slide in, it comes up when the line
+ * before it has finished. Widening gaps (0.18s then 0.22s) let the "comms link
+ * established" beat land before the channel opens.
+ *
+ * Nothing actionable is held back - the address, the copy button and the form
+ * all belong to the ScanWipe above and arrive on time regardless.
+ */
+const LOG_LINE_DELAYS = [0.06, 0.24, 0.46] as const
+/**
+ * `settled` is the line's resting opacity and has to be passed in rather than
+ * assumed to be 1: two of the three lines are dimmed to 0.8 by a utility class,
+ * and an inline opacity written by the animation outranks that class. Animating
+ * them to 1 would quietly brighten the log.
+ */
+const logLine = (active: boolean, i: number, settled: number) => ({
+  initial: { opacity: 0 },
+  animate: { opacity: active ? settled : 0 },
+  transition: { duration: 0.3, delay: LOG_LINE_DELAYS[i], ease: [0.33, 1, 0.68, 1] as const },
+})
 
 export function ContactSection() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -103,18 +127,18 @@ export function ContactSection() {
           <div className="crt-terminal">
             <div className="crt-terminal__content">
               <div className="mb-6 space-y-1 text-sm">
-                <p className="m-0">
+                <motion.p {...logLine(active, 0, 1)} className="m-0">
                   <span className="crt-terminal__prompt">&gt;</span>
                   FLIGHT LOG - FINAL ENTRY
-                </p>
-                <p className="m-0 opacity-80">
+                </motion.p>
+                <motion.p {...logLine(active, 1, 0.8)} className="m-0 opacity-80">
                   <span className="crt-terminal__prompt">&gt;</span>
                   comms link established… OK
-                </p>
-                <p className="m-0 opacity-80">
+                </motion.p>
+                <motion.p {...logLine(active, 2, 0.8)} className="m-0 opacity-80">
                   <span className="crt-terminal__prompt">&gt;</span>
                   channel open - address below <span className="crt-terminal__cursor" />
-                </p>
+                </motion.p>
               </div>
 
               <p className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] opacity-70 m-0 mb-2">
@@ -135,7 +159,7 @@ export function ContactSection() {
                     rel={externalLinkRel(s.url)}
                     className={`${btnBase} ${btnSecondary}`}
                   >
-                    {s.label} ↗
+                    {s.label} <span className="cta-arrow cta-arrow--diagonal">↗</span>
                   </a>
                 ))}
               </div>

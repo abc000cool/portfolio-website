@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { useLightExperience } from '../../hooks/useTouchDevice'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
-import { EARLY_VIEWPORT, REVEAL_EASE } from '../../lib/revealMotion'
+import { EARLY_VIEWPORT, HEADING_DURATION, HEADING_EASE } from '../../lib/revealMotion'
 
 interface RedactedHeadingProps {
   children: string
@@ -23,7 +23,33 @@ interface RedactedHeadingProps {
  */
 const CLIPPED = { clipPath: 'inset(0% 100% 0% 0%)' }
 const OPEN = { clipPath: 'inset(0% 0% 0% 0%)' }
-const WIPE_DURATION = 0.55
+
+/**
+ * The bar and the clip edge MUST share a duration and an easing curve.
+ *
+ * They previously did not: the clip ran on an expo-ish ease-out while the bar
+ * ran `linear`. Both start and end together, but in between the clip edge
+ * raced away and the bar trailed a third of the heading behind it - so the
+ * "scan line" spent the whole reveal lagging through already-visible text
+ * instead of uncovering it. Because the two animate the same normalised
+ * progress over the same width, sharing a curve locks the bar exactly onto the
+ * leading edge for every frame in between.
+ */
+const EDGE_TRANSITION = { duration: HEADING_DURATION, ease: HEADING_EASE }
+
+/**
+ * Opacity is intentionally NOT on the shared curve - it is keyframed on its own
+ * linear timeline so the bar strikes in fast, holds lit across the sweep, and
+ * is gone by the time it reaches the end of the word. Fading it out early is
+ * what stops the reveal ending on a hard vertical line.
+ */
+const SCAN_TRANSITION = {
+  x: EDGE_TRANSITION,
+  opacity: { duration: HEADING_DURATION, ease: 'linear' as const, times: [0, 0.12, 0.72, 1] },
+}
+
+/** Parked state: off-screen already, so there is nothing worth animating. */
+const SCAN_REST_TRANSITION = { duration: 0 }
 
 export function RedactedHeading(props: RedactedHeadingProps) {
   const { children, as: Tag = 'h2', className = '', active } = props
@@ -57,9 +83,13 @@ export function RedactedHeading(props: RedactedHeadingProps) {
           viewport: EARLY_VIEWPORT,
         }
 
+  // `times` only applies to keyframe arrays; the parked state animates opacity
+  // as a scalar, so it gets its own transition rather than a mismatched one.
+  const scanTransition = active === false ? SCAN_REST_TRANSITION : SCAN_TRANSITION
+
   return (
     <div className={`relative ${className}`}>
-      <motion.div initial={CLIPPED} {...wipe} transition={{ duration: WIPE_DURATION, ease: REVEAL_EASE }}>
+      <motion.div initial={CLIPPED} {...wipe} transition={EDGE_TRANSITION}>
         <Tag className="section-heading">{children}</Tag>
       </motion.div>
 
@@ -71,7 +101,7 @@ export function RedactedHeading(props: RedactedHeadingProps) {
           className="pointer-events-none absolute inset-y-0 left-0 w-full"
           initial={{ x: '-100%', opacity: 0 }}
           {...scan}
-          transition={{ duration: WIPE_DURATION, ease: 'linear' }}
+          transition={scanTransition}
         >
           <span className="absolute inset-y-0 right-0 w-[2px] bg-[#c7d2fe] shadow-[0_0_12px_2px_rgba(129,140,248,0.5)]" />
         </motion.span>

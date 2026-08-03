@@ -17,10 +17,22 @@ export function HeroSection() {
   const hidden = revealHidden(light)
   const visible = revealVisible(light)
 
-  const fade = (delay: number) => ({
+  /**
+   * The cascade.
+   *
+   * The delays used to be 0 / 0.08 / 0.16 / 0.18 / 0.24 / 0.3 - the title and
+   * the school line were 20ms apart, which is inside one frame at 60Hz, so two
+   * of the six beats landed on top of each other and the cascade read as five.
+   * The gaps now open at 80ms and close down to 40, which puts the emphasis on
+   * the first arrivals (label, name) and lets the supporting lines catch up.
+   *
+   * `duration` is per element on purpose: the name is the largest object on the
+   * screen and takes longer to settle than a 13px label. Big things have mass.
+   */
+  const fade = (delay: number, duration = light ? 0.55 : 0.75) => ({
     initial: hidden,
     animate: active ? visible : hidden,
-    transition: { duration: light ? 0.55 : 0.75, delay, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { duration, delay, ease: [0.22, 1, 0.36, 1] as const },
   })
 
   return (
@@ -38,7 +50,7 @@ export function HeroSection() {
         </motion.p>
 
         <motion.h2
-          {...fade(0.08)}
+          {...fade(0.08, light ? 0.65 : 0.9)}
           id="hero-heading"
           className="font-display text-5xl md:text-6xl lg:text-7xl leading-[1.02] mb-6 tracking-tight bg-gradient-to-br from-white via-white to-indigo-200 bg-clip-text text-transparent"
         >
@@ -49,15 +61,15 @@ export function HeroSection() {
           {portfolio.identity.title}
         </motion.p>
 
-        <motion.p {...fade(0.18)} className="text-sm text-slate-500 mb-4">
+        <motion.p {...fade(0.22)} className="text-sm text-slate-500 mb-4">
           {portfolio.identity.school} · {portfolio.identity.location}
         </motion.p>
 
-        <motion.p {...fade(0.24)} className="text-base text-slate-400 mb-10 max-w-2xl leading-relaxed">
+        <motion.p {...fade(0.27)} className="text-base text-slate-400 mb-10 max-w-2xl leading-relaxed">
           {portfolio.identity.tagline}
         </motion.p>
 
-        <motion.div {...fade(0.3)} className="flex flex-wrap gap-3">
+        <motion.div {...fade(0.31)} className="flex flex-wrap gap-3">
           <MagneticButton onClick={() => scrollToSection('projects')}>
             View my work
           </MagneticButton>

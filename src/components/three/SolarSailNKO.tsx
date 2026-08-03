@@ -1,10 +1,11 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import { useMotionValue, useMotionValueEvent, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import { useMotionProgressRef } from '../../hooks/useMotionProgressRef'
+import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useThrottledMotionValue } from '../../hooks/useThrottledMotionValue'
 import { smoothstep } from '../../lib/airfoilGeometry'
 import { ResearchViewerFrame, ViewerTelemetry } from '../research/ResearchViewerFrame'
@@ -29,6 +30,23 @@ const DISPLACED_HEIGHT = 0.72
 /** Hard thrust-cone ceiling of the six-coefficient optical model. */
 const CONE_LIMIT_DEG = 55.5
 
+/**
+ * Longest step any smoother here will integrate. This canvas runs on
+ * frameloop="demand" while it is off screen, so the frame it wakes up on can
+ * report a multi-second delta. Clamping keeps that from lurching.
+ */
+const MAX_DELTA = 0.05
+/** Temporal smoothing on the raw scroll value, applied before anything reads it. */
+const PROGRESS_LAMBDA = 12
+/** Bigger jumps than this are a scrub, not a scroll: snap rather than ease. */
+const PROGRESS_SNAP = 0.14
+const CAMERA_LAMBDA = 6.2
+const CAMERA_AIM_LAMBDA = 7.6
+/** Past this much travel the camera has been teleported, so do not fly there. */
+const CAMERA_SNAP_DISTANCE_SQ = 9
+/** A sail this size slews to a new attitude, it does not click into it. */
+const SAIL_ATTITUDE_LAMBDA = 7
+
 type ProgressRef = React.RefObject<number | null>
 
 function range01(value: number, start: number, end: number): number {
@@ -44,6 +62,51 @@ function pulseWindow(progress: number, start: number, end: number): number {
 function hash01(seed: number): number {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453
   return x - Math.floor(x)
+}
+
+/** Frame-rate independent exponential approach. Stable under variable delta. */
+function damp(current: number, target: number, lambda: number, dt: number): number {
+  return current + (target - current) * (1 - Math.exp(-lambda * dt))
+}
+
+function dampVector(
+  current: THREE.Vector3,
+  target: THREE.Vector3,
+  lambda: number,
+  dt: number,
+): void {
+  current.lerp(target, 1 - Math.exp(-lambda * dt))
+}
+
+function easeOutCubic(t: number): number {
+  const inv = 1 - t
+  return 1 - inv * inv * inv
+}
+
+/**
+ * A damped copy of the scroll value.
+ *
+ * Reading scroll progress raw maps every bit of wheel and trackpad jitter
+ * straight onto the animation. Each rig keeps its own copy rather than sharing
+ * mutable module state, and because they all integrate the same input with the
+ * same constants on the same frame they stay in lockstep - which matters here,
+ * since four rigs derive the craft's position independently.
+ */
+function useDampedProgress() {
+  const state = useRef({ value: 0, primed: false })
+  return useCallback((raw: number, dt: number) => {
+    const s = state.current
+    const target = THREE.MathUtils.clamp(raw, 0, 1)
+    if (!s.primed) {
+      s.primed = true
+      s.value = target
+    } else if (Math.abs(target - s.value) > PROGRESS_SNAP) {
+      s.value = target
+    } else {
+      s.value = damp(s.value, target, PROGRESS_LAMBDA, dt)
+    }
+    return s.value
+  }, [])
 }
 
 interface CraftState {
@@ -109,10 +172,14 @@ function CameraRig({ progressRef }: { progressRef: ProgressRef }) {
   const positionRef = useRef(new THREE.Vector3())
   const targetRef = useRef(new THREE.Vector3())
   const chaseRef = useRef(new THREE.Vector3())
+  const aimRef = useRef(new THREE.Vector3())
+  const primedRef = useRef(false)
   const craft = useMemo(() => makeCraftState(), [])
+  const smoothProgress = useDampedProgress()
 
-  useFrame((state) => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, MAX_DELTA)
+    const p = smoothProgress(progressRef.current ?? 0, dt)
     computeCraftState(p, state.clock.elapsedTime, craft)
     const lift = smoothstep(range01(p, 0.36, 0.58))
     const envelope = smoothstep(range01(p, 0.74, 0.92))
@@ -121,6 +188,7 @@ function CameraRig({ progressRef }: { progressRef: ProgressRef }) {
       smoothstep(range01(p, 0.56, 0.66)) * (1 - smoothstep(range01(p, 0.76, 0.88)))
     const position = positionRef.current
     const target = targetRef.current
+    const aim = aimRef.current
 
     position.set(
       THREE.MathUtils.lerp(3.0, 2.7, lift) + envelope * 0.9,
@@ -143,8 +211,19 @@ function CameraRig({ progressRef }: { progressRef: ProgressRef }) {
       target.lerp(craft.position, track * 0.9)
     }
 
-    camera.position.lerp(position, 0.1)
-    camera.lookAt(target)
+    // Exponential approach instead of a fixed per-frame lerp: the old form ran
+    // twice as fast at 120fps as at 60 and never quite arrived.
+    if (!primedRef.current) {
+      primedRef.current = true
+      aim.copy(target)
+    } else if (camera.position.distanceToSquared(position) > CAMERA_SNAP_DISTANCE_SQ) {
+      camera.position.copy(position)
+      aim.copy(target)
+    } else {
+      dampVector(camera.position, position, CAMERA_LAMBDA, dt)
+      dampVector(aim, target, CAMERA_AIM_LAMBDA, dt)
+    }
+    camera.lookAt(aim)
   })
 
   return null
@@ -286,9 +365,10 @@ function EclipticPlane() {
 /** The classical orbit - stays behind as a ghost once the ring lifts. */
 function KeplerRing({ progressRef }: { progressRef: ProgressRef }) {
   const materialRef = useRef<THREE.LineBasicMaterial | null>(null)
+  const smoothProgress = useDampedProgress()
 
-  useFrame(() => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((_, delta) => {
+    const p = smoothProgress(progressRef.current ?? 0, Math.min(delta, MAX_DELTA))
     const reveal = smoothstep(range01(p, 0.02, 0.1))
     const ghost = smoothstep(range01(p, 0.36, 0.58))
     if (materialRef.current) {
@@ -319,9 +399,10 @@ function DisplacedRing({ progressRef }: { progressRef: ProgressRef }) {
   const axisMaterial = useRef<THREE.LineBasicMaterial | null>(null)
   const axisGroup = useRef<THREE.Group>(null)
   const centerRef = useRef<THREE.Mesh>(null)
+  const smoothProgress = useDampedProgress()
 
-  useFrame(() => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((_, delta) => {
+    const p = smoothProgress(progressRef.current ?? 0, Math.min(delta, MAX_DELTA))
     const lift = smoothstep(range01(p, 0.36, 0.58))
     const radius = THREE.MathUtils.lerp(KEPLER_RADIUS, DISPLACED_RADIUS, lift)
 
@@ -384,13 +465,34 @@ function DisplacedRing({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
+/**
+ * The sail rests at roughly half span rather than at zero. Scaling from ~0 made
+ * the opening frame of this scene a sun and two faint rings with no spacecraft
+ * anywhere, which read as a failed render rather than as "not deployed yet".
+ */
+const REST_SPAN = 0.46
+/** Membrane span while stowed, as a fraction of the boom span. */
+const REST_PETAL = 0.45
+/** Quadrant-to-quadrant delay through the unfurl. */
+const PETAL_LAG = 0.06
+/** Booms are fully extended by this point in the deployment, ahead of the film. */
+const BOOM_LEAD = 0.72
+const SAIL_SCALE = 0.82
+const HALF_PI = Math.PI / 2
+const QUARTER_PI = Math.PI / 4
+
 /** Square sail: four petals on crossed booms, bus at the hub. */
-function SailCraft({ progressRef }: { progressRef: ProgressRef }) {
+function SailCraft({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
   const groupRef = useRef<THREE.Group>(null)
   const sailRef = useRef<THREE.Group>(null)
   const petalRefs = useRef<THREE.Mesh[]>([])
+  const boomRefs = useRef<THREE.Mesh[]>([])
   const craft = useMemo(() => makeCraftState(), [])
   const lookTarget = useMemo(() => new THREE.Vector3(), [])
+  const attitude = useMemo(() => new THREE.Object3D(), [])
+  const spanRef = useRef(REST_SPAN)
+  const primedRef = useRef(false)
+  const smoothProgress = useDampedProgress()
 
   const petalGeometry = useMemo(() => {
     const shape = new THREE.Shape()
@@ -401,35 +503,69 @@ function SailCraft({ progressRef }: { progressRef: ProgressRef }) {
     return new THREE.ShapeGeometry(shape)
   }, [])
 
-  useFrame((state) => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, MAX_DELTA)
+    const p = smoothProgress(progressRef.current ?? 0, dt)
     const time = state.clock.elapsedTime
     computeCraftState(p, time, craft)
-    const deploy = smoothstep(range01(p, 0.12, 0.26))
+    const primed = primedRef.current
 
-    /*
-     * The sail used to scale from ~0, so the opening frame of this scene was a
-     * sun and two faint rings with no spacecraft anywhere - it read as a failed
-     * render rather than as "not deployed yet". It now rests at roughly a third
-     * of full span and opens from there, so there is always a craft on screen
-     * while the deployment beat still reads.
-     */
-    const REST_SPAN = 0.46
-    const sailSpan = REST_SPAN + (1 - REST_SPAN) * deploy
+    // Second stage of damping on top of the smoothed scroll value. The deploy
+    // window is the narrowest beat in the scene, so it is the one that shows
+    // scroll jitter first.
+    const targetSpan = REST_SPAN + (1 - REST_SPAN) * smoothstep(range01(p, 0.12, 0.26))
+    spanRef.current = primed ? damp(spanRef.current, targetSpan, 9, dt) : targetSpan
+    const span = spanRef.current
+    const deploy = THREE.MathUtils.clamp((span - REST_SPAN) / (1 - REST_SPAN), 0, 1)
 
     if (groupRef.current) {
       groupRef.current.position.copy(craft.position)
     }
     if (sailRef.current) {
       lookTarget.copy(craft.position).add(craft.thrustDir)
-      sailRef.current.lookAt(lookTarget)
-      sailRef.current.scale.setScalar(0.82 * sailSpan)
+      attitude.position.copy(craft.position)
+      attitude.lookAt(lookTarget)
+      // Slew rather than snap. The parent group carries no rotation, so the
+      // world-space attitude is also the local one.
+      if (primed) {
+        sailRef.current.quaternion.slerp(attitude.quaternion, 1 - Math.exp(-SAIL_ATTITUDE_LAMBDA * dt))
+      } else {
+        sailRef.current.quaternion.copy(attitude.quaternion)
+      }
+      // Span now lives on the booms and petals, so the deployment is an unfurl
+      // rather than the whole assembly scaling up as one block.
+      sailRef.current.scale.setScalar(SAIL_SCALE)
     }
-    petalRefs.current.forEach((petal, index) => {
-      if (!petal) return
-      const stagger = smoothstep(range01(deploy, index * 0.08, 0.7 + index * 0.08))
-      petal.scale.setScalar(Math.max(0.45, stagger))
-    })
+
+    // Masts extend first and the film follows them out.
+    const boomSpan = REST_SPAN + (1 - REST_SPAN) * easeOutCubic(Math.min(1, deploy / BOOM_LEAD))
+    for (let index = 0; index < boomRefs.current.length; index++) {
+      const boom = boomRefs.current[index]
+      if (!boom) continue
+      boom.scale.set(boomSpan, 1, 1)
+    }
+
+    // Slack membrane while it is being pulled out, dead flat once taut.
+    const slack = reduced ? 0 : deploy * (1 - deploy) * 4
+    for (let index = 0; index < petalRefs.current.length; index++) {
+      const petal = petalRefs.current[index]
+      if (!petal) continue
+      const quadrant = THREE.MathUtils.clamp(
+        (deploy - index * PETAL_LAG) / (1 - 3 * PETAL_LAG),
+        0,
+        1,
+      )
+      // Radial edge runs out ahead of the lateral one, so each quadrant sweeps
+      // open along its boom instead of inflating from the hub.
+      const radial = REST_PETAL + (1 - REST_PETAL) * easeOutCubic(quadrant)
+      const lateral = REST_PETAL + (1 - REST_PETAL) * quadrant * quadrant
+      petal.scale.set(span * radial, span * lateral, 1)
+      petal.rotation.z =
+        index * HALF_PI + QUARTER_PI + Math.sin(time * 6.4 + index * 1.7) * 0.03 * slack
+      petal.position.z = Math.sin(time * 4.8 + index * 2.3) * 0.012 * slack
+    }
+
+    primedRef.current = true
   })
 
   return (
@@ -455,8 +591,14 @@ function SailCraft({ progressRef }: { progressRef: ProgressRef }) {
             />
           </mesh>
         ))}
-        {[0, Math.PI / 2].map((angle) => (
-          <mesh key={angle} rotation={[0, 0, angle + Math.PI / 4]}>
+        {[0, Math.PI / 2].map((angle, index) => (
+          <mesh
+            key={angle}
+            ref={(mesh) => {
+              if (mesh) boomRefs.current[index] = mesh
+            }}
+            rotation={[0, 0, angle + Math.PI / 4]}
+          >
             <boxGeometry args={[1.18, 0.012, 0.012]} />
             <meshStandardMaterial color="#64748b" metalness={0.85} roughness={0.3} />
           </mesh>
@@ -486,20 +628,25 @@ function PhotonStream({ progressRef }: { progressRef: ProgressRef }) {
   const perpB = useMemo(() => new THREE.Vector3(), [])
   const start = useMemo(() => new THREE.Vector3(), [])
   const reflected = useMemo(() => new THREE.Vector3(), [])
+  const smoothProgress = useDampedProgress()
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const incident = incidentRef.current
     const bounce = reflectedRef.current
     if (!incident || !bounce) return
 
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+    const dt = Math.min(delta, MAX_DELTA)
+    const p = smoothProgress(progressRef.current ?? 0, dt)
     const time = state.clock.elapsedTime
     computeCraftState(p, time, craft)
     const deploy = smoothstep(range01(p, 0.14, 0.28))
     const fade = 1 - 0.55 * smoothstep(range01(p, 0.78, 0.92))
+    // The reflected stream used to switch on at 40% deployed, which put it on
+    // screen at 16% opacity in a single frame.
+    const bounceReveal = smoothstep(range01(deploy, 0.38, 0.62))
 
     incident.visible = deploy > 0.02
-    bounce.visible = deploy > 0.4
+    bounce.visible = bounceReveal > 0.01
 
     // Incident photons: Sun surface → sail, riding the outward Sun line.
     start.copy(craft.sunDir).multiplyScalar(0.36)
@@ -521,7 +668,11 @@ function PhotonStream({ progressRef }: { progressRef: ProgressRef }) {
         .addScaledVector(perpB, spreadB * focus)
       dummy.quaternion.setFromUnitVectors(xAxis, dir)
       const pulse = Math.sin(cycle * Math.PI)
-      dummy.scale.set(0.09 + pulse * 0.05, 0.008, 0.008)
+      // Each photon loops back to the Sun when its cycle wraps. Without this
+      // envelope it teleported at full size once per lap; now it is already
+      // scaled to nothing at both ends of the run.
+      const wrap = Math.min(1, cycle * 7) * Math.min(1, (1 - cycle) * 5)
+      dummy.scale.set((0.09 + pulse * 0.05) * wrap, 0.008 * wrap, 0.008 * wrap)
       dummy.updateMatrix()
       incident.setMatrixAt(i, dummy.matrix)
     }
@@ -544,12 +695,13 @@ function PhotonStream({ progressRef }: { progressRef: ProgressRef }) {
         craft.position.z + reflected.z * travelOut,
       )
       dummy.quaternion.setFromUnitVectors(xAxis, reflected)
-      dummy.scale.set(0.07, 0.006, 0.006)
+      const wrap = Math.min(1, cycle * 6) * Math.min(1, (1 - cycle) * 3.5)
+      dummy.scale.set(0.07 * wrap, 0.006 * wrap, 0.006 * wrap)
       dummy.updateMatrix()
       bounce.setMatrixAt(i, dummy.matrix)
     }
     bounce.instanceMatrix.needsUpdate = true
-    ;(bounce.material as THREE.MeshBasicMaterial).opacity = deploy * 0.4 * fade
+    ;(bounce.material as THREE.MeshBasicMaterial).opacity = deploy * 0.4 * fade * bounceReveal
   })
 
   return (
@@ -584,8 +736,12 @@ function PhotonStream({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
+/** Hoisted so the clamp indicator never parses a colour string inside useFrame. */
+const CLAMPED_COLOR = new THREE.Color(CONE_COLOR)
+const NOMINAL_COLOR = new THREE.Color(ENVELOPE_COLOR)
+
 /** Thrust vector vs the Sun line, and the 55.5° optical cone ceiling. */
-function ThrustCone({ progressRef }: { progressRef: ProgressRef }) {
+function ThrustCone({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
   const thrustGroup = useRef<THREE.Group>(null)
   const thrustMaterial = useRef<THREE.LineBasicMaterial | null>(null)
   const thrustTip = useRef<THREE.Mesh>(null)
@@ -597,6 +753,8 @@ function ThrustCone({ progressRef }: { progressRef: ProgressRef }) {
   const craft = useMemo(() => makeCraftState(), [])
   const downAxis = useMemo(() => new THREE.Vector3(0, -1, 0), [])
   const yAxis = useMemo(() => new THREE.Vector3(0, 1, 0), [])
+  const indicator = useMemo(() => new THREE.Color(ENVELOPE_COLOR), [])
+  const smoothProgress = useDampedProgress()
 
   const coneGeometry = useMemo(() => {
     const height = 0.78
@@ -614,14 +772,18 @@ function ThrustCone({ progressRef }: { progressRef: ProgressRef }) {
     )
   }, [])
 
-  useFrame((state) => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, MAX_DELTA)
+    const p = smoothProgress(progressRef.current ?? 0, dt)
     const time = state.clock.elapsedTime
     computeCraftState(p, time, craft)
 
     const pitchReveal = smoothstep(range01(p, 0.27, 0.36))
     const coneReveal = smoothstep(range01(p, 0.56, 0.64)) - smoothstep(range01(p, 0.8, 0.9))
-    const clampFlash = craft.clamped ? 0.5 + Math.sin(time * 14) * 0.5 : 0
+    const clampFlash = craft.clamped ? (reduced ? 0.5 : 0.5 + Math.sin(time * 14) * 0.5) : 0
+    // Crossfade rather than a hard swap, so a pitch sitting on the ceiling
+    // cannot strobe the indicator between two colours frame to frame.
+    indicator.lerp(craft.clamped ? CLAMPED_COLOR : NOMINAL_COLOR, 1 - Math.exp(-9 * dt))
 
     if (thrustGroup.current) {
       thrustGroup.current.visible = pitchReveal > 0.02
@@ -630,12 +792,12 @@ function ThrustCone({ progressRef }: { progressRef: ProgressRef }) {
     }
     if (thrustMaterial.current) {
       thrustMaterial.current.opacity = pitchReveal * 0.95
-      thrustMaterial.current.color.set(craft.clamped ? CONE_COLOR : ENVELOPE_COLOR)
+      thrustMaterial.current.color.copy(indicator)
     }
     if (thrustTip.current) {
       const material = thrustTip.current.material as THREE.MeshBasicMaterial
       material.opacity = pitchReveal
-      material.color.set(craft.clamped ? CONE_COLOR : ENVELOPE_COLOR)
+      material.color.copy(indicator)
     }
     if (sunLineGroup.current) {
       sunLineGroup.current.visible = pitchReveal > 0.02
@@ -746,14 +908,17 @@ const ENVELOPE_FAMILY: FamilyRing[] = [
 /** The paper's headline: ideal territory vs the contracted optical envelope. */
 function EnvelopeFamily({ progressRef }: { progressRef: ProgressRef }) {
   const materials = useRef<(THREE.LineBasicMaterial | null)[]>([])
+  const smoothProgress = useDampedProgress()
 
-  useFrame(() => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((_, delta) => {
+    const p = smoothProgress(progressRef.current ?? 0, Math.min(delta, MAX_DELTA))
     ENVELOPE_FAMILY.forEach((ring, index) => {
       const material = materials.current[index]
       if (!material) return
       const stagger = (index % 11) * 0.014
-      const reveal = smoothstep(range01(p, 0.74 + stagger, 0.84 + stagger))
+      // Ease out on arrival: each ring lands promptly and settles rather than
+      // creeping in on a symmetric curve.
+      const reveal = easeOutCubic(range01(p, 0.74 + stagger, 0.84 + stagger))
       material.opacity = reveal * (ring.ideal ? 0.16 : 0.55)
     })
   })
@@ -783,8 +948,9 @@ function EnvelopeFamily({ progressRef }: { progressRef: ProgressRef }) {
 }
 
 /** Ideal-only territory that the cone ceiling excises - flashes and dies. */
-function ExcisedRings({ progressRef }: { progressRef: ProgressRef }) {
+function ExcisedRings({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
   const materials = useRef<(THREE.LineBasicMaterial | null)[]>([])
+  const smoothProgress = useDampedProgress()
   const rings = useMemo(
     () => [
       { radius: 1.06, height: 1.52 },
@@ -793,10 +959,10 @@ function ExcisedRings({ progressRef }: { progressRef: ProgressRef }) {
     [],
   )
 
-  useFrame((state) => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((state, delta) => {
+    const p = smoothProgress(progressRef.current ?? 0, Math.min(delta, MAX_DELTA))
     const window = pulseWindow(p, 0.6, 0.8)
-    const flicker = 0.55 + Math.sin(state.clock.elapsedTime * 9) * 0.45
+    const flicker = reduced ? 0.7 : 0.55 + Math.sin(state.clock.elapsedTime * 9) * 0.45
     materials.current.forEach((material) => {
       if (material) material.opacity = window * flicker * 0.5
     })
@@ -825,7 +991,7 @@ function ExcisedRings({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
-function SailScene({ progressRef }: { progressRef: ProgressRef }) {
+function SailScene({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
   return (
     <>
       <color attach="background" args={['#030610']} />
@@ -838,10 +1004,10 @@ function SailScene({ progressRef }: { progressRef: ProgressRef }) {
       <EclipticPlane />
       <KeplerRing progressRef={progressRef} />
       <DisplacedRing progressRef={progressRef} />
-      <SailCraft progressRef={progressRef} />
+      <SailCraft progressRef={progressRef} reduced={reduced} />
       <PhotonStream progressRef={progressRef} />
-      <ThrustCone progressRef={progressRef} />
-      <ExcisedRings progressRef={progressRef} />
+      <ThrustCone progressRef={progressRef} reduced={reduced} />
+      <ExcisedRings progressRef={progressRef} reduced={reduced} />
       <EnvelopeFamily progressRef={progressRef} />
     </>
   )
@@ -914,6 +1080,7 @@ export function SolarSailNKO({
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
   const liveProgress = useThrottledMotionValue(source, 100)
+  const reduced = useReducedMotion()
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
@@ -976,7 +1143,7 @@ export function SolarSailNKO({
           style={{ background: 'transparent' }}
         >
           <Suspense fallback={null}>
-            <SailScene progressRef={progressRef} />
+            <SailScene progressRef={progressRef} reduced={reduced} />
           </Suspense>
         </Canvas>
         <div className="viewer-phase" aria-hidden="true">

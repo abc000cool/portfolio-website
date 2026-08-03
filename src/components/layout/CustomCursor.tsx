@@ -2,7 +2,24 @@ import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 
 const TRAIL_MAX = 20
-const TRAIL_DECAY = 0.05
+
+/**
+ * Life lost per SECOND, not per frame.
+ *
+ * The trail used to subtract a flat 0.05 every frame, which is only a decay
+ * rate if you assume 60Hz forever: the same trail lasted 333ms on a 60Hz panel
+ * and 139ms on a 144Hz one, so the effect quietly got shorter and stingier on
+ * exactly the hardware most likely to be looking at it. 3.0/sec reproduces the
+ * old 60Hz timing exactly while now being identical on every display.
+ */
+const TRAIL_DECAY_PER_SECOND = 3
+
+/**
+ * Longest delta the decay will act on. A backgrounded tab parks rAF, and the
+ * first frame after it resumes can carry a multi-second delta - without a clamp
+ * that single frame wipes the whole trail at once, which reads as a glitch.
+ */
+const MAX_DELTA = 0.05
 
 /** Fine-pointer check, resolved during the first render rather than after it. */
 function detectFinePointer() {
@@ -31,7 +48,17 @@ export function CustomCursor() {
 
   const trailRef = useRef<HTMLCanvasElement>(null)
   const cursorRef = useRef<HTMLDivElement>(null)
-  const pointsRef = useRef<{ x: number; y: number; life: number }[]>([])
+
+  // Fixed-size ring buffer of point objects, allocated once. The draw loop used
+  // to rebuild the trail every frame with `.map(p => ({...p}))` followed by a
+  // `.filter()`, which handed the GC two arrays and up to twenty objects per
+  // frame, forever, purely to decrement one number on each of them.
+  const pointsRef = useRef(
+    Array.from({ length: TRAIL_MAX }, () => ({ x: 0, y: 0, life: 0 })),
+  )
+  const headRef = useRef(0)
+  const hoveringRef = useRef(false)
+  const targetingRef = useRef(false)
 
   const active = enabled && !reduced
 
@@ -46,10 +73,22 @@ export function CustomCursor() {
     // Sized on resize rather than inside the draw loop - assigning width or
     // height resets the canvas, so doing it per frame cleared and reallocated
     // the backing store 60 times a second.
+    let cssWidth = 0
+    let cssHeight = 0
+
     const sizeCanvas = () => {
-      if (!canvas) return
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
+      if (!canvas || !ctx) return
+      // Measured from the element's own laid-out box rather than innerWidth so
+      // the backing store matches whatever `inset-0` actually resolved to, and
+      // a classic scrollbar cannot put the drawing surface out of register.
+      cssWidth = canvas.clientWidth || window.innerWidth
+      cssHeight = canvas.clientHeight || window.innerHeight
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      canvas.width = Math.round(cssWidth * dpr)
+      canvas.height = Math.round(cssHeight * dpr)
+      // Assigning width/height resets the context transform, so the DPR scale
+      // has to be reapplied here. Everything below then draws in CSS pixels.
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     }
     sizeCanvas()
     window.addEventListener('resize', sizeCanvas)
@@ -58,33 +97,68 @@ export function CustomCursor() {
       if (cursorRef.current) {
         cursorRef.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`
       }
-      pointsRef.current.push({ x: e.clientX, y: e.clientY, life: 1 })
-      if (pointsRef.current.length > TRAIL_MAX) pointsRef.current.shift()
+      // Overwrite the oldest slot instead of push/shift, so no allocation
+      // happens on the hottest event on the page.
+      const point = pointsRef.current[headRef.current]
+      point.x = e.clientX
+      point.y = e.clientY
+      point.life = 1
+      headRef.current = (headRef.current + 1) % TRAIL_MAX
     }
 
     const onOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      setHovering(Boolean(target.closest('a, button, [data-cursor]')))
-      setTargeting(Boolean(target.closest('[data-cursor="target"]')))
+      const nextHovering = Boolean(target.closest('a, button, [data-cursor]'))
+      const nextTargeting = Boolean(target.closest('[data-cursor="target"]'))
+      // mouseover fires on every element boundary crossed. Only touch React
+      // state when the answer actually changed.
+      if (nextHovering !== hoveringRef.current) {
+        hoveringRef.current = nextHovering
+        setHovering(nextHovering)
+      }
+      if (nextTargeting !== targetingRef.current) {
+        targetingRef.current = nextTargeting
+        setTargeting(nextTargeting)
+      }
     }
 
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseover', onOver)
 
     let animId = 0
-    const drawTrail = () => {
-      if (ctx && canvas) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        pointsRef.current = pointsRef.current
-          .map((p) => ({ ...p, life: p.life - TRAIL_DECAY }))
-          .filter((p) => p.life > 0)
+    let lastTime = 0
+    let hadInk = false
 
-        for (const p of pointsRef.current) {
+    const drawTrail = (now: number) => {
+      if (ctx && canvas) {
+        const delta = lastTime === 0 ? 0 : Math.min((now - lastTime) / 1000, MAX_DELTA)
+        lastTime = now
+
+        const decay = delta * TRAIL_DECAY_PER_SECOND
+        const points = pointsRef.current
+        let hasInk = false
+
+        // Only clear when something was actually drawn last frame. A resting
+        // pointer otherwise costs a full-viewport clearRect every frame for as
+        // long as the page is open.
+        if (hadInk) ctx.clearRect(0, 0, cssWidth, cssHeight)
+
+        for (let i = 0; i < points.length; i++) {
+          const p = points[i]
+          if (p.life <= 0) continue
+          p.life -= decay
+          if (p.life <= 0) {
+            p.life = 0
+            continue
+          }
+          hasInk = true
           ctx.beginPath()
           ctx.arc(p.x, p.y, 2 * p.life, 0, Math.PI * 2)
           ctx.fillStyle = `rgba(199, 210, 254, ${p.life * 0.35})`
           ctx.fill()
         }
+
+        hadInk = hasInk
       }
       animId = requestAnimationFrame(drawTrail)
     }

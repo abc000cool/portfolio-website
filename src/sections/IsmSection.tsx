@@ -1,10 +1,25 @@
 import { useRef } from 'react'
+import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { portfolio } from '../data/portfolio'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
 import { useSectionReveal } from '../hooks/useSectionReveal'
 import { sectionShellClass } from '../lib/waypointLayout'
+
+/**
+ * Two-beat sequence for the columns inside the block reveal.
+ *
+ * The copy and the photograph used to arrive as a single slab. These add a
+ * small extra lift on top of the ScanWipe, offset so the text leads and the
+ * image follows a beat later - you read left, then look right. Only `y` is
+ * animated here: the parent already owns the fade, and nesting a second
+ * opacity ramp inside it would make both columns fade twice.
+ */
+const columnLift = { y: 12 }
+const COLUMN_SETTLED = { y: 0 }
+const columnBeat = (delay: number) =>
+  ({ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }) as const
 
 export function IsmSection() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -28,7 +43,11 @@ export function IsmSection() {
 
         <ScanWipe active={active}>
           <div className="grid lg:grid-cols-2 gap-10 items-center">
-            <div>
+            <motion.div
+              initial={columnLift}
+              animate={active ? COLUMN_SETTLED : columnLift}
+              transition={columnBeat(0.06)}
+            >
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-indigo-300/90 mb-3">
                 {ism.tagline}
               </p>
@@ -47,16 +66,21 @@ export function IsmSection() {
               >
                 Explore ISM journey →
               </Link>
-            </div>
+            </motion.div>
 
-            <div className="glass-card overflow-hidden">
+            <motion.div
+              className="glass-card overflow-hidden"
+              initial={columnLift}
+              animate={active ? COLUMN_SETTLED : columnLift}
+              transition={columnBeat(0.2)}
+            >
               <img
                 src={ism.image}
                 alt="Independent Study and Mentorship program"
                 className="w-full h-auto object-cover"
                 loading="lazy"
               />
-            </div>
+            </motion.div>
           </div>
         </ScanWipe>
       </div>

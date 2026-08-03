@@ -114,63 +114,106 @@ export function computeWaypointArcLengths(
   return lengths
 }
 
-function probeY(scrollY: number, containerTop: number): number {
-  return scrollY - containerTop + window.innerHeight * PROBE_RATIO
+/**
+ * Everything the scroll -> path-progress map needs, measured once.
+ *
+ * The map used to read the DOM on every scroll tick (two getElementById, two
+ * getBoundingClientRect and an offsetHeight), which forces layout inside the
+ * scroll handler. All of those values only change on resize or a ScrollTrigger
+ * refresh, so they are captured here and the per-tick map is pure arithmetic.
+ */
+export interface ScrollPathMapping {
+  /** Document-space Y of the path container. */
+  containerTop: number
+  /** Viewport offset of the probe line (window.innerHeight * PROBE_RATIO). */
+  probeOffset: number
+  /** Container-relative Y of each waypoint. */
+  waypointYs: number[]
+  arcLengths: number[]
+  totalPathLength: number
+  /** Container-relative top of the intro section, or null when the long-intro map does not apply. */
+  introTop: number | null
+  introHeight: number
+  introArcStart: number
+  introArcEnd: number
+  heroY: number
+}
+
+export function buildScrollPathMapping(
+  container: HTMLElement,
+  waypoints: Waypoint[],
+  arcLengths: number[],
+  totalPathLength: number,
+): ScrollPathMapping | null {
+  if (waypoints.length < 2 || totalPathLength <= 0 || arcLengths.length < 2) return null
+
+  const containerTop = container.getBoundingClientRect().top + window.scrollY
+  const introEl = document.getElementById('intro')
+  const heroIdx = waypoints.findIndex((w) => w.id === 'hero')
+  const longIntro = introEl !== null && heroIdx === 1
+
+  return {
+    containerTop,
+    probeOffset: window.innerHeight * PROBE_RATIO,
+    waypointYs: waypoints.map((w) => w.y),
+    arcLengths,
+    totalPathLength,
+    introTop: longIntro && introEl
+      ? introEl.getBoundingClientRect().top + window.scrollY - containerTop
+      : null,
+    introHeight: longIntro && introEl ? introEl.offsetHeight : 0,
+    introArcStart: arcLengths[0] ?? 0,
+    introArcEnd: arcLengths[1] ?? 0,
+    heroY: heroIdx >= 0 ? waypoints[heroIdx].y : 0,
+  }
 }
 
 /**
  * Maps scroll position to 0–1 progress along the SVG path (by arc length).
+ * Pure arithmetic over a cached mapping - safe to call every frame.
  */
+export function mapScrollToPathProgress(scrollY: number, m: ScrollPathMapping): number {
+  const ys = m.waypointYs
+  if (ys.length < 2 || m.totalPathLength <= 0) return 0
+
+  const py = scrollY - m.containerTop + m.probeOffset
+  const firstY = ys[0]
+  const lastY = ys[ys.length - 1]
+
+  if (py <= firstY) return 0
+  if (py >= lastY) return 1
+
+  // Long intro scroll: map scroll distance through intro to the intro→hero arc segment
+  if (m.introTop !== null && m.introHeight > 0 && py <= m.heroY) {
+    const t = Math.min(1, Math.max(0, scrollY - m.introTop) / m.introHeight)
+    return (m.introArcStart + t * (m.introArcEnd - m.introArcStart)) / m.totalPathLength
+  }
+
+  for (let i = 0; i < ys.length - 1; i++) {
+    if (py >= ys[i] && py <= ys[i + 1]) {
+      const span = ys[i + 1] - ys[i]
+      // A zero-height span would produce NaN and blank the rocket transform.
+      const t = span > 0 ? (py - ys[i]) / span : 0
+      const start = m.arcLengths[i]
+      const end = m.arcLengths[i + 1]
+      return (start + t * (end - start)) / m.totalPathLength
+    }
+  }
+
+  return 0
+}
+
+/** Convenience wrapper that measures and maps in one call. */
 export function scrollProgressToPathProgress(
   scrollY: number,
   waypoints: Waypoint[],
   arcLengths: number[],
   totalPathLength: number,
 ): number {
-  if (waypoints.length < 2 || totalPathLength <= 0 || arcLengths.length < 2) return 0
-
   const container = document.getElementById('main-content')
   if (!container) return 0
-
-  const containerTop = container.getBoundingClientRect().top + window.scrollY
-  const py = probeY(scrollY, containerTop)
-
-  const firstY = waypoints[0].y
-  const lastY = waypoints[waypoints.length - 1].y
-
-  if (py <= firstY) return 0
-  if (py >= lastY) return 1
-
-  const introEl = document.getElementById('intro')
-  const heroIdx = waypoints.findIndex((w) => w.id === 'hero')
-
-  // Long intro scroll: map scroll distance through intro to the intro→hero arc segment
-  if (introEl && heroIdx === 1) {
-    const introHeight = introEl.offsetHeight
-    const heroY = waypoints[heroIdx].y
-    const introDocTop = introEl.getBoundingClientRect().top + scrollY
-    const scrollThroughIntro = Math.max(0, scrollY - introDocTop + containerTop)
-
-    if (introHeight > 0 && py <= heroY) {
-      const t = Math.min(1, scrollThroughIntro / introHeight)
-      const start = arcLengths[0]
-      const end = arcLengths[1]
-      return (start + t * (end - start)) / totalPathLength
-    }
-  }
-
-  for (let i = 0; i < waypoints.length - 1; i++) {
-    const a = waypoints[i]
-    const b = waypoints[i + 1]
-    if (py >= a.y && py <= b.y) {
-      const t = (py - a.y) / (b.y - a.y)
-      const start = arcLengths[i]
-      const end = arcLengths[i + 1]
-      return (start + t * (end - start)) / totalPathLength
-    }
-  }
-
-  return py >= lastY ? 1 : 0
+  const mapping = buildScrollPathMapping(container, waypoints, arcLengths, totalPathLength)
+  return mapping ? mapScrollToPathProgress(scrollY, mapping) : 0
 }
 
 /** Normalized arc-length progress for a waypoint checkpoint (for dot highlighting). */

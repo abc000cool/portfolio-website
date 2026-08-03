@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMotionValue, useMotionValueEvent, type MotionValue } from 'motion/react'
 import { portfolio } from '../../data/portfolio'
+import { useReducedMotion } from '../../hooks/useReducedMotion'
 
 /**
  * The screen used to render a hardcoded polyline captioned "Altitude profile -
@@ -28,6 +29,7 @@ export function MacbookScreenContent({
   launchAt,
 }: MacbookScreenContentProps) {
   const fallback = useMotionValue(0)
+  const reduced = useReducedMotion()
   const [launch, setLaunch] = useState(false)
   const launchThreshold = launchAt ?? (compact ? 0.2 : 0.48)
 
@@ -35,6 +37,16 @@ export function MacbookScreenContent({
     const next = v >= launchThreshold
     setLaunch((prev) => (prev === next ? prev : next))
   })
+
+  /**
+   * The launch banner used to mount and unmount on the threshold, which put a
+   * full-width bar on screen in a single frame. It now stays mounted and slides
+   * up from under the screen edge, so crossing the threshold reads as a
+   * notification arriving instead of a pop.
+   */
+  const bannerMotion = `transition-[opacity,transform] duration-[450ms] ease-out ${
+    launch ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'
+  }`
 
   if (compact) {
     return (
@@ -82,13 +94,14 @@ export function MacbookScreenContent({
           </div>
         </div>
 
-        {launch && (
-          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center py-1 bg-indigo-600/25 border-t border-indigo-400/30">
-            <span className="text-[9px] font-mono tracking-widest text-indigo-200 uppercase">
-              Launch sequence
-            </span>
-          </div>
-        )}
+        <div
+          className={`pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center py-1 bg-indigo-600/25 border-t border-indigo-400/30 ${bannerMotion}`}
+          aria-hidden={!launch}
+        >
+          <span className="text-[9px] font-mono tracking-widest text-indigo-200 uppercase">
+            Launch sequence
+          </span>
+        </div>
       </div>
     )
   }
@@ -146,7 +159,11 @@ export function MacbookScreenContent({
           {/* Opportunities */}
           <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-2.5 py-2 min-h-[4.25rem] flex flex-col justify-center">
             <div className="flex items-center justify-center gap-1.5 mb-1.5">
-              <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span
+                className={`w-1 h-1 rounded-full bg-emerald-400 shrink-0 ${
+                  reduced ? '' : 'animate-pulse'
+                }`}
+              />
               <p className="text-[8px] uppercase tracking-widest text-emerald-300/90 m-0 text-center">
                 Open for opportunities
               </p>
@@ -177,25 +194,31 @@ export function MacbookScreenContent({
               <circle cx="40" cy="40" r="10" fill="#6366f1" opacity="0.15" />
               <ellipse cx="40" cy="40" rx="26" ry="11" fill="none" stroke="#475569" strokeWidth="0.5" strokeDasharray="2 2" transform="rotate(-18 40 40)" />
               <ellipse cx="40" cy="40" rx="34" ry="15" fill="none" stroke="#334155" strokeWidth="0.4" strokeDasharray="1.5 2.5" transform="rotate(-18 40 40)" />
+              {/* Idle life while the scene is parked. Slow enough not to fight
+                  the scroll-driven lid, absent entirely under reduced motion. */}
               <circle cx="62" cy="32" r="1.8" fill="#c7d2fe">
-                <animateTransform
-                  attributeName="transform"
-                  type="rotate"
-                  from="0 40 40"
-                  to="360 40 40"
-                  dur="14s"
-                  repeatCount="indefinite"
-                />
+                {!reduced && (
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 40 40"
+                    to="360 40 40"
+                    dur="14s"
+                    repeatCount="indefinite"
+                  />
+                )}
               </circle>
               <circle cx="14" cy="52" r="1.2" fill="#a5b4fc" opacity="0.7">
-                <animateTransform
-                  attributeName="transform"
-                  type="rotate"
-                  from="0 40 40"
-                  to="-360 40 40"
-                  dur="22s"
-                  repeatCount="indefinite"
-                />
+                {!reduced && (
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 40 40"
+                    to="-360 40 40"
+                    dur="22s"
+                    repeatCount="indefinite"
+                  />
+                )}
               </circle>
             </svg>
             <p className="absolute bottom-1.5 left-2.5 text-[9px] uppercase tracking-widest text-slate-600">
@@ -217,14 +240,19 @@ export function MacbookScreenContent({
         </div>
       </div>
 
-      {launch && (
-        <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-2 py-1.5 bg-indigo-600/20 border-t border-indigo-400/30 backdrop-blur-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 animate-ping" />
-          <span className="text-[9px] font-mono tracking-[0.25em] text-indigo-200 uppercase">
-            Launch sequence initiated
-          </span>
-        </div>
-      )}
+      <div
+        className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-2 py-1.5 bg-indigo-600/20 border-t border-indigo-400/30 backdrop-blur-sm ${bannerMotion}`}
+        aria-hidden={!launch}
+      >
+        <span
+          className={`w-1.5 h-1.5 rounded-full bg-indigo-300 ${
+            launch && !reduced ? 'animate-ping' : ''
+          }`}
+        />
+        <span className="text-[9px] font-mono tracking-[0.25em] text-indigo-200 uppercase">
+          Launch sequence initiated
+        </span>
+      </div>
 
       {/* Screen sheen */}
       <div
