@@ -30,19 +30,29 @@ const DEFAULT_SCROLL_HEIGHT_VH = 180
  */
 
 /**
- * Mount the canvas a full viewport ahead of the zone. Mounting late means the
- * scene appears with progress already part-way through its timeline, which
- * reads as a glitch rather than a reveal. The extra lead also gives shaders
- * time to compile off-screen.
+ * Mount the canvas well before the zone reaches the viewport. Mounting late
+ * means the scene appears with progress already part-way through its timeline,
+ * which reads as a glitch rather than a reveal, and it gives shaders no time to
+ * compile off-screen.
+ *
+ * The margin is SYMMETRIC on purpose. A bottom-only margin looks ahead when
+ * scrolling down but gives no lead at all when scrolling back up, because the
+ * block then enters through the top edge - which is exactly why scrolling up
+ * produced late mounts and frozen scenes.
  */
 const VIEWER_MOUNT_OBSERVER: IntersectionObserverInit = {
   threshold: 0,
-  rootMargin: '0px 0px 150% 0px',
+  rootMargin: '150% 0px 150% 0px',
 }
-/** Drive the frameloop / reveal only once the block is genuinely close. */
+/**
+ * Drives the frameloop. Also symmetric: while a viewer is inactive its Canvas
+ * sits on frameloop="demand" and holds whatever frame it last drew, so coming
+ * back up into a block with no lead margin showed a stale frame that then
+ * jumped to the current scroll position in one step.
+ */
 const VIEWER_ACTIVE_OBSERVER: IntersectionObserverInit = {
   threshold: 0,
-  rootMargin: '0px 0px 40% 0px',
+  rootMargin: '40% 0px 40% 0px',
 }
 
 /** Frame to park each viewer on when scroll scrubbing is unavailable. */

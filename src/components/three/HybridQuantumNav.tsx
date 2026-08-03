@@ -492,6 +492,7 @@ function FringeDetector({ progressRef }: { progressRef: ProgressRef }) {
     groupRef.current.visible = fringe > 0.02
     detectorMaterial.current.emissiveIntensity = 0.3 + fringe * 3.5
     bars.current.forEach((bar, index) => {
+      if (!bar) return
       const material = bar.material as THREE.MeshBasicMaterial
       material.opacity = fringe * (index % 2 === 0 ? 0.8 : 0.28)
       bar.scale.y = 0.65 + fringe * 0.35
@@ -676,6 +677,7 @@ function FusionBus({ progressRef }: { progressRef: ProgressRef }) {
     if (busMaterial.current) busMaterial.current.opacity = reveal * (0.35 + locked * 0.35)
 
     packets.current.forEach((packet, index) => {
+      if (!packet) return
       const cycle = (update * 3.1 - index * 0.34) % 1
       const visible = update > index * 0.08 && cycle > 0.02 && cycle < 0.98 && locked < 0.98
       packet.visible = visible

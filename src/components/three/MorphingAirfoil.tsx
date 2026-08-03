@@ -185,6 +185,11 @@ function FlowRibbons({
       group.scale.y = 1 + (cl - 0.8) * 0.16
     })
     materialRefs.current.forEach((material, index) => {
+      // Guarded like the group loop above. These are populated by drei's Line
+      // onUpdate, which can hand back an undefined material on the first frame
+      // after mount - and an exception thrown inside useFrame tears down the
+      // whole render loop for this canvas, so the scene simply stops.
+      if (!material) return
       material.opacity = reveal * (0.12 + optimized * 0.08 + (index % 3) * 0.025)
       material.color.set(index > 5 ? SUCTION_COLOR : FLOW_COLOR)
     })
