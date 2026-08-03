@@ -243,6 +243,16 @@ export const portfolio = {
   ] as Experience[],
   awards: [
     {
+      id: 'award-nasa-tas',
+      category: 'Aerospace',
+      title: 'NASA TAS Moonshot - 1st Place',
+      // TODO(ansh): expand this. Everything here is what was stated directly;
+      // the challenge brief, what was designed, the team size and the year are
+      // all unknown, and this card reads thin next to the others until they are
+      // filled in. Nothing below should be embellished without a source.
+      description: 'First place in the NASA TAS Moonshot challenge.',
+    },
+    {
       id: 'award-gita',
       category: 'Achievement',
       title: 'Bhagavad Gita Memorizer & World Record Participant',
