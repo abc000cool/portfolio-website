@@ -199,9 +199,9 @@ export const portfolio = {
     { label: 'US patent - SWEEP debris platform', display: '1' },
     { label: 'Research papers & preprints', display: '6' },
     { label: 'AMC 12 competitors - AIME qualifier', display: 'Top 0.5%' },
-    { label: 'FIRST World Championship qualifier', display: '3x' },
+    { label: 'FIRST World Championship qualifier', display: '2x' },
     { label: 'BPA National Leadership Conference', display: 'Top 10' },
-    { label: 'STRATOS stall-speed error vs Boeing 737-800', display: '1.5%' },
+    { label: 'NASA TAS Moonshot', display: '1st Place' },
   ] as Stat[],
   experiences: [
     {
@@ -254,7 +254,7 @@ export const portfolio = {
       category: 'Robotics',
       title: 'FIRST Robotics Awards',
       description:
-        'FIRST Impact Award and Engineering Inspiration Award with Team 6369, plus the Autonomous Award twice. Three-time Texas State and FIRST World Championship qualifier; won the FIT Belton, Amarillo, and San Antonio competitions.',
+        'FIRST Impact Award and Engineering Inspiration Award with Team 6369, plus the Autonomous Award twice. Two-time FIRST World Championship qualifier and Texas State qualifier; won the FIT Belton, Amarillo, and San Antonio competitions.',
     },
     {
       id: 'award-aime',

@@ -83,6 +83,44 @@ function ProjectCard({
   const tilt = useRef({ tx: 0, ty: 0, cx: 0, cy: 0, tLift: 0, cLift: 0, raf: 0, last: 0 })
 
   /**
+   * Card geometry, cached for the duration of one hover.
+   *
+   * The move handler used to call getBoundingClientRect() plus offsetWidth and
+   * offsetHeight on every mousemove. Each is a forced layout, and the frame loop
+   * is writing a transform to the same element, so every pointer event flushed
+   * layout that the previous frame had just invalidated. Measuring once on enter
+   * removes the read entirely from the hot path. It is invalidated on scroll,
+   * which is the only thing that moves the card while the pointer is inside it.
+   */
+  const box = useRef({ left: 0, top: 0, w: 0, h: 0, valid: false })
+
+  const readBox = useCallback((card: HTMLElement) => {
+    const rect = card.getBoundingClientRect()
+    // offsetWidth/Height are the untransformed layout size. The client rect
+    // reports the tilted box, and feeding that back in as the divisor would make
+    // the tilt target depend on the tilt it just produced.
+    box.current = {
+      left: rect.left,
+      top: rect.top,
+      w: card.offsetWidth,
+      h: card.offsetHeight,
+      valid: true,
+    }
+  }, [])
+
+  useEffect(() => {
+    const invalidate = () => {
+      box.current.valid = false
+    }
+    window.addEventListener('scroll', invalidate, { passive: true })
+    window.addEventListener('resize', invalidate)
+    return () => {
+      window.removeEventListener('scroll', invalidate)
+      window.removeEventListener('resize', invalidate)
+    }
+  }, [])
+
+  /**
    * The tilt used to be written straight to style.transform on every mousemove
    * while a `transform 0.25s ease` transition was live on the card. Every write
    * restarted a quarter-second transition from wherever the previous one had
@@ -156,27 +194,19 @@ function ProjectCard({
    */
   const handleMove = (e: React.MouseEvent<HTMLElement>) => {
     const card = e.currentTarget
-    const rect = card.getBoundingClientRect()
-    const px = e.clientX - rect.left
-    const py = e.clientY - rect.top
+    if (!box.current.valid) readBox(card)
+    const b = box.current
+    const px = e.clientX - b.left
+    const py = e.clientY - b.top
     // The spotlight is glued to the cursor by definition, so it is written raw.
     // Smoothing it would read as the highlight lagging behind the pointer.
     card.style.setProperty('--mx', `${px}px`)
     card.style.setProperty('--my', `${py}px`)
 
     if (reduced) return
-    /*
-     * Normalised against the layout box, not the client rect. getBoundingClientRect
-     * reports the *transformed* box, so once the card is tilted its reported
-     * width includes the rotation - feeding that back in as the divisor makes
-     * the tilt target depend on the tilt it just produced. offsetWidth is the
-     * untransformed layout size and breaks the loop.
-     */
-    const w = card.offsetWidth
-    const h = card.offsetHeight
-    if (!w || !h) return
-    tilt.current.tx = px / w - 0.5
-    tilt.current.ty = py / h - 0.5
+    if (!b.w || !b.h) return
+    tilt.current.tx = px / b.w - 0.5
+    tilt.current.ty = py / b.h - 0.5
     tilt.current.tLift = 1
     startLoop()
   }

@@ -535,6 +535,52 @@ export function ResearchSection() {
     if (sectionNear && !isMobile) prefetchResearchViewers()
   }, [sectionNear, isMobile])
 
+  /*
+   * Warm the viewer chunks during idle time instead of waiting until the
+   * visitor arrives.
+   *
+   * Measured before this: zero chunk requests were made until the research
+   * section came into view, at which point three.js, react-three-fiber and all
+   * six scenes were fetched and parsed at once - roughly a megabyte landing
+   * exactly when the visitor expected to see something. requestIdleCallback
+   * means this never competes with the intro animation, and the homepage is
+   * long enough that the fetch has finished well before anyone scrolls down.
+   */
+  useEffect(() => {
+    if (isMobile) return
+
+    type NetworkInformation = { saveData?: boolean; effectiveType?: string }
+    const conn = (navigator as Navigator & { connection?: NetworkInformation }).connection
+    // Do not spend someone's metered or slow connection on a decoration.
+    if (conn?.saveData) return
+    if (conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType)) return
+
+    type IdleWindow = Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    const w = window as IdleWindow
+
+    let cancelled = false
+    const run = () => {
+      if (!cancelled) prefetchResearchViewers()
+    }
+
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(run, { timeout: 4000 })
+      return () => {
+        cancelled = true
+        w.cancelIdleCallback?.(id)
+      }
+    }
+    // Safari has no requestIdleCallback; a plain delay clears the intro.
+    const id = window.setTimeout(run, 2500)
+    return () => {
+      cancelled = true
+      window.clearTimeout(id)
+    }
+  }, [isMobile])
+
   return (
     <section
       ref={sectionRef}
