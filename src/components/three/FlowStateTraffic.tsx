@@ -355,6 +355,9 @@ function FlowTracers({ progressRef }: { progressRef: ProgressRef }) {
       group.position.x = ((state.clock.elapsedTime * (0.08 + recovery * 0.14) + index * 0.08) % 0.16) - 0.08
     })
     materials.current.forEach((material) => {
+      // Callback-ref array: an entry can still be undefined on the first frame
+      // after mount, and a throw inside useFrame kills this canvas's loop.
+      if (!material) return
       material.opacity = field * (0.14 + recovery * 0.2)
       material.color.set(recovery > 0.55 ? GUIDANCE_COLOR : CFD_COLOR)
     })
@@ -389,6 +392,7 @@ function GuidancePulses({ progressRef }: { progressRef: ProgressRef }) {
     const active = smoothstep(range01(p, 0.52, 0.78))
     const settle = smoothstep(range01(p, 0.86, 1))
     pulses.current.forEach((pulse, index) => {
+      if (!pulse) return
       const cycle = (active * 2.5 - index * 0.32) % 1
       pulse.visible = active > 0.02 && settle < 0.98 && cycle > 0
       pulse.position.x = THREE.MathUtils.lerp(-2.5, 4.8, cycle)
