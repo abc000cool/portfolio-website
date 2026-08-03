@@ -1,10 +1,15 @@
+import { memo } from 'react'
+
 interface ArtificialHorizonProps {
   pitch: number
   roll: number
   size?: number
 }
 
-export function ArtificialHorizon({ pitch, roll, size = 100 }: ArtificialHorizonProps) {
+/** Pitch ladder offsets - module scope so the array is not rebuilt per frame. */
+const LADDER = [-20, -10, 0, 10, 20]
+
+function ArtificialHorizonImpl({ pitch, roll, size = 100 }: ArtificialHorizonProps) {
   const pitchOffset = pitch * 30
 
   return (
@@ -13,7 +18,7 @@ export function ArtificialHorizon({ pitch, roll, size = 100 }: ArtificialHorizon
       <clipPath id="horizonClip">
         <circle cx="50" cy="50" r="40" />
       </clipPath>
-      <g clipPath="url(#horizonClip)" transform={`rotate(${roll} 50 50)`}>
+      <g clipPath="url(#horizonClip)" transform={`rotate(${roll.toFixed(2)} 50 50)`}>
         <rect x="10" y={10 + pitchOffset} width="80" height="40" fill="#4a7cff" />
         <rect x="10" y={50 + pitchOffset} width="80" height="40" fill="#8B6914" />
         <line
@@ -24,7 +29,7 @@ export function ArtificialHorizon({ pitch, roll, size = 100 }: ArtificialHorizon
           stroke="#fff"
           strokeWidth="1.5"
         />
-        {[-20, -10, 0, 10, 20].map((offset) => (
+        {LADDER.map((offset) => (
           <line
             key={offset}
             x1="30"
@@ -41,3 +46,5 @@ export function ArtificialHorizon({ pitch, roll, size = 100 }: ArtificialHorizon
     </svg>
   )
 }
+
+export const ArtificialHorizon = memo(ArtificialHorizonImpl)

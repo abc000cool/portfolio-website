@@ -1,10 +1,11 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
-import { useMotionValue, useMotionValueEvent, type MotionValue } from 'motion/react'
+import { useMotionValue, useMotionValueEvent, useSpring, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import { useMotionProgressRef } from '../../hooks/useMotionProgressRef'
+import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useThrottledMotionValue } from '../../hooks/useThrottledMotionValue'
 import { smoothstep } from '../../lib/airfoilGeometry'
 import { ResearchViewerFrame, ViewerTelemetry } from '../research/ResearchViewerFrame'
@@ -18,21 +19,82 @@ const GUIDANCE_COLOR = '#22d3ee'
 const FREE_FLOW_COLOR = '#86efac'
 const CFD_COLOR = '#818cf8'
 
+// Hoisted so no frame has to parse a colour string or allocate a THREE.Color.
+const COLOR_CONGESTION = new THREE.Color(CONGESTION_COLOR)
+const COLOR_FREE_FLOW = new THREE.Color(FREE_FLOW_COLOR)
+const COLOR_GUIDANCE = new THREE.Color(GUIDANCE_COLOR)
+const COLOR_CFD = new THREE.Color(CFD_COLOR)
+
+// This canvas parks on frameloop "demand" while the section is off screen, so
+// the first delta after it wakes can be seconds long. Everything below steps on
+// a clamped delta so exponential smoothing converges instead of lurching.
+const MAX_STEP = 0.05
+// Approach rate for the shared scroll follower: fast enough to stay glued to
+// the scrub, slow enough to swallow wheel and trackpad jitter.
+const PROGRESS_LAMBDA = 11
+
+// Car following. Mean spacing on this ring is ROAD_LENGTH / CARS_PER_LANE
+// (0.6), so COMFORT_GAP sits below it: free flow is left alone and only a real
+// compression wave makes a driver lift off. CRAWL_GAP is where they stop. This
+// also puts a floor under how far the queue can compress, which the old
+// position-driven speed field had no protection against at all.
+const CRAWL_GAP = 0.34
+const COMFORT_GAP = 0.5
+// Drivers brake harder than they accelerate, which is what makes stop-and-go
+// read as stop-and-go rather than as a smooth speed dial.
+const ACCEL_LAMBDA = 1.7
+const BRAKE_LAMBDA = 5.4
+
 type ProgressRef = React.RefObject<number | null>
 
 interface CarState {
   lane: number
   offset: number
   speed: number
+  velocity: number
+  pitch: number
   connected: boolean
+  jitter: number
 }
 
 function range01(value: number, start: number, end: number) {
   return THREE.MathUtils.clamp((value - start) / (end - start), 0, 1)
 }
 
+/** Clamp a frame delta so a woken canvas cannot take one enormous step. */
+function frameStep(delta: number) {
+  if (!(delta > 0)) return 0
+  return delta > MAX_STEP ? MAX_STEP : delta
+}
+
+/** Fractional part, correct for negative input, so modulo cycles never flip sign. */
+function wrap01(value: number) {
+  return value - Math.floor(value)
+}
+
+function wrapTo(value: number, span: number) {
+  return value - Math.floor(value / span) * span
+}
+
 function deterministic(index: number, salt: number) {
   return ((Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453) % 1 + 1) % 1
+}
+
+function createCars(): CarState[] {
+  return Array.from({ length: TOTAL_CARS }, (_, index) => {
+    const speed = 0.88 + deterministic(index, 4) * 0.24
+    return {
+      lane: index % LANES,
+      offset:
+        ((Math.floor(index / LANES) / CARS_PER_LANE) * ROAD_LENGTH - ROAD_LENGTH / 2) +
+        deterministic(index, 3) * 0.18,
+      speed,
+      velocity: speed * 1.2,
+      pitch: 0,
+      connected: index % 19 === 0,
+      jitter: deterministic(index, 7),
+    }
+  })
 }
 
 function buildVehicleGeometry() {
@@ -57,11 +119,48 @@ function buildVehicleGeometry() {
   return geometry
 }
 
+/**
+ * One place that turns the raw scroll value into a damped one. Every other
+ * useFrame in this scene reads the damped ref, so scroll jitter is filtered
+ * once and the whole scene stays in phase with itself.
+ */
+function ProgressSmoother({
+  rawRef,
+  smoothRef,
+}: {
+  rawRef: ProgressRef
+  smoothRef: React.RefObject<number>
+}) {
+  const readyRef = useRef(false)
+  // Negative priority only affects ordering: R3F keeps auto-rendering unless a
+  // subscriber asks for a priority above zero. This guarantees the smoothed
+  // value is fresh before any consumer in this scene reads it.
+  useFrame((_, delta) => {
+    const target = THREE.MathUtils.clamp(rawRef.current ?? 0, 0, 1)
+    if (!readyRef.current) {
+      readyRef.current = true
+      smoothRef.current = target
+      return
+    }
+    smoothRef.current = THREE.MathUtils.damp(
+      smoothRef.current,
+      target,
+      PROGRESS_LAMBDA,
+      frameStep(delta),
+    )
+  }, -1)
+  return null
+}
+
 function CameraRig({ progressRef }: { progressRef: ProgressRef }) {
   const { camera } = useThree()
   const positionRef = useRef(new THREE.Vector3())
   const targetRef = useRef(new THREE.Vector3())
-  useFrame(() => {
+  const lookRef = useRef(new THREE.Vector3(-0.8, 0, 0.1))
+  const readyRef = useRef(false)
+
+  useFrame((_, delta) => {
+    const dt = frameStep(delta)
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
     const diagnose = smoothstep(range01(p, 0.08, 0.38))
     const intervene = smoothstep(range01(p, 0.52, 0.76))
@@ -78,8 +177,20 @@ function CameraRig({ progressRef }: { progressRef: ProgressRef }) {
       0,
       THREE.MathUtils.lerp(0.1, -0.1, diagnose),
     )
-    camera.position.lerp(position, 0.1)
-    camera.lookAt(target)
+
+    if (!readyRef.current) {
+      camera.position.copy(position)
+      lookRef.current.copy(target)
+      readyRef.current = true
+    } else {
+      // Frame-rate independent follow. The old fixed 0.1 alpha meant the
+      // camera moved at a different speed on a 120 Hz display.
+      camera.position.lerp(position, 1 - Math.exp(-6.5 * dt))
+      // The look-at point is damped too, otherwise every scroll tick lands
+      // straight on the camera's rotation.
+      lookRef.current.lerp(target, 1 - Math.exp(-5 * dt))
+    }
+    camera.lookAt(lookRef.current)
   })
   return null
 }
@@ -214,14 +325,23 @@ function LaneInfrastructure() {
 
 function Gantry({ progressRef }: { progressRef: ProgressRef }) {
   const signMaterial = useRef<THREE.MeshStandardMaterial>(null)
-  useFrame(() => {
+  // The sign used to flip red to green in a single frame at guidance > 0.5.
+  // This carries its own damped copy so the changeover reads as the panel
+  // relighting rather than as a hard cut.
+  const litRef = useRef(0)
+  useFrame((_, delta) => {
+    const material = signMaterial.current
+    if (!material) return
+    const dt = frameStep(delta)
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
     const guidance = smoothstep(range01(p, 0.52, 0.75))
-    if (signMaterial.current) {
-      signMaterial.current.color.set(guidance > 0.5 ? FREE_FLOW_COLOR : CONGESTION_COLOR)
-      signMaterial.current.emissive.set(guidance > 0.5 ? FREE_FLOW_COLOR : CONGESTION_COLOR)
-      signMaterial.current.emissiveIntensity = 0.8 + guidance * 2
-    }
+    litRef.current = THREE.MathUtils.damp(litRef.current, guidance, 4.5, dt)
+    const lit = litRef.current
+    material.color.lerpColors(COLOR_CONGESTION, COLOR_FREE_FLOW, lit)
+    material.emissive.lerpColors(COLOR_CONGESTION, COLOR_FREE_FLOW, lit)
+    // A short bloom as the message changes, so the sign has a beat of its own.
+    const changeover = Math.exp(-Math.pow((lit - 0.5) * 4.6, 2))
+    material.emissiveIntensity = 0.8 + lit * 2 + changeover * 1.15
   })
   return (
     <group position={[0.35, 0, 0]}>
@@ -253,53 +373,97 @@ function Gantry({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
-function TrafficVehicles({ progressRef }: { progressRef: ProgressRef }) {
+function TrafficVehicles({
+  progressRef,
+  reduced,
+}: {
+  progressRef: ProgressRef
+  reduced: boolean
+}) {
   const bodyRef = useRef<THREE.InstancedMesh>(null)
   const lightRef = useRef<THREE.InstancedMesh>(null)
   const dummy = useMemo(() => new THREE.Object3D(), [])
   const vehicleGeometry = useMemo(() => buildVehicleGeometry(), [])
-  const cars = useRef<CarState[]>(
-    Array.from({ length: TOTAL_CARS }, (_, index) => ({
-      lane: index % LANES,
-      offset: ((Math.floor(index / LANES) / CARS_PER_LANE) * ROAD_LENGTH - ROAD_LENGTH / 2) + deterministic(index, 3) * 0.18,
-      speed: 0.88 + deterministic(index, 4) * 0.24,
-      connected: index % 19 === 0,
-    })),
-  )
+  const cars = useRef<CarState[]>(createCars())
 
   useEffect(() => () => vehicleGeometry.dispose(), [vehicleGeometry])
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const body = bodyRef.current
     const lights = lightRef.current
     if (!body || !lights) return
+    const dt = frameStep(delta)
+    const time = state.clock.elapsedTime
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
     const jamBuild = smoothstep(range01(p, 0.1, 0.42))
     const recovery = smoothstep(range01(p, 0.55, 0.92))
+    const jam = jamBuild * (1 - recovery)
     const baseSpeed = THREE.MathUtils.lerp(1.2, 3.8, recovery)
+    // Beacons used to blink on the instant progress crossed 0.5.
+    const beacon = smoothstep(range01(p, 0.48, 0.6))
+    // Stop-and-go bands travel back up the queue. Purely additional energy, so
+    // it is switched off entirely under prefers-reduced-motion.
+    const waveAmount = reduced ? 0 : jam * 0.55
 
-    cars.current.forEach((car, index) => {
-      const distance = Math.abs(car.offset)
-      const bottleneck = 1 - Math.exp(-distance * distance * 0.7)
-      const jamFactor = THREE.MathUtils.lerp(1, 0.22 + bottleneck * 0.45, jamBuild * (1 - recovery))
-      car.offset += baseSpeed * car.speed * jamFactor * delta
+    const list = cars.current
+    for (let index = 0; index < list.length; index += 1) {
+      const car = list[index]
+      if (!car) continue
+
+      // Cars never overtake, so the cyclic order inside a lane is fixed and the
+      // car ahead is always LANES slots further along the flat array.
+      const leader = list[(index + LANES) % TOTAL_CARS]
+      let gap = ROAD_LENGTH / CARS_PER_LANE
+      if (leader && leader !== car) {
+        gap = leader.offset - car.offset
+        if (gap <= 0) gap += ROAD_LENGTH
+      }
+
+      // Capacity throat sits on the merge taper, with a milder corridor-wide
+      // drop around it. The queue behind it is not scripted; it emerges
+      // because each driver reacts to the one ahead.
+      const throat = Math.exp(-Math.pow((car.offset + 0.25) * 0.92, 2))
+      const capacity = 1 - jam * (0.26 + 0.52 * throat)
+      const queue = smoothstep(range01(-car.offset, 0.1, 3.2))
+      const band = 0.5 + 0.5 * Math.sin(car.offset * 2.35 + time * 1.9 + car.lane * 0.4)
+      const desired = baseSpeed * car.speed * capacity * (1 - waveAmount * queue * band)
+
+      // Soft following term: no effect at the natural spacing, near a full stop
+      // once the gap closes to CRAWL_GAP.
+      const follow = smoothstep(range01(gap, CRAWL_GAP, COMFORT_GAP))
+      const target = Math.max(0, desired * (0.05 + 0.95 * follow))
+
+      // Asymmetric approach: ease onto the throttle, come off it quickly.
+      const lambda = target < car.velocity ? BRAKE_LAMBDA : ACCEL_LAMBDA
+      const nextVelocity = THREE.MathUtils.damp(car.velocity, target, lambda, dt)
+      const accel = dt > 0 ? (nextVelocity - car.velocity) / dt : 0
+      car.velocity = nextVelocity
+      car.offset += car.velocity * dt
       if (car.offset > ROAD_LENGTH / 2) car.offset -= ROAD_LENGTH
-      const laneZ = (car.lane - 1) * 1.5
 
+      // Weight transfer: the nose dips under braking and lifts on the throttle.
+      const pitchTarget = reduced ? 0 : THREE.MathUtils.clamp(accel * 0.016, -0.055, 0.055)
+      car.pitch = THREE.MathUtils.damp(car.pitch, pitchTarget, 9, dt)
+
+      const laneZ = (car.lane - 1) * 1.5
       dummy.position.set(car.offset, 0.08, laneZ)
-      dummy.rotation.set(0, 0, 0)
+      dummy.rotation.set(0, 0, car.pitch)
       dummy.scale.setScalar(0.82)
       dummy.updateMatrix()
       body.setMatrixAt(index, dummy.matrix)
+
       dummy.position.set(car.offset - 0.31, 0.18, laneZ)
-      if (car.connected && p > 0.5) {
-        dummy.scale.set(0.045, 0.045, 0.14)
+      dummy.rotation.set(0, 0, 0)
+      if (car.connected && beacon > 0.01) {
+        const blink = reduced ? 1 : 0.74 + 0.26 * Math.sin(time * 5.4 + car.jitter * Math.PI * 2)
+        const amount = Math.max(0.02, beacon * blink)
+        dummy.scale.set(0.045 * amount, 0.045 * amount, 0.14 * amount)
       } else {
         dummy.scale.setScalar(0.001)
       }
       dummy.updateMatrix()
       lights.setMatrixAt(index, dummy.matrix)
-    })
+    }
     body.instanceMatrix.needsUpdate = true
     lights.instanceMatrix.needsUpdate = true
   })
@@ -330,6 +494,9 @@ function TrafficVehicles({ progressRef }: { progressRef: ProgressRef }) {
 function FlowTracers({ progressRef }: { progressRef: ProgressRef }) {
   const groups = useRef<THREE.Group[]>([])
   const materials = useRef<THREE.LineBasicMaterial[]>([])
+  // Accumulated drift instead of elapsedTime * rate. Multiplying a large clock
+  // by a changing rate teleports the dashes whenever the rate moves.
+  const driftRef = useRef(0)
   const paths = useMemo(
     () =>
       [-1.5, 0, 1.5].flatMap((z, lane) =>
@@ -345,21 +512,30 @@ function FlowTracers({ progressRef }: { progressRef: ProgressRef }) {
       ),
     [],
   )
-  useFrame((state) => {
+  useFrame((_, delta) => {
+    const dt = frameStep(delta)
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
     const field = smoothstep(range01(p, 0.28, 0.55))
     const recovery = smoothstep(range01(p, 0.55, 0.9))
+    // One dash period, so the wrap is invisible.
+    driftRef.current = wrapTo(driftRef.current + dt * (0.08 + recovery * 0.14), 0.16)
+    const total = Math.max(1, paths.length - 1)
+    const tint = smoothstep(range01(recovery, 0.3, 0.8))
+
     groups.current.forEach((group, index) => {
       if (!group) return
       group.visible = field > 0.02
-      group.position.x = ((state.clock.elapsedTime * (0.08 + recovery * 0.14) + index * 0.08) % 0.16) - 0.08
+      group.position.x = wrapTo(driftRef.current + index * 0.08, 0.16) - 0.08
     })
-    materials.current.forEach((material) => {
+    materials.current.forEach((material, index) => {
       // Callback-ref array: an entry can still be undefined on the first frame
       // after mount, and a throw inside useFrame kills this canvas's loop.
       if (!material) return
-      material.opacity = field * (0.14 + recovery * 0.2)
-      material.color.set(recovery > 0.55 ? GUIDANCE_COLOR : CFD_COLOR)
+      // Ribbons arrive in order rather than as one block.
+      const lead = (index / total) * 0.4
+      const gate = smoothstep(range01(field, lead, lead + 0.6))
+      material.opacity = gate * field * (0.14 + recovery * 0.2)
+      material.color.lerpColors(COLOR_CFD, COLOR_GUIDANCE, tint)
     })
   })
   return (
@@ -385,20 +561,47 @@ function FlowTracers({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
-function GuidancePulses({ progressRef }: { progressRef: ProgressRef }) {
+function GuidancePulses({
+  progressRef,
+  reduced,
+}: {
+  progressRef: ProgressRef
+  reduced: boolean
+}) {
   const pulses = useRef<THREE.Mesh[]>([])
-  useFrame(() => {
+  // Accumulated phase rather than progress * 2.5, so the wavefront keeps a
+  // steady speed instead of stuttering with the scroll.
+  const phaseRef = useRef(0)
+  useFrame((_, delta) => {
+    const dt = frameStep(delta)
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
     const active = smoothstep(range01(p, 0.52, 0.78))
     const settle = smoothstep(range01(p, 0.86, 1))
-    pulses.current.forEach((pulse, index) => {
-      if (!pulse) return
-      const cycle = (active * 2.5 - index * 0.32) % 1
-      pulse.visible = active > 0.02 && settle < 0.98 && cycle > 0
+    const strength = active * (1 - settle)
+
+    if (reduced) {
+      // No self-running loop: the phase stays tied to the scrub.
+      phaseRef.current = wrap01(active * 2.5)
+    } else {
+      phaseRef.current = wrap01(phaseRef.current + dt * (0.3 + active * 0.32))
+    }
+
+    for (let index = 0; index < pulses.current.length; index += 1) {
+      const pulse = pulses.current[index]
+      if (!pulse) continue
+      const cycle = wrap01(phaseRef.current - index * 0.32)
+      // Ramp in at the start of the run and out at the end, so the modulo wrap
+      // never lands on a visible ring.
+      const fade =
+        smoothstep(range01(cycle, 0, 0.18)) * (1 - smoothstep(range01(cycle, 0.7, 1)))
+      const amount = fade * strength
+      const material = pulse.material as THREE.MeshBasicMaterial
+      pulse.visible = amount > 0.005
+      if (!pulse.visible) continue
       pulse.position.x = THREE.MathUtils.lerp(-2.5, 4.8, cycle)
       pulse.scale.setScalar(0.8 + cycle * 0.55)
-      ;(pulse.material as THREE.MeshBasicMaterial).opacity = Math.sin(cycle * Math.PI) * 0.18
-    })
+      material.opacity = amount * 0.24
+    }
   })
   return (
     <>
@@ -423,7 +626,15 @@ function GuidancePulses({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
-function TrafficScene({ progressRef }: { progressRef: ProgressRef }) {
+function TrafficScene({
+  progressRef,
+  reduced,
+}: {
+  progressRef: ProgressRef
+  reduced: boolean
+}) {
+  // Seeded from the raw ref by ProgressSmoother on its first frame.
+  const smoothProgress = useRef(0)
   return (
     <>
       <color attach="background" args={['#040711']} />
@@ -432,14 +643,15 @@ function TrafficScene({ progressRef }: { progressRef: ProgressRef }) {
       <directionalLight position={[4, 7, 5]} intensity={1.55} color="#f8fafc" castShadow />
       <directionalLight position={[-4, 3, -2]} intensity={0.62} color={CFD_COLOR} />
       <pointLight position={[0, 2, 2]} intensity={0.5} color={GUIDANCE_COLOR} distance={5} />
-      <CameraRig progressRef={progressRef} />
+      <ProgressSmoother rawRef={progressRef} smoothRef={smoothProgress} />
+      <CameraRig progressRef={smoothProgress} />
       <CorridorStage />
-      <RoadField progressRef={progressRef} />
+      <RoadField progressRef={smoothProgress} />
       <LaneInfrastructure />
-      <Gantry progressRef={progressRef} />
-      <TrafficVehicles progressRef={progressRef} />
-      <FlowTracers progressRef={progressRef} />
-      <GuidancePulses progressRef={progressRef} />
+      <Gantry progressRef={smoothProgress} />
+      <TrafficVehicles progressRef={smoothProgress} reduced={reduced} />
+      <FlowTracers progressRef={smoothProgress} />
+      <GuidancePulses progressRef={smoothProgress} reduced={reduced} />
     </>
   )
 }
@@ -484,6 +696,15 @@ function getTelemetry(progress: number) {
   }
 }
 
+// Overdamped on purpose: the readouts settle without ever overshooting past a
+// phase boundary and flicking the label back and forth.
+const TELEMETRY_SPRING = {
+  stiffness: 110,
+  damping: 30,
+  mass: 0.55,
+  restDelta: 0.0004,
+}
+
 export interface FlowStateTrafficProps {
   scrollProgress?: number
   progress?: MotionValue<number>
@@ -499,10 +720,14 @@ export function FlowStateTraffic({
 }: FlowStateTrafficProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isVisible = useIntersectionPause(containerRef)
+  const reduced = useReducedMotion()
   const progressRef = useMotionProgressRef(progress, scrollProgress)
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
-  const liveProgress = useThrottledMotionValue(source, 100)
+  // The 3D scene keeps reading the raw value; only the printed numbers are
+  // damped, so the readouts stop flickering without the scene going soft.
+  const settledSource = useSpring(source, TELEMETRY_SPRING)
+  const liveProgress = useThrottledMotionValue(reduced ? source : settledSource, 100)
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
@@ -514,13 +739,14 @@ export function FlowStateTraffic({
     progressRef.current = value
   })
 
-  const telemetry = getTelemetry(liveProgress)
+  const shownProgress = THREE.MathUtils.clamp(liveProgress, 0, 1)
+  const telemetry = getTelemetry(shownProgress)
 
   return (
     <div ref={containerRef}>
       <ResearchViewerFrame
         className={`${className} research-viewer--flowstate`}
-        progressPercent={Math.round(liveProgress * 100)}
+        progressPercent={Math.round(shownProgress * 100)}
         telemetry={
           <ViewerTelemetry
             label="Traffic digital twin"
@@ -550,11 +776,11 @@ export function FlowStateTraffic({
           style={{ background: 'transparent' }}
         >
           <Suspense fallback={null}>
-            <TrafficScene progressRef={progressRef} />
+            <TrafficScene progressRef={progressRef} reduced={reduced} />
           </Suspense>
         </Canvas>
         <div className="viewer-phase" aria-hidden="true">
-          <span className="viewer-phase__index">{String(Math.min(6, Math.floor(liveProgress * 7)) + 1).padStart(2, '0')}</span>
+          <span className="viewer-phase__index">{String(Math.min(6, Math.floor(shownProgress * 7)) + 1).padStart(2, '0')}</span>
           <span className="viewer-phase__copy"><strong>{telemetry.phase}</strong><small>{telemetry.detail}</small></span>
         </div>
       </ResearchViewerFrame>

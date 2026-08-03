@@ -1,10 +1,11 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import { useMotionValue, useMotionValueEvent, type MotionValue } from 'motion/react'
 import * as THREE from 'three'
 import { useIntersectionPause } from '../../hooks/useIntersectionPause'
 import { useMotionProgressRef } from '../../hooks/useMotionProgressRef'
+import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useThrottledMotionValue } from '../../hooks/useThrottledMotionValue'
 import { smoothstep } from '../../lib/airfoilGeometry'
 import {
@@ -20,6 +21,21 @@ const CAPTURE_COLOR = '#86efac'
 const RAIL_COLOR = '#fbbf24'
 const ORBIT_COLOR = '#818cf8'
 
+/**
+ * Longest step any smoother here will integrate. This canvas runs on
+ * frameloop="demand" while it is off screen, so the frame it wakes up on can
+ * report a multi-second delta. Clamping keeps that from lurching.
+ */
+const MAX_DELTA = 0.05
+/** Temporal smoothing on the raw scroll value, applied before anything reads it. */
+const PROGRESS_LAMBDA = 12
+/** Bigger jumps than this are a scrub, not a scroll: snap rather than ease. */
+const PROGRESS_SNAP = 0.14
+const CAMERA_LAMBDA = 6.2
+const CAMERA_AIM_LAMBDA = 7.6
+/** Past this much travel the camera has been teleported, so do not fly there. */
+const CAMERA_SNAP_DISTANCE_SQ = 6.25
+
 type ProgressRef = React.RefObject<number | null>
 
 function range01(value: number, start: number, end: number) {
@@ -30,22 +46,73 @@ function deterministic(index: number, salt: number) {
   return ((Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453) % 1 + 1) % 1
 }
 
-function CameraRig({ progressRef }: { progressRef: ProgressRef }) {
+/** Frame-rate independent exponential approach. Stable under variable delta. */
+function damp(current: number, target: number, lambda: number, dt: number) {
+  return current + (target - current) * (1 - Math.exp(-lambda * dt))
+}
+
+function dampVector(current: THREE.Vector3, target: THREE.Vector3, lambda: number, dt: number) {
+  current.lerp(target, 1 - Math.exp(-lambda * dt))
+}
+
+function easeOutCubic(t: number) {
+  const inv = 1 - t
+  return 1 - inv * inv * inv
+}
+
+function easeInOutCubic(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+}
+
+/**
+ * A damped copy of the scroll value.
+ *
+ * Reading scroll progress raw maps every bit of wheel and trackpad jitter
+ * straight onto the animation. Each rig keeps its own copy rather than sharing
+ * mutable module state, and because they all integrate the same input with the
+ * same constants on the same frame they stay in lockstep with each other.
+ */
+function useDampedProgress() {
+  const state = useRef({ value: 0, primed: false })
+  return useCallback((raw: number, dt: number) => {
+    const s = state.current
+    const target = THREE.MathUtils.clamp(raw, 0, 1)
+    if (!s.primed) {
+      s.primed = true
+      s.value = target
+    } else if (Math.abs(target - s.value) > PROGRESS_SNAP) {
+      s.value = target
+    } else {
+      s.value = damp(s.value, target, PROGRESS_LAMBDA, dt)
+    }
+    return s.value
+  }, [])
+}
+
+function CameraRig({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
   const { camera } = useThree()
   const positionRef = useRef(new THREE.Vector3())
   const targetRef = useRef(new THREE.Vector3())
+  const aimRef = useRef(new THREE.Vector3())
+  const primedRef = useRef(false)
+  const smoothProgress = useDampedProgress()
 
-  useFrame(() => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, MAX_DELTA)
+    const p = smoothProgress(progressRef.current ?? 0, dt)
+    const time = state.clock.elapsedTime
     const intercept = smoothstep(range01(p, 0.18, 0.38))
     const operation = smoothstep(range01(p, 0.38, 0.72))
     const pullback = smoothstep(range01(p, 0.78, 1))
     const position = positionRef.current
     const target = targetRef.current
+    const aim = aimRef.current
+    // Barely-there breathing so a scene parked mid-scroll still has parallax.
+    const breath = reduced ? 0 : 1
 
     position.set(
-      THREE.MathUtils.lerp(4.2, 3.25, intercept) + pullback * 0.8,
-      THREE.MathUtils.lerp(2.0, 1.35, intercept) + pullback * 0.4,
+      THREE.MathUtils.lerp(4.2, 3.25, intercept) + pullback * 0.8 + Math.sin(time * 0.21) * 0.05 * breath,
+      THREE.MathUtils.lerp(2.0, 1.35, intercept) + pullback * 0.4 + Math.sin(time * 0.17 + 1.1) * 0.035 * breath,
       THREE.MathUtils.lerp(5.1, 4.25, operation) + pullback * 0.55,
     )
     // Opening frame is aimed between Earth and the vehicle rather than at the
@@ -56,8 +123,18 @@ function CameraRig({ progressRef }: { progressRef: ProgressRef }) {
       THREE.MathUtils.lerp(0.28, 0.45, operation),
       0,
     )
-    camera.position.lerp(position, 0.1)
-    camera.lookAt(target)
+
+    if (!primedRef.current) {
+      primedRef.current = true
+      aim.copy(target)
+    } else if (camera.position.distanceToSquared(position) > CAMERA_SNAP_DISTANCE_SQ) {
+      camera.position.copy(position)
+      aim.copy(target)
+    } else {
+      dampVector(camera.position, position, CAMERA_LAMBDA, dt)
+      dampVector(aim, target, CAMERA_AIM_LAMBDA, dt)
+    }
+    camera.lookAt(aim)
   })
   return null
 }
@@ -89,8 +166,12 @@ function Starfield() {
 
 function Earth() {
   const earthRef = useRef<THREE.Mesh>(null)
-  useFrame((state) => {
-    if (earthRef.current) earthRef.current.rotation.y = state.clock.elapsedTime * 0.025
+  const spinRef = useRef(0)
+  useFrame((_, delta) => {
+    // Integrated rather than derived from elapsed time, so the rotation rate can
+    // never be multiplied back through the whole clock.
+    spinRef.current = (spinRef.current + Math.min(delta, MAX_DELTA) * 0.025) % (Math.PI * 2)
+    if (earthRef.current) earthRef.current.rotation.y = spinRef.current
   })
   return (
     <group position={[-1.25, -1.42, -0.72]}>
@@ -161,10 +242,11 @@ function OrbitShells() {
   )
 }
 
-function DebrisField({ progressRef }: { progressRef: ProgressRef }) {
+function DebrisField({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const glowRef = useRef<THREE.InstancedMesh>(null)
   const dummy = useMemo(() => new THREE.Object3D(), [])
+  const smoothProgress = useDampedProgress()
   const states = useMemo(
     () =>
       Array.from({ length: DEBRIS_COUNT }, (_, index) => ({
@@ -178,20 +260,26 @@ function DebrisField({ progressRef }: { progressRef: ProgressRef }) {
     [],
   )
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const mesh = meshRef.current
     const glow = glowRef.current
     if (!mesh || !glow) return
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+    const dt = Math.min(delta, MAX_DELTA)
+    const p = smoothProgress(progressRef.current ?? 0, dt)
     const tracking = smoothstep(range01(p, 0.1, 0.28))
     const cleared = smoothstep(range01(p, 0.42, 0.92))
     const time = state.clock.elapsedTime
-    const trackedCount = Math.floor(tracking * 28)
-    const clearedCount = Math.floor(cleared * 82)
+    // Fractional edges rather than integer counts. The old floor() meant every
+    // piece flipped between full size and 4% in a single frame.
+    const trackedEdge = tracking * 28
+    const clearedEdge = cleared * 82
 
     states.forEach((debris, index) => {
       const angle = debris.angle + time * debris.speed
-      const visibleScale = index < clearedCount ? debris.scale * 0.04 : debris.scale
+      const clearT = THREE.MathUtils.clamp(clearedEdge - index, 0, 2) * 0.5
+      // Ease in, so a piece hangs on then collapses as the sweep reaches it.
+      const collapse = clearT * clearT
+      const visibleScale = debris.scale * THREE.MathUtils.lerp(1, 0.04, collapse)
       dummy.position.set(
         Math.cos(angle) * debris.radius - 1.25,
         Math.sin(angle) * debris.radius * Math.sin(debris.inclination) - 1.42,
@@ -202,8 +290,10 @@ function DebrisField({ progressRef }: { progressRef: ProgressRef }) {
       dummy.updateMatrix()
       mesh.setMatrixAt(index, dummy.matrix)
 
-      const tracked = index < trackedCount && index >= clearedCount
-      dummy.scale.setScalar(tracked ? visibleScale * 2.4 : 0.001)
+      const lockT = smoothstep(THREE.MathUtils.clamp(trackedEdge - index, 0, 1.5) / 1.5)
+      const pulse = reduced ? 1 : 0.86 + Math.sin(time * 2.4 + index * 0.9) * 0.14
+      const halo = lockT * (1 - collapse) * pulse
+      dummy.scale.setScalar(Math.max(0.0001, visibleScale * 2.4 * halo))
       dummy.updateMatrix()
       glow.setMatrixAt(index, dummy.matrix)
     })
@@ -234,11 +324,25 @@ function DebrisField({ progressRef }: { progressRef: ProgressRef }) {
 function CmgAssembly({ progressRef }: { progressRef: ProgressRef }) {
   const outerRef = useRef<THREE.Group>(null)
   const innerRef = useRef<THREE.Group>(null)
-  useFrame((state) => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  const outerAngle = useRef(0)
+  const innerAngle = useRef(0)
+  const outerRate = useRef(0.25)
+  const innerRate = useRef(0.2)
+  const smoothProgress = useDampedProgress()
+
+  useFrame((_, delta) => {
+    const dt = Math.min(delta, MAX_DELTA)
+    const p = smoothProgress(progressRef.current ?? 0, dt)
     const stabilize = smoothstep(range01(p, 0.72, 0.9))
-    if (outerRef.current) outerRef.current.rotation.x = state.clock.elapsedTime * (0.25 + stabilize * 3)
-    if (innerRef.current) innerRef.current.rotation.y = -state.clock.elapsedTime * (0.2 + stabilize * 3.6)
+    // Rates are integrated into an angle instead of multiplying elapsed time.
+    // The old form jumped the wheel by (elapsed * rate change) every time the
+    // scroll moved, which read as a stutter rather than a spin-up.
+    outerRate.current = damp(outerRate.current, 0.25 + stabilize * 3, 3.4, dt)
+    innerRate.current = damp(innerRate.current, 0.2 + stabilize * 3.6, 3.1, dt)
+    outerAngle.current = (outerAngle.current + outerRate.current * dt) % (Math.PI * 2)
+    innerAngle.current = (innerAngle.current - innerRate.current * dt) % (Math.PI * 2)
+    if (outerRef.current) outerRef.current.rotation.x = outerAngle.current
+    if (innerRef.current) innerRef.current.rotation.y = innerAngle.current
   })
   return (
     <group position={[-0.38, 0, 0]}>
@@ -259,6 +363,13 @@ function CmgAssembly({ progressRef }: { progressRef: ProgressRef }) {
 }
 
 const CAPTURE_PIECES = 6
+const CAPTURE_START = 0.24
+const CAPTURE_STAGGER = 0.048
+const CAPTURE_WINDOW = 0.17
+
+function captureStart(index: number) {
+  return CAPTURE_START + index * CAPTURE_STAGGER
+}
 
 /**
  * Debris funnelling into the tunnel mouth.
@@ -270,35 +381,60 @@ const CAPTURE_PIECES = 6
  *
  * Rendered inside the rig group, so the pieces travel with the vehicle.
  */
-function CaptureStream({ progressRef }: { progressRef: ProgressRef }) {
+function CaptureStream({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
   const meshes = useRef<(THREE.Mesh | null)[]>([])
+  const scales = useRef<number[]>([])
+  const primedRef = useRef(false)
+  const targetPos = useMemo(() => new THREE.Vector3(), [])
+  const smoothProgress = useDampedProgress()
 
-  useFrame(() => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, MAX_DELTA)
+    const p = smoothProgress(progressRef.current ?? 0, dt)
+    const time = state.clock.elapsedTime
+    const primed = primedRef.current
 
     meshes.current.forEach((mesh, i) => {
       if (!mesh) return
       // Staggered so they arrive one after another instead of all at once.
-      const start = 0.24 + i * 0.048
-      const t = smoothstep(range01(p, start, start + 0.17))
+      const start = captureStart(i)
+      const t = range01(p, start, start + CAPTURE_WINDOW)
+      // Accelerating rather than linear: a piece loiters in the queue and is
+      // then snatched, instead of gliding in at a constant rate.
+      const draw = t * t
+      // Compaction happens at the mouth, not on the way there.
+      const crush = smoothstep(range01(t, 0.5, 1))
 
       const queueX = 1.08 + i * 0.38
       const lateral = (deterministic(i, 7) - 0.5) * 0.62
       const vertical = (deterministic(i, 11) - 0.5) * 0.54
+      // Loose tumble while queued, gone by the time it is under tow.
+      const drift = reduced ? 0 : (1 - t) * 0.028
 
       // Converge on the chamber, flattening the spread as they approach.
-      mesh.position.set(
-        THREE.MathUtils.lerp(queueX, 0.14, t),
-        THREE.MathUtils.lerp(vertical, 0, t),
-        THREE.MathUtils.lerp(lateral, 0, t),
+      targetPos.set(
+        THREE.MathUtils.lerp(queueX, 0.14, draw),
+        THREE.MathUtils.lerp(vertical, 0, draw) + Math.sin(time * 0.62 + i * 1.3) * drift,
+        THREE.MathUtils.lerp(lateral, 0, draw) + Math.cos(time * 0.47 + i * 1.9) * drift,
       )
+      if (!primed) mesh.position.copy(targetPos)
+      else dampVector(mesh.position, targetPos, 14, dt)
+
       // Compacted into a pellet as it enters, rather than simply vanishing.
       const size = 0.1 + deterministic(i, 3) * 0.055
-      mesh.scale.setScalar(THREE.MathUtils.lerp(size, 0.018, t))
-      mesh.rotation.x += 0.021 + i * 0.003
-      mesh.rotation.y += 0.014
-      mesh.visible = t < 0.99
+      const targetScale = THREE.MathUtils.lerp(size, 0.018, crush)
+      const current = scales.current[i]
+      const next = primed && current !== undefined ? damp(current, targetScale, 13, dt) : targetScale
+      scales.current[i] = next
+      mesh.scale.setScalar(next)
+
+      // Spins up as it is dragged in, then the spin bleeds off under compaction.
+      const settle = (1 + 1.5 * draw * (1 - crush)) * (1 - easeInOutCubic(crush) * 0.94)
+      mesh.rotation.x += (1.26 + i * 0.18) * settle * dt
+      mesh.rotation.y += 0.84 * settle * dt
+      mesh.visible = t < 1 || next > 0.025
     })
+    primedRef.current = true
   })
 
   return (
@@ -318,34 +454,130 @@ function CaptureStream({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
-function SweepVehicle({ progressRef }: { progressRef: ProgressRef }) {
+/** Scroll position where the rail is considered to have fired. */
+const EJECT_FIRE_P = 0.585
+/** Scrolling back past this re-arms the shot. */
+const EJECT_ARM_P = 0.55
+/** Underdamped so the hull swings back once and settles instead of snapping. */
+const RECOIL_STIFFNESS = 118
+const RECOIL_DAMPING = 12
+/** Sized so the hull peaks near the 0.12 offset the old hard-coded kick used. */
+const RECOIL_IMPULSE = 2.5
+
+/**
+ * The discharge gate. Effectively a step, since it opens across well under one
+ * percent of the beat, but ramped over a couple of frames so a scroll that
+ * parks exactly on the trigger cannot strobe the rail.
+ */
+function dischargeGate(raw: number) {
+  return smoothstep(range01(raw, EJECT_FIRE_P - 0.004, EJECT_FIRE_P + 0.004))
+}
+
+function SweepVehicle({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
   const rigRef = useRef<THREE.Group>(null)
   const chamberRef = useRef<THREE.MeshStandardMaterial>(null)
   const railRef = useRef<THREE.MeshStandardMaterial>(null)
+  const basePos = useMemo(() => new THREE.Vector3(1.62, 0.92, 0.55), [])
+  const targetPos = useMemo(() => new THREE.Vector3(), [])
+  const yawRef = useRef(-0.4)
+  const chamberGlow = useRef(0.25)
+  const recoil = useRef({ offset: 0, velocity: 0, armed: true })
+  const primedRef = useRef(false)
+  const smoothProgress = useDampedProgress()
 
-  useFrame(() => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, MAX_DELTA)
+    const raw = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+    const p = smoothProgress(raw, dt)
+    const time = state.clock.elapsedTime
+    const primed = primedRef.current
     const enter = smoothstep(range01(p, 0.22, 0.4))
     const compress = Math.sin(range01(p, 0.42, 0.58) * Math.PI)
-    const fire = Math.sin(range01(p, 0.58, 0.72) * Math.PI)
-    const recoil = smoothstep(range01(p, 0.6, 0.7)) * (1 - smoothstep(range01(p, 0.72, 0.82)))
+    const stabilize = smoothstep(range01(p, 0.72, 0.9))
+
+    /*
+     * The shot itself is a genuinely instantaneous event, so it is triggered off
+     * the raw scroll value and kicks a spring. Reading the recoil straight from
+     * progress meant it froze wherever the scroll stopped and snapped back on
+     * the way out; an impulse decays on its own clock and always settles.
+     */
+    const kick = recoil.current
+    if (raw < EJECT_ARM_P) kick.armed = true
+    else if (kick.armed && raw >= EJECT_FIRE_P) {
+      kick.armed = false
+      // Only fire if the beat is actually being played, not if the viewer
+      // arrived with the scroll already past it.
+      if (raw < 0.7 && !reduced) kick.velocity -= RECOIL_IMPULSE
+    }
+    // Control moment gyros bleed the oscillation off during the stabilize beat.
+    // Semi-implicit on the spring term and an exact exponential on the damping
+    // term, so the integrator cannot ring at a long clamped step.
+    const springDamping = RECOIL_DAMPING + stabilize * 22
+    kick.velocity -= RECOIL_STIFFNESS * kick.offset * dt
+    kick.velocity *= Math.exp(-springDamping * dt)
+    kick.offset += kick.velocity * dt
+    if (Math.abs(kick.offset) < 1e-4 && Math.abs(kick.velocity) < 1e-4) {
+      kick.offset = 0
+      kick.velocity = 0
+    }
+
+    // Station keeping before the gyros spin up, dead calm after.
+    const idle = reduced ? 0 : 1 - stabilize
+
+    // Starts inside the frame. It used to begin at x=2.3, which put the
+    // capture tunnel half outside the viewer for the whole approach.
+    targetPos.set(
+      THREE.MathUtils.lerp(1.62, 0.75, enter),
+      THREE.MathUtils.lerp(0.92, 0.55, enter) + Math.sin(time * 0.55) * 0.012 * idle,
+      THREE.MathUtils.lerp(0.55, 0, enter) + Math.sin(time * 0.41 + 2.1) * 0.01 * idle,
+    )
+    if (!primed) basePos.copy(targetPos)
+    else dampVector(basePos, targetPos, 7, dt)
+
+    const yawTarget = THREE.MathUtils.lerp(-0.4, -0.12, enter)
+    yawRef.current = primed ? damp(yawRef.current, yawTarget, 7, dt) : yawTarget
 
     if (rigRef.current) {
-      // Starts inside the frame. It used to begin at x=2.3, which put the
-      // capture tunnel half outside the viewer for the whole approach.
       rigRef.current.position.set(
-        THREE.MathUtils.lerp(1.62, 0.75, enter) - recoil * 0.12,
-        THREE.MathUtils.lerp(0.92, 0.55, enter),
-        THREE.MathUtils.lerp(0.55, 0, enter),
+        basePos.x + kick.offset,
+        basePos.y,
+        basePos.z,
       )
-      rigRef.current.rotation.y = THREE.MathUtils.lerp(-0.4, -0.12, enter)
+      rigRef.current.rotation.y = yawRef.current + kick.offset * 0.22
+      rigRef.current.rotation.z = kick.offset * -0.5 + Math.sin(time * 0.7) * 0.008 * idle
     }
-    if (chamberRef.current) chamberRef.current.emissiveIntensity = 0.25 + compress * 3.5
-    if (railRef.current) railRef.current.emissiveIntensity = 0.4 + fire * 6
+
+    // Each piece landing adds a step to the chamber glow, so the capture reads
+    // as six arrivals rather than one smooth ramp.
+    let ingest = 0
+    for (let i = 0; i < CAPTURE_PIECES; i++) {
+      const landed = captureStart(i) + CAPTURE_WINDOW
+      ingest += Math.max(0, 1 - Math.abs(p - landed) / 0.045)
+    }
+    const flicker = reduced ? 0 : Math.sin(time * 7.3) * 0.1 + Math.sin(time * 3.1) * 0.07
+    const chamberTarget = 0.25 + compress * 3.5 + ingest * 0.9 + compress * flicker
+    chamberGlow.current = primed ? damp(chamberGlow.current, chamberTarget, 9, dt) : chamberTarget
+    if (chamberRef.current) chamberRef.current.emissiveIntensity = chamberGlow.current
+
+    if (railRef.current) {
+      // Charge ramps on the damped scroll value; the discharge is deliberately
+      // sharp - full brightness on the frame it crosses, then an exponential
+      // fall through the rest of the beat.
+      const gate = dischargeGate(raw)
+      // Charge banks up to the shot and is dumped by it, so the rail goes quiet
+      // again for the stabilize beat rather than sitting lit.
+      const charge = smoothstep(range01(p, 0.5, EJECT_FIRE_P)) * (1 - gate)
+      const stutter = reduced ? 1 : 0.72 + Math.sin(time * 21) * 0.28
+      const fireT = range01(raw, EJECT_FIRE_P, 0.72)
+      railRef.current.emissiveIntensity =
+        0.4 + charge * 2.2 * stutter + gate * Math.exp(-fireT * 7) * 8
+    }
+
+    primedRef.current = true
   })
 
   return (
-    <group ref={rigRef} position={[2.3, 1.15, 0.8]} rotation={[0, -0.55, 0]}>
+    <group ref={rigRef} position={[1.62, 0.92, 0.55]} rotation={[0, -0.4, 0]}>
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.38, 0.38, 1.18, 32, 1, true]} />
         <meshPhysicalMaterial
@@ -378,7 +610,7 @@ function SweepVehicle({ progressRef }: { progressRef: ProgressRef }) {
           opacity={0.82}
         />
       </mesh>
-      <CaptureStream progressRef={progressRef} />
+      <CaptureStream progressRef={progressRef} reduced={reduced} />
       <CmgAssembly progressRef={progressRef} />
 
       <group position={[0.42, -0.18, 0]}>
@@ -407,10 +639,54 @@ function SweepVehicle({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
-function MissionEffects({ progressRef }: { progressRef: ProgressRef }) {
-  const interceptMaterial = useRef<THREE.LineBasicMaterial | null>(null)
+/** drei's Line uses LineMaterial, which carries a dash offset uniform. */
+type DashableMaterial = THREE.LineBasicMaterial & { dashOffset?: number }
+
+function quadraticPoint(
+  out: THREE.Vector3,
+  a: THREE.Vector3,
+  b: THREE.Vector3,
+  c: THREE.Vector3,
+  t: number,
+) {
+  const inv = 1 - t
+  const w0 = inv * inv
+  const w1 = 2 * inv * t
+  const w2 = t * t
+  return out.set(
+    a.x * w0 + b.x * w1 + c.x * w2,
+    a.y * w0 + b.y * w1 + c.y * w2,
+    a.z * w0 + b.z * w1 + c.z * w2,
+  )
+}
+
+function quadraticTangent(
+  out: THREE.Vector3,
+  a: THREE.Vector3,
+  b: THREE.Vector3,
+  c: THREE.Vector3,
+  t: number,
+) {
+  const inv = 1 - t
+  out.set(
+    2 * inv * (b.x - a.x) + 2 * t * (c.x - b.x),
+    2 * inv * (b.y - a.y) + 2 * t * (c.y - b.y),
+    2 * inv * (b.z - a.z) + 2 * t * (c.z - b.z),
+  )
+  return out.lengthSq() < 1e-8 ? out.set(1, 0, 0) : out.normalize()
+}
+
+function MissionEffects({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
+  const interceptMaterial = useRef<DashableMaterial | null>(null)
   const ejectMaterial = useRef<THREE.LineBasicMaterial | null>(null)
   const pelletRef = useRef<THREE.Mesh>(null)
+  const pelletMaterial = useRef<THREE.MeshStandardMaterial>(null)
+  const flashRef = useRef<THREE.Mesh>(null)
+  const flashMaterial = useRef<THREE.MeshBasicMaterial>(null)
+  const smoothProgress = useDampedProgress()
+  const pelletPoint = useMemo(() => new THREE.Vector3(), [])
+  const pelletDir = useMemo(() => new THREE.Vector3(), [])
+  const xAxis = useMemo(() => new THREE.Vector3(1, 0, 0), [])
 
   const intercept = useMemo(
     () => [
@@ -429,17 +705,59 @@ function MissionEffects({ progressRef }: { progressRef: ProgressRef }) {
     [],
   )
 
-  useFrame(() => {
-    const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, MAX_DELTA)
+    const raw = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
+    const p = smoothProgress(raw, dt)
+    const time = state.clock.elapsedTime
     const scan = smoothstep(range01(p, 0.1, 0.3)) * (1 - smoothstep(range01(p, 0.42, 0.5)))
-    const fire = smoothstep(range01(p, 0.58, 0.7))
-    if (interceptMaterial.current) interceptMaterial.current.opacity = scan * 0.75
-    if (ejectMaterial.current) ejectMaterial.current.opacity = fire * 0.85
-    if (pelletRef.current) {
-      pelletRef.current.visible = fire > 0.02
-      pelletRef.current.position.lerpVectors(eject[0], eject[2], fire)
-      pelletRef.current.scale.setScalar(0.04 + fire * 0.025)
+
+    if (interceptMaterial.current) {
+      interceptMaterial.current.opacity = scan * 0.75
+      // Crawling dashes read as an active track rather than a static annotation.
+      if (typeof interceptMaterial.current.dashOffset === 'number' && !reduced) {
+        interceptMaterial.current.dashOffset = -(time * 0.09) % 0.105
+      }
     }
+
+    /*
+     * Railgun impulse. Attack is one frame by design - the rest of the beat is
+     * the pellet leaving and the trail cooling, so the event stays sharp while
+     * everything around it settles.
+     */
+    const fired = dischargeGate(raw)
+    const fireT = range01(raw, EJECT_FIRE_P, 0.72)
+    const muzzle = fired * Math.exp(-fireT * 16)
+    const trail = fired * Math.exp(-fireT * 3.4)
+    // Leaves fast, then only perspective slows it.
+    const travel = 1 - Math.pow(1 - fireT, 2.2)
+    const exit = 1 - smoothstep(range01(fireT, 0.82, 1))
+    const energy = reduced ? 0 : 1
+
+    if (ejectMaterial.current) {
+      ejectMaterial.current.opacity = fired * (0.22 + 0.63 * trail) * exit
+    }
+    if (pelletRef.current) {
+      pelletRef.current.visible = fired > 0.01 && exit > 0.01
+      if (pelletRef.current.visible) {
+        pelletRef.current.position.copy(quadraticPoint(pelletPoint, eject[0], eject[1], eject[2], travel))
+        pelletRef.current.quaternion.setFromUnitVectors(
+          xAxis,
+          quadraticTangent(pelletDir, eject[0], eject[1], eject[2], travel),
+        )
+        // Stretched into a streak at the muzzle, rounding out as it coasts.
+        const radius = (0.042 + easeOutCubic(fireT) * 0.02) * exit
+        pelletRef.current.scale.set(radius * (1 + 6 * muzzle * energy), radius, radius)
+      }
+      if (pelletMaterial.current) {
+        pelletMaterial.current.emissiveIntensity = 3 + muzzle * 9
+      }
+    }
+    if (flashRef.current) {
+      flashRef.current.visible = muzzle > 0.02 && energy > 0
+      if (flashRef.current.visible) flashRef.current.scale.setScalar(0.05 + muzzle * 0.3)
+    }
+    if (flashMaterial.current) flashMaterial.current.opacity = muzzle * 0.85 * energy
   })
 
   return (
@@ -454,7 +772,7 @@ function MissionEffects({ progressRef }: { progressRef: ProgressRef }) {
         dashSize={0.06}
         gapSize={0.045}
         onUpdate={(line: THREE.Line) => {
-          interceptMaterial.current = line.material as THREE.LineBasicMaterial
+          interceptMaterial.current = line.material as DashableMaterial
         }}
       />
       <Line
@@ -470,9 +788,22 @@ function MissionEffects({ progressRef }: { progressRef: ProgressRef }) {
       <mesh ref={pelletRef} visible={false}>
         <sphereGeometry args={[1, 12, 12]} />
         <meshStandardMaterial
+          ref={pelletMaterial}
           color="#fff7d6"
           emissive={RAIL_COLOR}
           emissiveIntensity={4}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh ref={flashRef} position={eject[0]} visible={false}>
+        <sphereGeometry args={[1, 10, 10]} />
+        <meshBasicMaterial
+          ref={flashMaterial}
+          color="#fff3c4"
+          transparent
+          opacity={0}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
           toneMapped={false}
         />
       </mesh>
@@ -480,7 +811,7 @@ function MissionEffects({ progressRef }: { progressRef: ProgressRef }) {
   )
 }
 
-function DebrisScene({ progressRef }: { progressRef: ProgressRef }) {
+function DebrisScene({ progressRef, reduced }: { progressRef: ProgressRef; reduced: boolean }) {
   return (
     <>
       <color attach="background" args={['#030610']} />
@@ -489,13 +820,13 @@ function DebrisScene({ progressRef }: { progressRef: ProgressRef }) {
       <directionalLight position={[5, 6, 4]} intensity={1.65} color="#f8fafc" />
       <directionalLight position={[-4, 2, 3]} intensity={0.65} color={ORBIT_COLOR} />
       <pointLight position={[1, 1.2, 2]} intensity={0.8} color={CAPTURE_COLOR} distance={4} />
-      <CameraRig progressRef={progressRef} />
+      <CameraRig progressRef={progressRef} reduced={reduced} />
       <Starfield />
       <Earth />
       <OrbitShells />
-      <DebrisField progressRef={progressRef} />
-      <SweepVehicle progressRef={progressRef} />
-      <MissionEffects progressRef={progressRef} />
+      <DebrisField progressRef={progressRef} reduced={reduced} />
+      <SweepVehicle progressRef={progressRef} reduced={reduced} />
+      <MissionEffects progressRef={progressRef} reduced={reduced} />
     </>
   )
 }
@@ -560,6 +891,7 @@ export function SpaceDebrisOrbit({
   const fallbackProgress = useMotionValue(scrollProgress)
   const source = progress ?? fallbackProgress
   const liveProgress = useThrottledMotionValue(source, 100)
+  const reduced = useReducedMotion()
 
   useEffect(() => {
     if (!progress) fallbackProgress.set(scrollProgress)
@@ -611,7 +943,7 @@ export function SpaceDebrisOrbit({
           style={{ background: 'transparent' }}
         >
           <Suspense fallback={null}>
-            <DebrisScene progressRef={progressRef} />
+            <DebrisScene progressRef={progressRef} reduced={reduced} />
           </Suspense>
         </Canvas>
         <div className="viewer-phase" aria-hidden="true">

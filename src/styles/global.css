@@ -72,7 +72,9 @@
   a {
     color: var(--color-accent-soft);
     text-decoration: none;
-    transition: color 0.25s ease;
+    /* A colour swap has no distance to travel, so it wants to be the fastest
+       thing on the page. ease-out so it commits immediately on hover. */
+    transition: color 0.18s cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   a:hover {
@@ -84,6 +86,14 @@
     display: inline-block;
   }
 
+  /*
+   * Asymmetric on purpose. The rule draws itself in with a long expo-out tail
+   * (it is arriving, it should decelerate); it retracts in well under half that
+   * time, because a hover that has already ended should not still be finishing.
+   * transform-origin stays `left` in both directions - flipping it to `right`
+   * for the retract looks better only if the hover runs to completion, and pops
+   * the bar across the element if the pointer leaves mid-draw.
+   */
   .link-underline::after {
     content: '';
     position: absolute;
@@ -94,11 +104,12 @@
     background: linear-gradient(90deg, var(--color-accent), var(--color-accent-soft));
     transform: scaleX(0);
     transform-origin: left;
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.2s cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   .link-underline:hover::after {
     transform: scaleX(1);
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   :focus-visible {
@@ -106,9 +117,15 @@
     outline-offset: 3px;
   }
 
+  /*
+   * Parked off-screen with a transform rather than `top: -100%`. Animating
+   * `top` on the first element in the document put a layout pass on the
+   * critical path of the very first Tab press; translateY runs on the
+   * compositor and lands in exactly the same place (top: 1rem) when focused.
+   */
   .skip-link {
     position: absolute;
-    top: -100%;
+    top: 1rem;
     left: 1rem;
     z-index: 100;
     padding: 0.75rem 1.25rem;
@@ -116,11 +133,26 @@
     color: #fff;
     font-weight: 600;
     border-radius: var(--radius-md);
-    transition: top 0.2s ease;
+    transform: translateY(calc(-100% - 1rem - 4px));
+    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .skip-link:focus {
-    top: 1rem;
+    transform: translateY(0);
+  }
+
+  /*
+   * Both of these move something rather than just recolour it, so both go flat
+   * here. The end states are untouched: the underline still appears on hover
+   * and the skip link still lands at top: 1rem, they just get there in a frame.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .link-underline::after,
+    .link-underline:hover::after,
+    .skip-link,
+    .skip-link:focus {
+      transition: none;
+    }
   }
 }
 
@@ -179,7 +211,16 @@
     border-radius: var(--radius-lg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease;
+    /*
+     * Two speeds, not one. The 1px border is a small, sharp cue and reads as
+     * lag if it takes as long as the fill; the fill covers the whole card and
+     * wants the slower curve. A `transform` entry used to live here too, which
+     * meant every JS-driven transform on any card in the site - notably the
+     * project tilt - was silently routed through a 0.3s transition and trailed
+     * the pointer. Cards that want a transform now own its timing themselves.
+     */
+    transition: border-color 0.22s cubic-bezier(0.33, 1, 0.68, 1),
+      background-color 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .glass-card:hover {
@@ -279,6 +320,16 @@
     -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
   }
 
+  /*
+   * The track holds two identical copies of the item row, so `width: max-content`
+   * is exactly twice one row and -50% lands copy B precisely where copy A
+   * started. That is what makes the loop seamless - if a third copy is ever
+   * added, this percentage has to change with it or the loop will jump.
+   *
+   * `linear` is deliberate here and is the one place on the site it belongs: a
+   * conveyor at constant velocity. Easing it would make the belt visibly
+   * accelerate and stall once every 36s.
+   */
   .marquee__track {
     display: flex;
     width: max-content;
@@ -289,9 +340,19 @@
     animation-play-state: paused;
   }
 
+  /*
+   * Both ends are stated explicitly. With only a `to` step the start frame is
+   * whatever `transform` computes to, which is `none` - a different type from
+   * the translate it interpolates toward, and one that browsers are free to
+   * resolve on a non-composited path. translate3d also keeps the belt on its
+   * own layer, so 36s of continuous motion never repaints the row.
+   */
   @keyframes marqueeScroll {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
     to {
-      transform: translateX(-50%);
+      transform: translate3d(-50%, 0, 0);
     }
   }
 
@@ -312,35 +373,57 @@
     border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   }
 
-  /* Left rail - the always-on identity cue. Grows on hover/focus. */
+  /*
+   * Left rail - the always-on identity cue. Grows on hover/focus.
+   *
+   * It is laid out at its full 3px and scaled down to the resting 2px rather
+   * than transitioning `width`. Width on an absolutely positioned element still
+   * costs a layout + paint of the rail on every animation frame; scaleX is a
+   * compositor property, and a horizontal scale cannot distort a purely
+   * vertical gradient. transform-origin pins it to the card edge so the rail
+   * grows inward exactly as the width version did.
+   */
   .project-card__rail {
     position: absolute;
     left: 0;
     top: 0;
     bottom: 0;
-    width: 2px;
+    width: 3px;
     background: linear-gradient(
       to bottom,
       var(--accent),
       color-mix(in srgb, var(--accent) 15%, transparent)
     );
     opacity: 0.55;
-    transition: opacity 0.3s ease, width 0.3s ease;
+    transform: scaleX(0.6667);
+    transform-origin: left center;
+    transition: opacity 0.3s cubic-bezier(0.33, 1, 0.68, 1),
+      transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   .project-card:hover .project-card__rail,
   .project-card:focus-within .project-card__rail {
     opacity: 1;
-    width: 3px;
+    transform: scaleX(1);
+    /* Slightly longer and expo-out on the way in: the rail is the first thing
+       that answers the pointer, so it leads the readout rather than racing it. */
+    transition: opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  /*
+   * The patch is embroidered cloth, not an instrument, so it is the one element
+   * here allowed a little overshoot on arrival. The return is shorter and plain
+   * ease-out - settling back should not bounce a second time.
+   */
   .project-card__patch {
     filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--accent) 35%, transparent));
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   .project-card:hover .project-card__patch {
     transform: scale(1.06) rotate(-3deg);
+    transition: transform 0.45s cubic-bezier(0.22, 1.12, 0.36, 1);
   }
 
   .project-card__category {
@@ -365,37 +448,79 @@
     white-space: nowrap;
   }
 
+  /*
+   * Idle life. A status LED that never changes is a painted dot, so it breathes
+   * on a slow cycle - shallow enough (1 -> 0.55) that it never competes with a
+   * scroll reveal or a hover. Opacity is animated rather than box-shadow so the
+   * dot and its glow fade together on the compositor with no repaint, and each
+   * card feeds a negative --led-delay so the grid is not one blinking chorus.
+   */
   .project-card__led {
     width: 5px;
     height: 5px;
     border-radius: 999px;
     background: var(--accent);
     box-shadow: 0 0 6px var(--accent);
+    animation: ledPulse 3.2s ease-in-out infinite;
+    animation-delay: var(--led-delay, 0s);
+  }
+
+  @keyframes ledPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
   }
 
   /*
    * Spec readout. grid-template-rows 0fr -> 1fr animates height without a
    * measured pixel value, so no JS, no re-render, and no layout read per frame.
+   *
+   * Open and close are deliberately different speeds. This block lives on the
+   * base selector, so it is the CLOSE timing: 0.2s, ease-out, gone almost
+   * before you have finished moving the pointer off the card. A panel that
+   * takes as long to leave as it took to arrive feels like it is arguing.
    */
   .project-card__readout {
     display: grid;
     grid-template-rows: 0fr;
     margin-bottom: 0;
-    transition: grid-template-rows 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-      margin-bottom 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: grid-template-rows 0.2s cubic-bezier(0.33, 1, 0.68, 1),
+      margin-bottom 0.2s cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   .project-card:hover .project-card__readout,
   .project-card:focus-within .project-card__readout {
     grid-template-rows: 1fr;
     margin-bottom: 1.25rem;
+    /* Opening is the considered half: expo-out over 0.42s so the panel
+       decelerates into place instead of stopping dead at full height. */
+    transition: grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+      margin-bottom 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  /*
+   * The rows are the container opening; this is the content arriving inside it.
+   * Held back 0.1s on the way in so the specs fade up into a box that has
+   * already started moving - two beats instead of one block - and dropped in
+   * 0.12s flat on the way out so nothing is still fading while the box closes.
+   */
   .project-card__readout-inner {
     overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    opacity: 0;
+    transition: opacity 0.12s cubic-bezier(0.33, 1, 0.68, 1);
+  }
+
+  .project-card:hover .project-card__readout-inner,
+  .project-card:focus-within .project-card__readout-inner {
+    opacity: 1;
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.1s;
   }
 
   .project-card__spec {
@@ -438,15 +563,34 @@
     border-color: color-mix(in srgb, var(--accent) 65%, transparent);
   }
 
+  /*
+   * The hover rules above carry their own `transition` so that opening and
+   * closing can differ, and those selectors outrank a bare class inside a media
+   * query - a media query adds no specificity. So every hover/focus variant has
+   * to be repeated here or reduced-motion readers would keep the animated half.
+   */
   @media (prefers-reduced-motion: reduce) {
     .project-card__readout,
+    .project-card__readout-inner,
     .project-card__rail,
-    .project-card__patch {
+    .project-card__patch,
+    .project-card:hover .project-card__readout,
+    .project-card:focus-within .project-card__readout,
+    .project-card:hover .project-card__readout-inner,
+    .project-card:focus-within .project-card__readout-inner,
+    .project-card:hover .project-card__rail,
+    .project-card:focus-within .project-card__rail,
+    .project-card:hover .project-card__patch {
       transition: none;
     }
 
     .project-card:hover .project-card__patch {
       transform: none;
+    }
+
+    .project-card__led {
+      animation: none;
+      opacity: 1;
     }
   }
 
@@ -465,14 +609,17 @@
       color-mix(in srgb, var(--accent, #818cf8) 16%, transparent),
       transparent 65%
     );
+    /* Base rule is the fade-out: shorter than the fade-in, so the glow is not
+       still trailing behind a pointer that has already left the card. */
     opacity: 0;
-    transition: opacity 0.35s ease;
+    transition: opacity 0.22s cubic-bezier(0.33, 1, 0.68, 1);
     pointer-events: none;
     z-index: 0;
   }
 
   .spotlight-card:hover::before {
     opacity: 1;
+    transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .spotlight-card > * {
@@ -480,9 +627,37 @@
     z-index: 1;
   }
 
+  /*
+   * A trailing arrow that never moves is a picture of an arrow. This is the
+   * only motion on the action pills, and it is small on purpose - the pill
+   * itself must not shift, or the row of buttons reflows under the pointer.
+   */
+  .cta-arrow {
+    display: inline-block;
+    transition: transform 0.24s cubic-bezier(0.33, 1, 0.68, 1);
+  }
+
+  a:hover > .cta-arrow,
+  a:focus-visible > .cta-arrow {
+    transform: translateX(3px);
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  a:hover > .cta-arrow--diagonal,
+  a:focus-visible > .cta-arrow--diagonal {
+    transform: translate(2px, -2px);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .marquee__track {
       animation: none;
+    }
+
+    .cta-arrow,
+    a:hover > .cta-arrow,
+    a:focus-visible > .cta-arrow {
+      transition: none;
+      transform: none;
     }
   }
 }

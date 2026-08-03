@@ -31,7 +31,20 @@ export function RocketShip({ className = '' }: RocketShipProps) {
         </radialGradient>
       </defs>
 
-      <ellipse cx="0" cy="14" rx="5" ry="8" fill="url(#exhaust-glow)" opacity="0.7" />
+      {/*
+        FlightPath drives ry/cy/opacity from the damped travel speed so the
+        plume stretches under thrust and shrinks when the rocket is parked.
+        cy is kept at 6 + ry so the top of the plume stays pinned to the nozzle.
+      */}
+      <ellipse
+        data-rocket-exhaust
+        cx="0"
+        cy="14"
+        rx="5"
+        ry="8"
+        fill="url(#exhaust-glow)"
+        opacity="0.45"
+      />
 
       {/* Contact shadow: one extra fill, no filter region to re-rasterize. */}
       <path

@@ -10,16 +10,30 @@ export function TelemetryTicker() {
   const [time, setTime] = useState(new Date())
 
   useEffect(() => {
-    let interval = 0
+    let timer = 0
+    let running = false
+
+    // Re-aimed at the next wall-clock second boundary after every tick. A plain
+    // setInterval(1000) accumulates drift against the clock it is displaying,
+    // and once the two have slipped far enough the seconds digit starts
+    // skipping values - a mission timer that counts 01, 03, 04 reads as broken.
+    const schedule = () => {
+      timer = window.setTimeout(() => {
+        setTime(new Date())
+        if (running) schedule()
+      }, 1000 - (Date.now() % 1000))
+    }
 
     const start = () => {
-      if (interval) return
-      interval = window.setInterval(() => setTime(new Date()), 1000)
+      if (running) return
+      running = true
+      schedule()
     }
 
     const stop = () => {
-      window.clearInterval(interval)
-      interval = 0
+      running = false
+      window.clearTimeout(timer)
+      timer = 0
     }
 
     const onVisibility = () => (document.hidden ? stop() : start())

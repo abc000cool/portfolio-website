@@ -9,6 +9,13 @@ interface OdometerProps {
   static?: boolean
 }
 
+/**
+ * Total count-up time. Matches the pacing of the old 30 frames x 30ms interval
+ * exactly - this is a retiming of *how* the number arrives, not how long it
+ * takes to get there.
+ */
+const COUNT_DURATION = 900
+
 function Digit({
   target,
   active,
@@ -40,22 +47,47 @@ function Digit({
     if (!active || started.current) return
 
     started.current = true
+
+    let raf = 0
+    let startedAt = 0
+    let painted = -1
+
+    const step = (now: number) => {
+      if (startedAt === 0) startedAt = now
+      const p = Math.min(1, (now - startedAt) / COUNT_DURATION)
+
+      // Ease-out cubic. The readout covers most of its range immediately and
+      // then drifts the last few units in, so it decelerates into the final
+      // value instead of stopping dead on it.
+      const eased = 1 - Math.pow(1 - p, 3)
+
+      // Land on the exact target on the terminal frame rather than trusting
+      // rounding to get there - a stat that settles on 11 of 12 is worse than
+      // no animation at all.
+      const next = p === 1 ? target : Math.round(eased * target)
+
+      // The tail of an ease-out rounds to the same integer for many frames in
+      // a row. Re-rendering with an unchanged number is what makes digits look
+      // like they are shivering in place at the end; skip those frames.
+      if (next !== painted) {
+        painted = next
+        setCurrent(next)
+      }
+
+      if (p < 1) raf = requestAnimationFrame(step)
+    }
+
+    // Timed off rAF rather than setInterval: a 30ms interval is not aligned to
+    // the display, so on a 144Hz panel the number stepped in visible chunks
+    // while everything around it moved smoothly.
     const timeout = setTimeout(() => {
-      let frame = 0
-      const totalFrames = 30
-      const interval = setInterval(() => {
-        frame++
-        const progress = frame / totalFrames
-        const eased = 1 - Math.pow(1 - progress, 3)
-        setCurrent(Math.round(eased * target))
-        if (frame >= totalFrames) {
-          setCurrent(target)
-          clearInterval(interval)
-        }
-      }, 30)
+      raf = requestAnimationFrame(step)
     }, delay)
 
-    return () => clearTimeout(timeout)
+    return () => {
+      clearTimeout(timeout)
+      cancelAnimationFrame(raf)
+    }
   }, [active, target, delay, skipCountUp])
 
   const digits = String(current).padStart(String(target).length, '0')
@@ -63,11 +95,7 @@ function Digit({
   return (
     <span className="inline-flex overflow-hidden h-[1.2em] font-display text-4xl md:text-5xl font-semibold text-white tracking-tight">
       {digits.split('').map((d, i) => (
-        <span
-          key={i}
-          className="inline-block transition-transform duration-100"
-          style={{ transform: `translateY(${reduced ? 0 : 0}px)` }}
-        >
+        <span key={i} className="inline-block">
           {d}
         </span>
       ))}
