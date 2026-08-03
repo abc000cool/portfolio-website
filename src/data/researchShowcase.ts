@@ -25,7 +25,7 @@ export interface ResearchShowcaseConfig {
   paperSlug: string
   /** Omit for card-only research (no 3D scroll viewer yet). */
   viewer?: ResearchViewerId
-  /** Sticky scroll zone height — higher = longer animation. Unused when viewer is omitted. */
+  /** Sticky scroll zone height - higher = longer animation. Unused when viewer is omitted. */
   scrollHeightVh?: number
   linkTo: string
   linkLabel: string
@@ -54,8 +54,8 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     },
     metrics: [
       { value: 'US Patent', label: 'SWEEP platform design' },
-      { value: 'LEO', label: 'Low-Earth orbit targeting' },
-      { value: 'EM', label: 'Electromagnetic ejection propulsion' },
+      { value: '3', label: 'Railguns - ejection doubles as thrust' },
+      { value: '0', label: 'Traditional propellant used to maneuver' },
     ],
   },
   {
@@ -82,8 +82,8 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     linkLabel: 'Explore FlowState project →',
     viewerHint: 'Scroll to dissipate congestion waves through the corridor',
     metrics: [
-      { value: '42%', label: 'Jam reduction at 5% AV penetration' },
-      { value: '5.2', label: 'km/h average flow speed gain' },
+      { value: '42%', label: 'Published jam-reduction benchmark targeted' },
+      { value: '5.2', label: 'km/h flow-speed gain · published benchmark' },
       { value: 'CFD', label: 'Navier–Stokes traffic modeling' },
     ],
   },
@@ -128,7 +128,7 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     scrollHeightVh: 420,
     linkTo: '/research/nlf-transition-atlas',
     linkLabel: 'Read full abstract →',
-    viewerHint: 'Scroll to sweep Ncrit — the transition front moves, then meets the 1981 data',
+    viewerHint: 'Scroll to sweep Ncrit - the transition front moves, then meets the 1981 data',
     externalUrl: 'https://transition-atlas.vercel.app/',
     githubUrl: 'https://github.com/abc000cool/nlf-transition-atlas',
     metrics: [

@@ -11,7 +11,7 @@ export interface AirfoilProfile {
 }
 
 const PROFILE_RESOLUTION = 128
-/** World-space chord length — thickness preserves real t/c ratio. */
+/** World-space chord length - thickness preserves real t/c ratio. */
 const CHORD_LENGTH = 3.2
 const SPAN_DEPTH = 0.14
 

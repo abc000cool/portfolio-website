@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { useLightExperience } from '../../hooks/useTouchDevice'
-import { EARLY_VIEWPORT, revealHidden, revealVisible } from '../../lib/revealMotion'
+import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { EARLY_VIEWPORT, HEADING_DURATION, HEADING_EASE } from '../../lib/revealMotion'
 
 interface RedactedHeadingProps {
   children: string
@@ -10,26 +11,101 @@ interface RedactedHeadingProps {
   active?: boolean
 }
 
+/**
+ * The one emphatic reveal on the site, and the only motion reserved for
+ * headings: the text is uncovered left-to-right by a travelling scan line -
+ * the motion the component has always been named for. Everything else on the
+ * page uses the flat ScanWipe fade, so a section heading is now the loudest
+ * thing that happens when a section arrives.
+ *
+ * Cheap by construction: a clip-path inset plus one transformed 2px bar. No
+ * filters, nothing that forces a repaint of the text itself.
+ */
+const CLIPPED = { clipPath: 'inset(0% 100% 0% 0%)' }
+const OPEN = { clipPath: 'inset(0% 0% 0% 0%)' }
+
+/**
+ * The bar and the clip edge MUST share a duration and an easing curve.
+ *
+ * They previously did not: the clip ran on an expo-ish ease-out while the bar
+ * ran `linear`. Both start and end together, but in between the clip edge
+ * raced away and the bar trailed a third of the heading behind it - so the
+ * "scan line" spent the whole reveal lagging through already-visible text
+ * instead of uncovering it. Because the two animate the same normalised
+ * progress over the same width, sharing a curve locks the bar exactly onto the
+ * leading edge for every frame in between.
+ */
+const EDGE_TRANSITION = { duration: HEADING_DURATION, ease: HEADING_EASE }
+
+/**
+ * Opacity is intentionally NOT on the shared curve - it is keyframed on its own
+ * linear timeline so the bar strikes in fast, holds lit across the sweep, and
+ * is gone by the time it reaches the end of the word. Fading it out early is
+ * what stops the reveal ending on a hard vertical line.
+ */
+const SCAN_TRANSITION = {
+  x: EDGE_TRANSITION,
+  opacity: { duration: HEADING_DURATION, ease: 'linear' as const, times: [0, 0.12, 0.72, 1] },
+}
+
+/** Parked state: off-screen already, so there is nothing worth animating. */
+const SCAN_REST_TRANSITION = { duration: 0 }
+
 export function RedactedHeading(props: RedactedHeadingProps) {
   const { children, as: Tag = 'h2', className = '', active } = props
   const light = useLightExperience()
+  const reduced = useReducedMotion()
 
-  const hidden = revealHidden(light)
-  const visible = revealVisible(light)
+  // clip-path is neither a transform nor an opacity, so MotionConfig's
+  // reducedMotion="user" would happily keep animating it. Opt out here instead.
+  if (reduced) {
+    return (
+      <div className={className}>
+        <Tag className="section-heading">{children}</Tag>
+      </div>
+    )
+  }
 
-  const reveal =
+  const wipe =
     active !== undefined
-      ? { animate: active ? visible : hidden }
-      : { whileInView: visible, viewport: EARLY_VIEWPORT }
+      ? { animate: active ? OPEN : CLIPPED }
+      : { whileInView: OPEN, viewport: EARLY_VIEWPORT }
+
+  const scan =
+    active !== undefined
+      ? {
+          animate: active
+            ? { x: '0%', opacity: [0, 1, 1, 0] }
+            : { x: '-100%', opacity: 0 },
+        }
+      : {
+          whileInView: { x: '0%', opacity: [0, 1, 1, 0] },
+          viewport: EARLY_VIEWPORT,
+        }
+
+  // `times` only applies to keyframe arrays; the parked state animates opacity
+  // as a scalar, so it gets its own transition rather than a mismatched one.
+  const scanTransition = active === false ? SCAN_REST_TRANSITION : SCAN_TRANSITION
 
   return (
-    <motion.div
-      className={className}
-      initial={hidden}
-      {...reveal}
-      transition={{ duration: light ? 0.55 : 0.9, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <Tag className="section-heading">{children}</Tag>
-    </motion.div>
+    <div className={`relative ${className}`}>
+      <motion.div initial={CLIPPED} {...wipe} transition={EDGE_TRANSITION}>
+        <Tag className="section-heading">{children}</Tag>
+      </motion.div>
+
+      {!light && (
+        // Full-width carrier so a percentage translate sweeps the bar across
+        // the heading; the bar itself rides its right edge.
+        <motion.span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 w-full"
+          initial={{ x: '-100%', opacity: 0 }}
+          {...scan}
+          transition={scanTransition}
+        >
+          <span className="absolute inset-y-0 right-0 w-[2px] bg-[#c7d2fe] shadow-[0_0_12px_2px_rgba(129,140,248,0.5)]" />
+        </motion.span>
+      )}
+    </div>
   )
 }

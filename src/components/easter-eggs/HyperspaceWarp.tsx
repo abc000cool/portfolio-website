@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface HyperspaceWarpProps {
   active: boolean
@@ -7,11 +7,20 @@ interface HyperspaceWarpProps {
 
 export function HyperspaceWarp({ active, onComplete }: HyperspaceWarpProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [visible, setVisible] = useState(false)
+  // Callers pass an inline arrow, so `onComplete` is a new function every parent
+  // render. Reading it through a ref keeps it out of the animation effect's deps
+  // - otherwise the effect tore down and restarted the warp mid-flight.
+  const onCompleteRef = useRef(onComplete)
 
   useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  // Visibility is `active` itself. It used to be separate state set inside this
+  // effect, which meant the canvas had not been rendered yet when the effect
+  // first read the ref below.
+  useEffect(() => {
     if (!active) return
-    setVisible(true)
 
     const canvas = canvasRef.current
     if (!canvas) return
@@ -60,16 +69,15 @@ export function HyperspaceWarp({ active, onComplete }: HyperspaceWarpProps) {
       if (frame < maxFrames) {
         animId = requestAnimationFrame(draw)
       } else {
-        setVisible(false)
-        onComplete()
+        onCompleteRef.current()
       }
     }
 
     animId = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(animId)
-  }, [active, onComplete])
+  }, [active])
 
-  if (!visible) return null
+  if (!active) return null
 
   return (
     <canvas

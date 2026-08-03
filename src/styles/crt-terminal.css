@@ -77,7 +77,9 @@
   border-bottom: 1px solid rgba(61, 255, 138, 0.3);
   color: var(--color-phosphor);
   font-family: var(--font-mono);
-  font-size: 0.95rem;
+  /* Must stay at 1rem: iOS Safari force-zooms the viewport on focus for any
+     form control under 16px, and 0.95rem lands 0.8px short. */
+  font-size: 1rem;
   padding: 0.5rem 0;
   outline: none;
 }

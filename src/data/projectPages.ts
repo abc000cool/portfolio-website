@@ -44,7 +44,8 @@ export const projectPages: ProjectPage[] = [
     subtitle: 'Simulation of Thrust, Rate-of-climb, Aerodynamics, and Total Operating States',
     status: 'Completed',
     category: 'ISM Original Work',
-    tagline: 'High-Fidelity Aircraft Performance & Envelope Simulation Environment',
+    tagline:
+      'Subsonic flight-performance simulator, validated to 1.5% against Boeing 737-800 stall speed',
     overview:
       'STRATOS is a physics-based flight performance simulator intended for preliminary aerospace engineering analysis. This custom-built computational tool models the performance of subsonic aircraft using first-principles aerodynamic and propulsion equations. Real use cases include engineers testing whether proposed aircraft configurations can meet predetermined mission requirements. The simulator outputs plots and key metrics on flight performance, validated against real-world aircraft data with 1.5% accuracy on Boeing 737-800 stall speed calculations.',
     specs: [
@@ -57,25 +58,25 @@ export const projectPages: ProjectPage[] = [
     ],
     sections: [
       {
-        title: 'ACES — Atmospheric Condition & Standard Earth Systems',
+        title: 'ACES - Atmospheric Condition & Standard Earth Systems',
         status: 'Complete',
         description:
           'The foundation of the simulator. Computes atmospheric properties as a function of altitude using the International Standard Atmosphere (ISA). Models temperature, pressure, and density from sea level through the troposphere (up to 15 km), covering the operational envelope of most subsonic aircraft.',
       },
       {
-        title: 'RLM — Raw Logistic Modulator',
+        title: 'RLM - Raw Logistic Modulator',
         status: 'Complete',
         description:
           'Serves as a liaison between input aircraft values and core physics-based calculations. Takes raw input data (geometry, weight, propulsion, aerodynamic coefficients) and converts them into standardized, numeric variables, preventing physically impossible scenarios.',
       },
       {
-        title: 'OSC — Optimal Statistics Calculator',
+        title: 'OSC - Optimal Statistics Calculator',
         status: 'Complete',
         description:
           'Extracts meaningful performance metrics from raw numerical outputs. Delivers performance curves, contour plots, and critical metric values including minimum thrust required, maximum level flight speed, and optimal climb rates.',
       },
       {
-        title: 'RS — Report Summarizer',
+        title: 'RS - Report Summarizer',
         status: 'Complete',
         description:
           'Synthesizes all raw data and statistics into written/visual format for end users. Powered by an AI Language Model for near-instantaneous reports once simulation completes.',
@@ -137,7 +138,8 @@ export const projectPages: ProjectPage[] = [
     title: 'Propulsion Studio',
     status: 'Completed',
     category: 'Aerospace Design Platform',
-    tagline: 'Interactive engineering workstation for aerospace propulsion systems',
+    tagline:
+      'Assemble any of 9+ propulsion families and read live thrust, specific impulse, and thermal load',
     overview:
       'An interactive engineering workstation for designing and analyzing aerospace propulsion systems. Users can select from 9+ propulsion families, assemble modular components, and instantly analyze system performance with live physics-based feedback. The platform provides real-time calculations for thrust, specific impulse, efficiency, mass estimates, and thermal load.',
     sections: [
@@ -167,7 +169,8 @@ export const projectPages: ProjectPage[] = [
     subtitle: 'Interplanetary Mission Planner',
     status: 'Live',
     category: 'Trajectory Design Tool',
-    tagline: 'Interactive Lambert-solver porkchop plots, Grand Tour planning, and 3D solar-system transfers',
+    tagline:
+      'Lambert-solver Δv maps and multi-flyby Grand Tours, checked against Voyager 2 flyby dates and Perseverance C3',
     overview:
       'Porkchop is an interactive interplanetary trajectory design tool for exploring Lambert-solver porkchop plots, planning multi-body Grand Tours with patched-conic gravity assists, and visualizing transfers in an animated 3D solar system. Physics correctness is checked against Vallado examples, Perseverance C3, Earth–Mars transfer windows, and Voyager 2 flyby dates before trajectory changes ship.',
     externalUrl: 'https://porkchop-mission-planner.vercel.app/',
@@ -199,7 +202,7 @@ export const projectPages: ProjectPage[] = [
       {
         title: 'Mission tools & reporting',
         description:
-          'Rocket payload mapper, aerocapture and capture-burn modeling, historical mission overlay, difficulty scoring, CSV export, shareable permalinks, and PDF mission/tour reports — plus metric/imperial and color-palette toggles with a GL error boundary for constrained GPUs.',
+          'Rocket payload mapper, aerocapture and capture-burn modeling, historical mission overlay, difficulty scoring, CSV export, shareable permalinks, and PDF mission/tour reports - plus metric/imperial and color-palette toggles with a GL error boundary for constrained GPUs.',
       },
     ],
     capabilities: [
@@ -229,11 +232,12 @@ export const projectPages: ProjectPage[] = [
     slug: 'sweep',
     title: 'SWEEP',
     subtitle: 'Space Waste Electromagnetic Ejection Platform',
-    status: 'US Patent Holder',
-    category: 'US Patent Holder Design',
-    tagline: 'Autonomous space debris capture and ejection using electromagnetic propulsion',
+    status: 'US Patent',
+    category: 'US-Patented Spacecraft Design',
+    tagline:
+      'US-patented platform that captures orbital debris, compacts it into pellets, and fires them out of orbit - the recoil doubles as thrust',
     overview:
-      "SWEEP (Space Waste Electromagnetic Ejection Platform) is a US Patent Holder spacecraft design addressing space debris proliferation in Earth's orbit. The system combines autonomous algorithms, debris processing, electromagnetic railgun propulsion, and gyroscopic control to capture debris, compact it into pellets, and eject it from orbit — using recoil thrust to maneuver between targets without expending traditional propellant.",
+      "SWEEP (Space Waste Electromagnetic Ejection Platform) is a US-patented spacecraft design addressing space debris proliferation in Earth's orbit. The system combines autonomous algorithms, debris processing, electromagnetic railgun propulsion, and gyroscopic control to capture debris, compact it into pellets, and eject it from orbit - using recoil thrust to maneuver between targets without expending traditional propellant.",
     externalUrl: 'https://sweep-feff1.web.app/',
     sections: [
       {
@@ -257,7 +261,7 @@ export const projectPages: ProjectPage[] = [
           'Control Moment Gyroscopes (CMGs) orient the tunnel when approaching debris and stabilize the platform after each ejection without using fuel.',
       },
     ],
-    tags: ['Space Propulsion', 'Orbital Mechanics', 'US Patent Holder', 'Spacecraft Design'],
+    tags: ['Space Propulsion', 'Orbital Mechanics', 'US Patent', 'Spacecraft Design'],
     patchColors: ['#2a1a44', '#ff4d4d', '#e8a317'],
   },
   {
@@ -266,9 +270,10 @@ export const projectPages: ProjectPage[] = [
     subtitle: 'Traffic Optimization Through Fluid Dynamics',
     status: 'Completed',
     category: 'IGSI Research Initiative',
-    tagline: 'Traffic optimization through fluid dynamics',
+    tagline:
+      'Navier-Stokes traffic modeling that predicts congestion waves in real time and issues speed guidance to dissipate them',
     overview:
-      'FlowState applies principles of fluid mechanics to simulate traffic patterns and deliver optimal driving recommendations that dissipate congestion faster. The platform models traffic as fluid flow using computational fluid dynamics and Navier-Stokes-based approaches to predict congestion waves in real time. Adaptive speed guidance helps drivers collectively reduce stop-and-go patterns, improve average flow speeds, and lower fuel consumption per platoon—with research indicating substantial jam reduction at modest connected-vehicle penetration.',
+      'FlowState applies principles of fluid mechanics to simulate traffic patterns and deliver optimal driving recommendations that dissipate congestion faster. The platform models traffic as fluid flow using computational fluid dynamics and Navier-Stokes-based approaches to predict congestion waves in real time. Adaptive speed guidance helps drivers collectively reduce stop-and-go patterns, improve average flow speeds, and lower fuel consumption per platoon-with research indicating substantial jam reduction at modest connected-vehicle penetration.',
     externalUrl: 'https://flowstatetraffic.us/',
     sections: [
       {
@@ -294,12 +299,13 @@ export const projectPages: ProjectPage[] = [
     ],
     capabilities: [
       {
-        title: 'Documented impact',
+        title: 'Published benchmarks the design targets',
         items: [
-          '42% jam reduction with JAD at 5% autonomous-vehicle penetration',
-          '5.2 km/h average speed improvement in traffic flow',
-          '5% AV penetration cited as minimum threshold for measurable impact',
-          '20% fuel savings per platoon through smoother flow',
+          'Prior research reports 42% jam reduction from coordinated speed guidance at 5% autonomous-vehicle penetration',
+          'The same literature reports a 5.2 km/h gain in average flow speed',
+          '5% autonomous-vehicle penetration is the cited minimum threshold for measurable impact',
+          'Smoother flow is credited with 20% fuel savings per platoon',
+          'These figures come from published work - they are design targets, not measurements taken from this simulator',
         ],
       },
       {
@@ -322,7 +328,7 @@ export const projectPages: ProjectPage[] = [
     title: 'The Resonance Foundation',
     status: 'Active',
     category: '501(c)(3) Nonprofit',
-    tagline: 'Making music education accessible across DFW',
+    tagline: 'A 501(c)(3) I founded - music education and performances reaching thousands across DFW',
     overview:
       'Founded a 501(c)(3) nonprofit committed to making music education accessible. Reached thousands of individuals across DFW with performances and events that bring music instruction and community engagement to families who might not otherwise have access.',
     sections: [
@@ -334,7 +340,7 @@ export const projectPages: ProjectPage[] = [
       {
         title: 'Leadership',
         description:
-          'Built and led a registered nonprofit from the ground up — handling programming, events, and the organizational work required to sustain a 501(c)(3).',
+          'Built and led a registered nonprofit from the ground up - handling programming, events, and the organizational work required to sustain a 501(c)(3).',
       },
     ],
     externalUrl: 'https://www.theresonancefoundation.org/',
@@ -347,7 +353,7 @@ export const projectPages: ProjectPage[] = [
     status: 'Completed',
     group: 'other',
     category: 'Open Source',
-    tagline: 'R libraries for Quarto-based data-science education',
+    tagline: 'R libraries used internationally on Quarto-based data-science teaching templates',
     overview:
       'Developed and maintained R libraries used internationally on Quarto-based templates, enabling students to grasp data-science fundamentals through reproducible, accessible coursework materials.',
     sections: [

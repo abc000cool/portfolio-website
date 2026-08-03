@@ -1,5 +1,5 @@
 import { type RefObject } from 'react'
-import { useWaypointReached } from '../context/MissionContext'
+import { useWaypointReached } from '../context/missionState'
 import { useInView } from './useInView'
 
 const REVEAL_OBSERVER: IntersectionObserverInit = {

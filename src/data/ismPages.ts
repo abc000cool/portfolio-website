@@ -105,10 +105,10 @@ export const ismInterviews: IsmInterview[] = [
   {
     number: 2,
     name: 'Dr. Giuseppe Cataldo',
-    role: 'Assistant Chief of Technology at NASA',
+    role: 'Assistant Chief for Technology at NASA Goddard',
     date: 'November 6, 2025',
     summary:
-      "Interview with NASA's Assistant Chief of Technology who manages over $30 million in budget and has 20+ research publications. Discussed his journey from MIT research to NASA, the mission lifecycle process, and the importance of professional growth. Received invaluable advice on pursuing summer internships and diversifying engineering knowledge.",
+      "Interview with NASA Goddard's Assistant Chief for Technology - later my ISM mentor - who manages over $30 million in budget and has 20+ research publications. Discussed his journey from MIT research to NASA, the mission lifecycle process, and the importance of professional growth. Received invaluable advice on pursuing summer internships and diversifying engineering knowledge.",
     insights: [
       'Learn as much as possible across disciplines',
       'Pursue summer internships for growth',
@@ -167,7 +167,7 @@ export const ismMentorMeetings: IsmMentorMeeting[] = [
       'First official mentor meeting focusing on integrating Dr. Cataldo into the ISM program and obtaining feedback on the Original Work Proposal. Received guidance on timeline adjustments, software selection (Python, R, Mathematica, SciLab), and statistical analysis approaches. Key outcome: shifting from statistical analysis to visualization outputs (contour curves, graphs, key metrics).',
     takeaways: [
       'Establish baseline model first, then add features as separate modules',
-      'Python works fine for flight mechanics modeling — no need for fancy software',
+      'Python works fine for flight mechanics modeling - no need for fancy software',
       'Use informal testing during development, save formal testing for final report',
     ],
     pdfUrl:
@@ -183,7 +183,7 @@ export const ismMentorMeetings: IsmMentorMeeting[] = [
     takeaways: [
       'Consider higher-precision drag model and variable atmospheric conditions',
       'Add separate tabs for atmospheric conditions, lift, drag analysis',
-      'CFD integration would be complex — consider simple version or separate exploration',
+      'CFD integration would be complex - consider simple version or separate exploration',
     ],
     pdfUrl:
       'https://blobs.vusercontent.net/blob/Ansh_Pathak_MA2_2.18.2026-yEXaIg7BoDI4oWoFyoNpSJ3QrltM0W.pdf',

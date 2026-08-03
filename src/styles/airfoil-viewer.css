@@ -1,4 +1,4 @@
-/* Shared 3D research viewer chrome */
+﻿/* Shared 3D research viewer chrome */
 .research-viewer,
 .airfoil-viewer {
   width: 100%;
@@ -37,7 +37,14 @@
   top: 0.55rem;
   left: 0.55rem;
   z-index: 2;
-  width: 8.25rem;
+  /*
+   * Sizes to its content instead of a hard 8.25rem. The labels are readable
+   * now, and at that fixed width the longer ones ("LIGHTNESS", "DISPLACEMENT")
+   * were being clipped by the panel edge.
+   */
+  width: max-content;
+  min-width: 8.25rem;
+  max-width: min(14rem, 45%);
   padding: 0.45rem 0.55rem;
   border-radius: 0.4rem;
   border: 1px solid rgba(129, 140, 248, 0.22);
@@ -51,7 +58,7 @@
 .research-viewer__telemetry-label,
 .airfoil-viewer__telemetry-label {
   margin: 0 0 0.2rem;
-  font-size: 0.46rem;
+  font-size: 0.58rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgba(129, 140, 248, 0.85);
@@ -83,10 +90,12 @@
 .research-viewer__telemetry-grid dt,
 .airfoil-viewer__telemetry-grid dt {
   margin: 0;
-  font-size: 0.44rem;
+  font-size: 0.58rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgba(148, 163, 184, 0.8);
+  /* Labels are single tokens; wrapping mid-word read as corruption. */
+  white-space: nowrap;
 }
 
 .research-viewer__telemetry-grid dd,
@@ -115,7 +124,7 @@
 .research-viewer__conference-presented {
   display: block;
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.46rem;
+  font-size: 0.58rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(201, 169, 98, 0.85);
@@ -134,7 +143,7 @@
 
 .research-viewer__conference-location {
   display: block;
-  font-size: 0.52rem;
+  font-size: 0.6rem;
   color: #94a3b8;
   line-height: 1.35;
 }
@@ -158,19 +167,46 @@
   transition: width 0.12s ease-out;
 }
 
+/*
+ * Anchored bottom-right rather than centred across the full width. The phase
+ * read-out (.qcin-phase) owns the bottom-left corner, and a centred full-width
+ * legend was wrapping straight through its caption text.
+ */
 .research-viewer__legend,
 .airfoil-viewer__legend {
   position: absolute;
-  bottom: 1.75rem;
+  bottom: 0.62rem;
+  left: auto;
+  right: 0.7rem;
+  z-index: 2;
+  /*
+   * Stacked against the right edge. Laid out as a wrapping row it spilled
+   * leftwards into the phase caption in the opposite corner, so the two
+   * overlapped whenever a viewer had four or more legend entries.
+   */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.22rem;
+  max-width: 45%;
+  text-align: right;
+  pointer-events: none;
+}
+
+/* Viewers with no phase read-out keep the original centred legend. */
+.research-viewer--airfoil .airfoil-viewer__legend,
+.research-viewer--airfoil .research-viewer__legend {
   left: 0;
   right: 0;
-  z-index: 2;
-  display: flex;
-  justify-content: center;
+  bottom: 1.75rem;
+  max-width: none;
+  flex-direction: row;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
   gap: 0.55rem 0.9rem;
+  text-align: left;
   padding: 0 0.75rem;
-  pointer-events: none;
 }
 
 .research-viewer__hint {
@@ -181,7 +217,7 @@
 .research-viewer__legend-item,
 .airfoil-viewer__legend-item {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.52rem;
+  font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(148, 163, 184, 0.85);
@@ -257,7 +293,7 @@
 
 .research-viewer__legend-item--flow::before,
 .airfoil-viewer__legend-item--flow::before {
-  content: '→';
+  content: 'â†’';
   margin-right: 0.2rem;
   color: #818cf8;
 }
@@ -424,7 +460,7 @@
 
 .qcin-phase__copy small {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.45rem;
+  font-size: 0.58rem;
   letter-spacing: 0.06em;
   color: rgba(148, 163, 184, 0.9);
 }
@@ -489,7 +525,7 @@
 
 .viewer-phase__copy small {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.45rem;
+  font-size: 0.58rem;
   letter-spacing: 0.06em;
   color: rgba(148, 163, 184, 0.9);
 }
@@ -576,7 +612,7 @@
 .research-showcase__conference-card-kicker {
   display: block;
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.52rem;
+  font-size: 0.6rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgba(201, 169, 98, 0.9);

@@ -1,26 +1,58 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { portfolio, SECTION_IDS, SECTION_LABELS, type SectionId } from '../../data/portfolio'
 import { getProjectsByGroup } from '../../data/projectPages'
+import { RESEARCH_SHOWCASE, getResearchShowcasePaper } from '../../data/researchShowcase'
 import { scrollToSection } from '../../lib/lenis'
 import { MobileNav } from './MobileNav'
 
-const HOME_SECTIONS = SECTION_IDS.filter(
-  (id) => id !== 'intro' && id !== 'hero' && id !== 'projects' && id !== 'ism',
-)
+/**
+ * Biography sections, shown after the work. Contact is deliberately absent -
+ * the Connect button on the right is the contact affordance and a second
+ * "Contact" link next to it is noise.
+ */
+const BIO_SECTIONS: SectionId[] = ['about', 'stats']
+
+/**
+ * Short nav labels for the research entries. Full paper titles run to twenty
+ * words; these are the condensed forms already used in the Research section
+ * intro copy (src/sections/ResearchSection.tsx). The full title is still
+ * exposed as the link's `title`.
+ */
+const RESEARCH_NAV_LABELS: Record<string, string> = {
+  'research-debris': 'Orbital debris mitigation',
+  'research-airfoil': 'Morphing airfoil optimization',
+  'research-flowstate': 'Fluid-dynamics traffic modeling',
+  'research-qcin': 'Hybrid quantum–classical inertial navigation',
+  'research-sailnko': 'Solar-sail non-Keplerian orbits',
+  'research-transition': 'Boundary-layer transition prediction',
+}
+
+const DROPDOWN_ITEM =
+  'block w-full text-left px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/[0.05] focus-visible:text-white focus-visible:bg-white/[0.08] focus-visible:shadow-[inset_0_0_0_2px_#818cf8] no-underline bg-transparent border-none cursor-pointer'
+
+const DROPDOWN_ITEM_LEAD =
+  'block w-full text-left px-4 py-2 text-sm text-slate-200 hover:text-white hover:bg-white/[0.05] focus-visible:text-white focus-visible:bg-white/[0.08] focus-visible:shadow-[inset_0_0_0_2px_#818cf8] no-underline bg-transparent border-none cursor-pointer'
+
+const DROPDOWN_GROUP_LABEL = 'font-mono text-[10px] uppercase tracking-wider text-slate-500'
 
 function NavDropdown({
   label,
   isActive,
+  menuClassName = 'min-w-[13rem]',
   children,
 }: {
   label: string
   isActive: boolean
-  children: ReactNode
+  menuClassName?: string
+  children: (close: () => void) => ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLLIElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  const close = useCallback(() => setOpen(false), [])
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -30,19 +62,49 @@ function NavDropdown({
     return () => document.removeEventListener('mousedown', onDoc)
   }, [])
 
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      buttonRef.current?.focus()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+
   return (
-    <li ref={ref} className="relative">
+    <li
+      ref={ref}
+      className="relative"
+      onBlur={(e) => {
+        // Only close when focus actually lands somewhere else (keyboard
+        // tab-out). A null relatedTarget also fires when Safari blurs on
+        // mousedown, and closing there would unmount the item before its
+        // click ever dispatches. Outside clicks are handled above.
+        const next = e.relatedTarget as Node | null
+        if (next && !e.currentTarget.contains(next)) setOpen(false)
+      }}
+    >
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         onMouseEnter={() => setOpen(true)}
         aria-expanded={open}
+        aria-haspopup="true"
         className={`relative z-10 px-3.5 py-1.5 text-[13px] font-medium bg-transparent border-none cursor-pointer transition-colors duration-300 rounded-full flex items-center gap-1 ${
           isActive ? 'text-white' : 'text-slate-400 hover:text-white'
         }`}
       >
         {label}
-        <svg width="10" height="10" viewBox="0 0 10 10" className="opacity-60">
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          aria-hidden="true"
+          className={`opacity-60 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        >
           <path d="M2 4 L5 7 L8 4" stroke="currentColor" strokeWidth="1.5" fill="none" />
         </svg>
       </button>
@@ -55,10 +117,10 @@ function NavDropdown({
       )}
       {open && (
         <ul
-          className="absolute top-full left-0 mt-2 min-w-[13rem] py-2 list-none m-0 rounded-xl border border-white/10 bg-[rgba(8,8,14,0.95)] backdrop-blur-xl shadow-2xl z-50"
-          onMouseLeave={() => setOpen(false)}
+          className={`absolute top-full left-0 mt-2 py-2 list-none m-0 rounded-xl border border-white/10 bg-[rgba(8,8,14,0.95)] backdrop-blur-xl shadow-2xl z-50 max-h-[70vh] overflow-y-auto ${menuClassName}`}
+          onMouseLeave={close}
         >
-          {children}
+          {children(close)}
         </ul>
       )}
     </li>
@@ -112,7 +174,17 @@ export function SiteNav() {
     if (isHome) scrollToSection(id)
   }
 
+  /**
+   * Research entries render as cards without per-entry ids below the 1024px
+   * layout breakpoint, while this nav is visible from 768px up. Fall back to
+   * the section itself rather than doing nothing.
+   */
+  const goResearchEntry = (id: string) => {
+    scrollToSection(document.getElementById(id) ? id : 'research')
+  }
+
   const projectsActive = isHome ? activeId === 'projects' : location.pathname.startsWith('/projects')
+  const researchActive = isHome ? activeId === 'research' : location.pathname.startsWith('/research')
   const ismActive = isHome ? activeId === 'ism' : location.pathname.startsWith('/ism')
 
   const linkClass = (active: boolean) =>
@@ -152,8 +224,132 @@ export function SiteNav() {
           </Link>
         )}
 
+        {/* Work first, biography after - the reader is here for the work. */}
         <ul className="hidden md:flex gap-0.5 list-none m-0 p-0 relative items-center">
-          {HOME_SECTIONS.map((id) => {
+          <NavDropdown label="Projects" isActive={projectsActive}>
+            {(close) => (
+              <>
+                <li>
+                  {isHome ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        close()
+                        scrollToSection('projects')
+                      }}
+                      className={DROPDOWN_ITEM_LEAD}
+                    >
+                      All projects
+                    </button>
+                  ) : (
+                    <Link to="/#projects" className={DROPDOWN_ITEM_LEAD} onClick={close}>
+                      All projects
+                    </Link>
+                  )}
+                </li>
+                {getProjectsByGroup('selected').map((p) => (
+                  <li key={p.slug}>
+                    <Link to={`/projects/${p.slug}`} className={DROPDOWN_ITEM} onClick={close}>
+                      {p.title}
+                    </Link>
+                  </li>
+                ))}
+                <li className="px-4 pt-2 pb-1">
+                  <span className={DROPDOWN_GROUP_LABEL}>Other projects</span>
+                </li>
+                {getProjectsByGroup('other').map((p) => (
+                  <li key={p.slug}>
+                    <Link to={`/projects/${p.slug}`} className={DROPDOWN_ITEM} onClick={close}>
+                      {p.title}
+                    </Link>
+                  </li>
+                ))}
+              </>
+            )}
+          </NavDropdown>
+
+          <NavDropdown
+            label="Research"
+            isActive={researchActive}
+            menuClassName="min-w-[19rem] max-w-[22rem]"
+          >
+            {(close) => (
+              <>
+                <li>
+                  {isHome ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        close()
+                        scrollToSection('research')
+                      }}
+                      className={DROPDOWN_ITEM_LEAD}
+                    >
+                      All research
+                    </button>
+                  ) : (
+                    <Link to="/#research" className={DROPDOWN_ITEM_LEAD} onClick={close}>
+                      All research
+                    </Link>
+                  )}
+                </li>
+                {RESEARCH_SHOWCASE.map((entry) => {
+                  const paper = getResearchShowcasePaper(entry.paperSlug)
+                  if (!paper) return null
+                  const label = RESEARCH_NAV_LABELS[entry.id] ?? paper.title
+                  const body = (
+                    <>
+                      <span className="block leading-snug">{label}</span>
+                      <span className="block font-mono text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">
+                        {paper.year} · {paper.venue}
+                      </span>
+                    </>
+                  )
+                  return (
+                    <li key={entry.id}>
+                      {isHome ? (
+                        <button
+                          type="button"
+                          title={paper.title}
+                          onClick={() => {
+                            close()
+                            goResearchEntry(entry.id)
+                          }}
+                          className={DROPDOWN_ITEM}
+                        >
+                          {body}
+                        </button>
+                      ) : (
+                        <Link
+                          to={`/#${entry.id}`}
+                          title={paper.title}
+                          className={DROPDOWN_ITEM}
+                          onClick={close}
+                        >
+                          {body}
+                        </Link>
+                      )}
+                    </li>
+                  )
+                })}
+              </>
+            )}
+          </NavDropdown>
+
+          <li className="relative">
+            <Link to="/ism" className={linkClass(ismActive)}>
+              ISM
+            </Link>
+            {ismActive && (
+              <motion.span
+                layoutId="nav-pill"
+                className="absolute inset-0 rounded-full bg-white/[0.08] border border-white/10 pointer-events-none"
+                transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+              />
+            )}
+          </li>
+
+          {BIO_SECTIONS.map((id) => {
             const isActive = isHome && activeId === id
             const href = sectionHref(id, isHome)
             return (
@@ -183,68 +379,6 @@ export function SiteNav() {
               </li>
             )
           })}
-
-          <NavDropdown label="Projects" isActive={projectsActive}>
-            <li>
-              {isHome ? (
-                <button
-                  type="button"
-                  onClick={() => scrollToSection('projects')}
-                  className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/[0.05] bg-transparent border-none cursor-pointer"
-                >
-                  All projects
-                </button>
-              ) : (
-                <Link
-                  to="/#projects"
-                  className="block px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/[0.05] no-underline"
-                >
-                  All projects
-                </Link>
-              )}
-            </li>
-            {getProjectsByGroup('selected').map((p) => (
-              <li key={p.slug}>
-                <Link
-                  to={`/projects/${p.slug}`}
-                  className="block px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/[0.05] no-underline"
-                >
-                  {p.title}
-                </Link>
-              </li>
-            ))}
-            <li className="px-4 pt-2 pb-1">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-slate-500">
-                Other projects
-              </span>
-            </li>
-            {getProjectsByGroup('other').map((p) => (
-              <li key={p.slug}>
-                <Link
-                  to={`/projects/${p.slug}`}
-                  className="block px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/[0.05] no-underline"
-                >
-                  {p.title}
-                </Link>
-              </li>
-            ))}
-          </NavDropdown>
-
-          <li className="relative">
-            <Link
-              to="/ism"
-              className={`${linkClass(ismActive)} ${ismActive && isHome ? '' : ''}`}
-            >
-              ISM
-            </Link>
-            {ismActive && isHome && (
-              <motion.span
-                layoutId="nav-pill"
-                className="absolute inset-0 rounded-full bg-white/[0.08] border border-white/10 pointer-events-none"
-                transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-              />
-            )}
-          </li>
         </ul>
 
         <div className="flex items-center gap-2">

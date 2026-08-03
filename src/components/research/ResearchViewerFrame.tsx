@@ -37,8 +37,18 @@ export function ResearchViewerFrame({
 
         {legend}
 
+        {/*
+          Interaction affordance, pinned top-left.
+
+          In normal flow it landed on top of the legend and the phase read-out,
+          which both live on the bottom edge. Only the airfoil viewer passes a
+          hint today, and airfoil-viewer.css moves that viewer's telemetry panel
+          to the top-RIGHT (.research-viewer--airfoil .research-viewer__telemetry),
+          which leaves this corner free. If another viewer starts passing `hint`,
+          check its telemetry corner first - the default panel is top-left.
+        */}
         {hint && (
-          <p className="research-viewer__hint font-mono text-[10px] uppercase tracking-widest text-slate-500 text-center">
+          <p className="absolute top-2 left-2 z-[3] m-0 max-w-[10.5rem] rounded-md border border-indigo-400/25 bg-black/80 px-2 py-1 font-mono text-[11px] leading-tight uppercase tracking-wider text-slate-300 pointer-events-none">
             {hint}
           </p>
         )}

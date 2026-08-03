@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
+import { motion } from 'motion/react'
 import { portfolio } from '../data/portfolio'
 import { RedactedHeading } from '../components/ui/RedactedHeading'
 import { ScanWipe } from '../components/ui/ScanWipe'
@@ -6,8 +7,21 @@ import { TelemetryTicker } from '../components/ui/TelemetryTicker'
 import { useSectionReveal } from '../hooks/useSectionReveal'
 import { gsap } from '../lib/scrollTrigger'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { useInView } from '../hooks/useInView'
+import { useIsMobileLayout, useLightExperience } from '../hooks/useTouchDevice'
 
 import { sectionShellClass } from '../lib/waypointLayout'
+
+/**
+ * Nested reveal offsets for the highlights list.
+ *
+ * Deliberately smaller than the shared revealHidden() offset: these items sit
+ * inside a ScanWipe that is already carrying the whole block up 20px, and
+ * nested translates add. A full second 20px on top would make the list travel
+ * twice as far as the paragraph beside it.
+ */
+const listHidden = (light: boolean) => ({ opacity: 0, y: light ? 6 : 9 })
+const LIST_VISIBLE = { opacity: 1, y: 0 }
 
 const EarthOrbit = lazy(() =>
   import('../components/three/EarthOrbit').then((m) => ({ default: m.EarthOrbit })),
@@ -18,15 +32,59 @@ export function AboutSection() {
   const active = useSectionReveal('about', sectionRef)
   const schematicRef = useRef<SVGPathElement>(null)
   const reduced = useReducedMotion()
+  const light = useLightExperience()
+  const hiddenItem = listHidden(light)
 
+  /*
+   * The globe is 1.2 kB of geometry that drags in the ~880 kB three.js vendor
+   * chunk. Below 1024px it is that chunk's only consumer on the whole page, so
+   * phones downloaded and parsed all of it to draw three wireframe primitives.
+   * Desktop keeps the globe but only mounts it once the section is near, so it
+   * no longer competes with the intro animation for the main thread.
+   */
+  const orbitRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobileLayout()
+  const orbitNear = useInView(orbitRef, { threshold: 0, rootMargin: '0px 0px 40% 0px' })
+  const showOrbit = !isMobile && orbitNear
+
+  /*
+   * Draw-on for the schematic outline.
+   *
+   * The markup ships a hand-guessed strokeDasharray of 200 but the path is
+   * ~210 units long, so the dash pattern repeated: the final ~10 units were
+   * always gap and the outline never closed, whatever the animation did. The
+   * real length is measured and written here instead.
+   *
+   * The tween is also parked behind the body copy rather than firing with it.
+   * The schematic is decoration in the margin - it should be the last thing to
+   * move in this section, not something competing with the paragraph text.
+   */
   useEffect(() => {
-    if (!active || !schematicRef.current || reduced) return
-    const length = schematicRef.current.getTotalLength()
-    gsap.fromTo(
-      schematicRef.current,
+    const path = schematicRef.current
+    if (!path) return
+    const length = path.getTotalLength()
+    path.style.strokeDasharray = `${length}`
+
+    if (reduced) {
+      // Reduced motion gets the finished outline. Leaving the offset at its
+      // markup value would strand the schematic permanently half-drawn.
+      path.style.strokeDashoffset = '0'
+      return
+    }
+
+    if (!active) {
+      path.style.strokeDashoffset = `${length}`
+      return
+    }
+
+    const tween = gsap.fromTo(
+      path,
       { strokeDashoffset: length },
-      { strokeDashoffset: 0, duration: 2, ease: 'power2.inOut' },
+      { strokeDashoffset: 0, duration: 2, delay: 0.35, ease: 'power2.inOut' },
     )
+    return () => {
+      tween.kill()
+    }
   }, [active, reduced])
 
   return (
@@ -51,15 +109,31 @@ export function AboutSection() {
             <p className="text-sm text-slate-400 leading-relaxed mb-6 border-l-2 border-indigo-500/30 pl-4">
               {portfolio.about.missionStatement}
             </p>
+            {/*
+              * The highlights used to arrive as one slab with the rest of the
+              * body copy. A list is read top to bottom, so it is given a short
+              * decaying stagger that runs in that direction - the gaps start at
+              * ~55ms and tighten, so the list settles instead of ticking, and
+              * the whole run is capped at 0.22s no matter how many items the
+              * data grows to. Element and classes are unchanged; this only adds
+              * motion props.
+              */}
             <ul className="space-y-3 mb-8">
-              {portfolio.about.highlights.map((item) => (
-                <li
+              {portfolio.about.highlights.map((item, i) => (
+                <motion.li
                   key={item}
+                  initial={hiddenItem}
+                  animate={active ? LIST_VISIBLE : hiddenItem}
+                  transition={{
+                    duration: 0.45,
+                    delay: 0.14 + 0.22 * (1 - Math.exp(-i / 1.8)),
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
                   className="flex items-start gap-3 text-[var(--color-aluminum)] text-sm"
                 >
                   <span className="text-[var(--color-cockpit-amber)] mt-1">▸</span>
                   {item}
-                </li>
+                </motion.li>
               ))}
             </ul>
             <blockquote className="mb-8 border-l-2 border-[var(--color-cockpit-amber)]/40 pl-4">
@@ -67,7 +141,7 @@ export function AboutSection() {
                 &ldquo;{portfolio.identity.quote.text}&rdquo;
               </p>
               <footer className="text-xs text-slate-500 mt-2">
-                — {portfolio.identity.quote.attribution}
+                - {portfolio.identity.quote.attribution}
               </footer>
             </blockquote>
             <TelemetryTicker />
@@ -89,9 +163,15 @@ export function AboutSection() {
               </p>
             </div>
           </div>
-          <Suspense fallback={<div className="h-[300px]" />}>
-            <EarthOrbit className="h-[300px] md:h-[350px]" />
-          </Suspense>
+          {/* Height is reserved whether or not the canvas mounts, so document
+              height never changes mid-scroll - the flight path measures it. */}
+          <div ref={orbitRef} className="h-[300px] md:h-[350px]">
+            {showOrbit && (
+              <Suspense fallback={<div className="h-full" />}>
+                <EarthOrbit className="h-full" />
+              </Suspense>
+            )}
+          </div>
           <svg
             className="absolute -bottom-8 -left-4 w-48 h-48 opacity-30"
             viewBox="0 0 100 100"

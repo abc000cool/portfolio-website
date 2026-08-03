@@ -2,7 +2,7 @@ import * as THREE from 'three'
 
 /**
  * NASA/Langley NLF(1)-0416 natural-laminar-flow airfoil.
- * Coordinates digitized from the UIUC database (Somers, NASA TP-1861) —
+ * Coordinates digitized from the UIUC database (Somers, NASA TP-1861) -
  * the same data/airfoils/nlf416.dat used by the transition atlas pipeline.
  * Upper and lower surfaces run LE→TE in unit-chord space.
  */

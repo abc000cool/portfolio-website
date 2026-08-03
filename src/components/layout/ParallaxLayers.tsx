@@ -28,7 +28,13 @@ export function ParallaxLayers({ back, mid, children }: ParallaxLayersProps) {
           trigger: document.body,
           start: 'top top',
           end: 'bottom bottom',
-          scrub: true,
+          // `scrub: true` is a hard bind to the scrollbar, so every wheel tick
+          // and trackpad jitter lands on the backdrop verbatim. A short scrub
+          // catches up over ~0.6s: same travel, same range, damped arrival.
+          scrub: 0.6,
+          // The travel is a function of viewport size; recompute it when the
+          // layout is refreshed instead of holding the mount-time value.
+          invalidateOnRefresh: true,
         },
       })
       if (tween.scrollTrigger) triggers.push(tween.scrollTrigger)
@@ -58,7 +64,7 @@ export function ParallaxLayers({ back, mid, children }: ParallaxLayersProps) {
           {mid}
         </div>
       )}
-      {/* No transform on content — ancestor transforms break position:sticky in Safari */}
+      {/* No transform on content - ancestor transforms break position:sticky in Safari */}
       <div className="relative z-[2]">{children}</div>
     </>
   )

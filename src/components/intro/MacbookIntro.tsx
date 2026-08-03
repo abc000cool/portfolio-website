@@ -1,25 +1,64 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import {
+  cubicBezier,
   motion,
   useMotionValueEvent,
   useScroll,
+  useSpring,
   useTransform,
   type MotionValue,
 } from 'motion/react'
 import { portfolio } from '../../data/portfolio'
 import { useIntroViewport } from '../../hooks/useIntroViewport'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
-import {
-  useIsPhoneLayout,
-  useLightExperience,
-  useTouchDevice,
-} from '../../hooks/useTouchDevice'
+import { useIsPhoneLayout, useTouchDevice } from '../../hooks/useTouchDevice'
 import { MacbookScreenContent } from './MacbookScreenContent'
+
+/**
+ * Hinge curve. A lid has to break away from closed, swings through the middle,
+ * then decelerates into its stop. Straight linear interpolation arrived at the
+ * fully open position at full speed and stopped dead, which is what read as a
+ * snap at the top of the opening.
+ */
+const LID_EASE = cubicBezier(0.5, 0, 0.25, 1)
+
+/** Crossfades: flat at both ends so no opacity ramp starts or stops with a step. */
+const FADE_EASE = cubicBezier(0.4, 0, 0.3, 1)
+
+/**
+ * Scroll progress is passed through this before it drives anything the eye
+ * reads as the laptop. Heavily overdamped (damping ratio ~1.5) so it can only
+ * ever approach the fully open position from below and can never overshoot past
+ * it, while still absorbing the single-frame jitter that native scroll hands us
+ * on touch devices and Safari. The time constant is ~60ms, roughly three
+ * frames, so it de-jitters without feeling detached from the wheel.
+ */
+const PROGRESS_SPRING = { stiffness: 900, damping: 55, mass: 0.35, restDelta: 0.0002 }
+
+/**
+ * Back-navigation restores a saved scroll offset in a single step. Anything
+ * larger than this inside one change event is a teleport, not a gesture, and
+ * must not be sprung across or the whole lid opening replays itself.
+ */
+const TELEPORT_DELTA = 0.15
+
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v)
+
+/** Smoothstep - zero velocity at both ends, for the hand-driven fades below. */
+function smoothstep(v: number): number {
+  const t = clamp01(v)
+  return t * t * (3 - 2 * t)
+}
+
+/** Ease-out cubic - used where something is arriving and should settle. */
+function easeOutCubic(v: number): number {
+  const t = clamp01(v)
+  return 1 - (1 - t) * (1 - t) * (1 - t)
+}
 
 export function MacbookIntro() {
   const ref = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
-  const light = useLightExperience()
   const touch = useTouchDevice()
   const isMobile = useIsPhoneLayout()
   const { displayScale } = useIntroViewport()
@@ -29,61 +68,93 @@ export function MacbookIntro() {
     offset: ['start start', 'end start'],
   })
 
+  // Smoothed copy of scroll progress. Everything the visitor reads as the
+  // laptop itself runs off this; only values that have to track the page
+  // position exactly stay on the raw signal.
+  const progress = useSpring(scrollYProgress, PROGRESS_SPRING)
+
+  const lastRaw = useRef(0)
+  useMotionValueEvent(scrollYProgress, 'change', (v) => {
+    const jumped = Math.abs(v - lastRaw.current) > TELEPORT_DELTA
+    lastRaw.current = v
+    if (jumped) progress.jump(v)
+  })
+
   const lidEnd = isMobile ? 0.42 : 0.3
   const fadeStart = isMobile ? 0.3 : 0.5
   const fadeMid = isMobile ? 0.4 : 0.72
   const translateEnd = isMobile ? 0.9 : 1
   const translateMax = isMobile ? 360 : 1500
   const peakLidScale = isMobile ? 1 : 1.5
+  const shellEnd = touch ? 0.22 : 0.12
 
-  const scaleX = useTransform(scrollYProgress, [0, lidEnd], [1.2, peakLidScale])
-  const scaleY = useTransform(scrollYProgress, [0, lidEnd], [0.6, peakLidScale])
+  const scaleX = useTransform(progress, [0, lidEnd], [1.2, peakLidScale], { ease: LID_EASE })
+  const scaleY = useTransform(progress, [0, lidEnd], [0.6, peakLidScale], { ease: LID_EASE })
+  // Deliberately linear and on the raw signal: this cancels out the page scroll
+  // so the laptop holds its place on screen. Easing or smoothing it would make
+  // the whole unit drift against the scroll.
   const translate = useTransform(scrollYProgress, [0, translateEnd], [0, translateMax])
   const rotate = useTransform(
-    scrollYProgress,
+    progress,
     [0.1, 0.12, lidEnd],
     isMobile ? [-14, -14, 0] : [-28, -28, 0],
+    { ease: LID_EASE },
   )
-  const backShellOpacity = useTransform(scrollYProgress, [0, touch ? 0.22 : 0.12], [1, 0])
+  const backShellOpacity = useTransform(progress, [0, shellEnd], [1, 0], { ease: FADE_EASE })
+  // The screen brightens as the lid opens. This deliberately starts PARTIAL
+  // rather than opaque: the record on this screen is the whole point of the
+  // component, and blacking it out entirely made the opening frame - the first
+  // thing any visitor sees - a dead rectangle.
+  const screenWake = useTransform(progress, [0, shellEnd * 1.15], [0.62, 0], {
+    ease: FADE_EASE,
+  })
   const textTranslate = useTransform(scrollYProgress, [0, isMobile ? 0.32 : 0.35], [0, -120])
-  const textOpacity = useTransform(scrollYProgress, [0, isMobile ? 0.22 : 0.28], [1, 0])
+  const textOpacity = useTransform(progress, [0, isMobile ? 0.22 : 0.28], [1, 0], {
+    ease: FADE_EASE,
+  })
   const glowOpacity = useTransform(
-    scrollYProgress,
+    progress,
     [0, 0.25, isMobile ? 0.45 : 0.55],
     [0.35, 0.7, 0],
+    { ease: FADE_EASE },
   )
   const laptopOpacity = useTransform(
-    scrollYProgress,
+    progress,
     [fadeStart, fadeMid, isMobile ? 0.88 : 1],
     [1, 0, 0],
-    { clamp: true },
+    { clamp: true, ease: FADE_EASE },
   )
-  const laptopLift = useTransform(scrollYProgress, [fadeStart, fadeMid], [0, isMobile ? -16 : 0])
-
+  const laptopLift = useTransform(progress, [fadeStart, fadeMid], [0, isMobile ? -16 : 0], {
+    ease: FADE_EASE,
+  })
   const laptopWrapRef = useRef<HTMLDivElement>(null)
+  const hintRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => {
+    const apply = (v: number) => {
+      // Scroll linked and smoothstepped rather than a threshold flip: the hint
+      // starts dissolving on the first notch of scroll and eases out, instead
+      // of holding at full strength and then dropping.
+      const fade = 1 - smoothstep((v - 0.015) / 0.075)
+      if (hintRef.current) hintRef.current.style.opacity = String(fade)
+    }
+    apply(scrollYProgress.get())
+    return scrollYProgress.on('change', apply)
+  }, [scrollYProgress])
 
   useEffect(() => {
     if (!isMobile) return
     const apply = (v: number) => {
-      const fade = 1 - Math.min(1, Math.max(0, (v - fadeStart) / (fadeMid - fadeStart)))
+      // Smoothstepped so the laptop does not start or stop fading with a step.
+      const fade = 1 - smoothstep((v - fadeStart) / (fadeMid - fadeStart))
       if (laptopWrapRef.current) {
         laptopWrapRef.current.style.opacity = String(fade)
         laptopWrapRef.current.style.pointerEvents = fade < 0.05 ? 'none' : ''
       }
     }
-    apply(scrollYProgress.get())
-    return scrollYProgress.on('change', apply)
-  }, [isMobile, scrollYProgress, fadeStart, fadeMid])
-
-  const hintRef = useRef<HTMLParagraphElement>(null)
-  const [hintVisible, setHintVisible] = useState(true)
-  useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    if (light) {
-      if (hintRef.current) hintRef.current.style.opacity = v < 0.05 ? '1' : '0'
-      return
-    }
-    setHintVisible(v < 0.05)
-  })
+    apply(progress.get())
+    return progress.on('change', apply)
+  }, [isMobile, progress, fadeStart, fadeMid])
 
   if (reduced) {
     return (
@@ -111,6 +182,9 @@ export function MacbookIntro() {
           : {
               scale: displayScale,
               transformOrigin: 'top center',
+              // The fit scale is correct on the first paint; this only covers a
+              // live window resize, which would otherwise resize in one step.
+              transition: 'scale 220ms cubic-bezier(0.22, 1, 0.36, 1)',
             }
       }
     >
@@ -127,7 +201,7 @@ export function MacbookIntro() {
           style={{ opacity: 1 }}
           className="relative z-10 flex flex-col items-center w-full"
         >
-          <MobileMacbook progress={scrollYProgress} />
+          <MobileMacbook progress={progress} />
         </div>
       ) : (
         <motion.div
@@ -148,7 +222,8 @@ export function MacbookIntro() {
             rotate={rotate}
             translate={translate}
             backShellOpacity={backShellOpacity}
-            progress={scrollYProgress}
+            screenWake={screenWake}
+            progress={progress}
           />
 
           <div className="relative -z-10 h-[22rem] w-[32rem] overflow-hidden rounded-2xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10">
@@ -193,11 +268,14 @@ export function MacbookIntro() {
         )}
       </div>
 
+      {/* Scroll-linked rather than a threshold flip, so it starts dissolving on
+          the first notch of scroll instead of holding then dropping out. It is
+          fixed and never unmounts, so pointer-events-none is load bearing: it
+          sits at z-30 over the whole page for the rest of the session. */}
       <p
         ref={hintRef}
-        className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 text-xs text-slate-500 m-0 transition-opacity duration-500 ${
-          light ? '' : hintVisible ? 'opacity-100' : 'opacity-0'
-        }`}
+        style={{ opacity: 1 }}
+        className="pointer-events-none fixed bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 text-xs text-slate-500 m-0"
         aria-hidden="true"
       >
         <span className="inline-block h-5 w-3 rounded-full border border-slate-600">
@@ -235,7 +313,7 @@ function IntroTitle({ compact = false }: { compact?: boolean }) {
   )
 }
 
-/** Unified mobile MacBook — closed screen crossfades to dashboard; no overlay squash. */
+/** Unified mobile MacBook - closed screen crossfades to dashboard; no overlay squash. */
 function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
   const unitRef = useRef<HTMLDivElement>(null)
   const closedRef = useRef<HTMLDivElement>(null)
@@ -243,9 +321,14 @@ function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
 
   useEffect(() => {
     const apply = (v: number) => {
-      const closedT = 1 - Math.min(1, v / 0.18)
-      const openT = Math.min(1, Math.max(0, (v - 0.02) / 0.14))
-      const scale = 1 + Math.min(0.03, Math.max(0, (v - 0.28) / 0.2) * 0.03)
+      // Same windows as before, smoothstepped. Both sides now leave and arrive
+      // with zero velocity, and the live screen still leads the sleeping one so
+      // the frame behind never shows through mid-crossfade.
+      const closedT = 1 - smoothstep(v / 0.18)
+      const openT = smoothstep((v - 0.02) / 0.14)
+      // Eased so the lift settles into its stop instead of running at a
+      // constant rate and then hitting the clamp dead.
+      const scale = 1 + 0.03 * easeOutCubic((v - 0.28) / 0.2)
 
       if (closedRef.current) closedRef.current.style.opacity = String(closedT)
       if (openRef.current) openRef.current.style.opacity = String(openT)
@@ -276,7 +359,7 @@ function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
             <MacbookScreenContent progress={progress} compact />
           </div>
 
-          {/* Closed — proper MacBook sleep screen */}
+          {/* Closed - proper MacBook sleep screen */}
           <div
             ref={closedRef}
             className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a10] via-[#08080c] to-[#12121a]"
@@ -303,7 +386,7 @@ function MobileMacbook({ progress }: { progress: MotionValue<number> }) {
         </div>
       </div>
 
-      {/* Keyboard base — flush with lid */}
+      {/* Keyboard base - flush with lid */}
       <div className="relative -mt-px overflow-hidden rounded-b-xl bg-gradient-to-b from-[#21212a] via-[#16161d] to-[#0c0c12] ring-1 ring-white/10 ring-t-0 pb-1.5">
         <div className="relative h-6 w-full">
           <div className="absolute inset-x-0 mx-auto h-2.5 w-[78%] rounded-b-md bg-[#050507]" />
@@ -326,6 +409,7 @@ function DesktopLid({
   rotate,
   translate,
   backShellOpacity,
+  screenWake,
   progress,
 }: {
   scaleX: MotionValue<number>
@@ -333,6 +417,7 @@ function DesktopLid({
   rotate: MotionValue<number>
   translate: MotionValue<number>
   backShellOpacity: MotionValue<number>
+  screenWake: MotionValue<number>
   progress: MotionValue<number>
 }) {
   return (
@@ -369,6 +454,15 @@ function DesktopLid({
         <div className="absolute inset-0 rounded-lg bg-[#16161d]" />
         <div className="absolute inset-2 overflow-hidden rounded-lg">
           <MacbookScreenContent progress={progress} />
+          {/* Dimming panel over the dashboard while the lid is still shut. It
+              lifts as the closed shell fades, so the screen reads as brightening
+              rather than as content legible through a closed lid. Never fully
+              opaque - see screenWake. */}
+          <motion.div
+            style={{ opacity: screenWake }}
+            className="pointer-events-none absolute inset-0 bg-[#08080c]"
+            aria-hidden="true"
+          />
         </div>
       </motion.div>
     </div>
