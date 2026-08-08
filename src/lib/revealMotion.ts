@@ -36,7 +36,7 @@ export const HEADING_EASE = [0.33, 1, 0.68, 1] as const
 /**
  * The default reveal: opacity and translate only, deliberately blur-free.
  *
- * This same reveal wraps six live WebGL canvases. A CSS `filter: blur()` on an
+ * This same reveal wraps ten live WebGL canvases. A CSS `filter: blur()` on an
  * element containing a canvas forces the whole subtree through an offscreen
  * composite - and it was doing so on exactly the frames those canvases start
  * rendering. Translate and opacity stay on the compositor.

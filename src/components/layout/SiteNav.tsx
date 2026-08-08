@@ -27,6 +27,10 @@ const RESEARCH_NAV_LABELS: Record<string, string> = {
   'research-qcin': 'Hybrid quantum–classical inertial navigation',
   'research-sailnko': 'Solar-sail non-Keplerian orbits',
   'research-transition': 'Boundary-layer transition prediction',
+  'research-nozzlemoc': 'Supersonic nozzle design',
+  'research-eilj2': 'Spacecraft formation-keeping',
+  'research-bli': 'Boundary-layer ingestion benefit',
+  'research-rde': 'Rotating detonation engines',
 }
 
 const DROPDOWN_ITEM =

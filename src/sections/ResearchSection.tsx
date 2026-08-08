@@ -593,7 +593,7 @@ export function ResearchSection() {
    *
    * Measured before this: zero chunk requests were made until the research
    * section came into view, at which point three.js, react-three-fiber and all
-   * six scenes were fetched and parsed at once - roughly a megabyte landing
+   * ten scenes were fetched and parsed at once - roughly a megabyte landing
    * exactly when the visitor expected to see something. requestIdleCallback
    * means this never competes with the intro animation, and the homepage is
    * long enough that the fetch has finished well before anyone scrolls down.
