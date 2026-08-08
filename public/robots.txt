@@ -2,3 +2,7 @@ User-agent: *
 Allow: /
 
 Sitemap: https://www.anshpathak.us/sitemap.xml
+
+# LLM/AI-friendly content:
+#   https://www.anshpathak.us/llms.txt       (indexed summary)
+#   https://www.anshpathak.us/llms-full.txt  (complete site content)
