@@ -254,7 +254,7 @@ export const portfolio = {
   stats: [
     { label: 'US patent - SWEEP debris platform', display: '1' },
     { label: 'Research papers & preprints', display: '10' },
-    { label: 'AMC 12 competitors - AIME qualifier', display: 'Top 0.5%' },
+    { label: 'AMC 12 competitors - AIME qualifier', display: 'Top 1%' },
     { label: 'FIRST World Championship qualifier', display: '2x' },
     { label: 'BPA National Leadership Conference', display: 'Top 10' },
     { label: 'NASA TAS Moonshot', display: '1st Place' },
@@ -291,7 +291,7 @@ export const portfolio = {
       id: 'exp-icode',
       role: 'AI Intern and STEM Instructor',
       organization: 'iCode School Franchise',
-      period: 'Mar 2024 – Jul 2024',
+      period: 'Mar 2024 – Oct 2024',
       type: 'Internship',
       description:
         'Collaborated to develop AI-driven tools and models to create an innovative curriculum for the iCode Franchise. Worked to create tools used by Instructors nationwide to help with instruction (including AI bots to aid students). Taught both weekly and summer camps in computer science, engineering, and core STEM disciplines to aspiring children, fostering their love for STEM through structured lessons and projects.',
@@ -327,7 +327,7 @@ export const portfolio = {
       category: 'Mathematics',
       title: 'AIME Qualifier',
       description:
-        'Scored 118.5/150 on the AMC 12 to qualify for the American Invitational Mathematics Examination (AIME), then 7/15 on the AIME - the top 0.5% of all AMC competitors.',
+        'Scored 118.5/150 on the AMC 12 to qualify for the American Invitational Mathematics Examination (AIME), then 7/15 on the AIME - the top 1% of all AMC competitors.',
     },
     {
       id: 'award-music',
@@ -341,7 +341,7 @@ export const portfolio = {
       category: 'Leadership',
       title: 'Business Professionals of America (BPA)',
       description:
-        'Chapter Vice President. Regional Champion in 2025 and 2026 (1st place, two-time State qualifier) and a two-time National Torch Award recipient. Top 10 finalist at the 2026 National Leadership Conference.',
+        '2026-27 Chapter President. Regional Champion in 2025 and 2026 (1st place, two-time State qualifier) and a two-time National Torch Award recipient. Top 10 finalist at the 2026 National Leadership Conference.',
     },
     {
       id: 'award-conrad',
