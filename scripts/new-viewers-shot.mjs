@@ -1,5 +1,5 @@
 /**
- * Screenshot the two new research viewers at several scroll-progress points.
+ * Screenshot the newest research viewers at several scroll-progress points.
  * Usage: node scripts/new-viewers-shot.mjs [baseUrl]
  */
 import { chromium } from 'playwright'
@@ -51,8 +51,10 @@ await page.evaluate(() => {
 })
 await page.waitForTimeout(2500)
 
-await shotsForBlock(page, 'research-sailnko', 'sail', [0.05, 0.2, 0.32, 0.5, 0.65, 0.9])
-await shotsForBlock(page, 'research-transition', 'atlas', [0.05, 0.2, 0.35, 0.55, 0.75, 0.95])
+await shotsForBlock(page, 'research-nozzlemoc', 'nozzle', [0.05, 0.25, 0.5, 0.7, 0.92])
+await shotsForBlock(page, 'research-eilj2', 'eilj2', [0.05, 0.35, 0.6, 0.72, 0.95])
+await shotsForBlock(page, 'research-bli', 'bli', [0.05, 0.25, 0.45, 0.6, 0.92])
+await shotsForBlock(page, 'research-rde', 'rde', [0.05, 0.25, 0.45, 0.7, 0.95])
 
 console.log(errors.length ? `ERRORS:\n${errors.join('\n')}` : 'no console errors')
 await browser.close()

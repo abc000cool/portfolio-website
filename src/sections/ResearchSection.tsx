@@ -63,6 +63,10 @@ const STATIC_PROGRESS: Record<ResearchViewerId, number> = {
   qcin: 0.98,
   sailnko: 0.62,
   transition: 0.93,
+  nozzlemoc: 0.9,
+  eilj2: 0.55,
+  bli: 0.92,
+  rde: 0.78,
 }
 
 const PRIMARY_ACTION_CLASS =
@@ -87,6 +91,18 @@ const SolarSailNKO = lazy(() =>
 )
 const TransitionAtlas = lazy(() =>
   import('../components/three/TransitionAtlas').then((m) => ({ default: m.TransitionAtlas })),
+)
+const NozzleMoc = lazy(() =>
+  import('../components/three/NozzleMoc').then((m) => ({ default: m.NozzleMoc })),
+)
+const FormationKeeping = lazy(() =>
+  import('../components/three/FormationKeeping').then((m) => ({ default: m.FormationKeeping })),
+)
+const BliBenefit = lazy(() =>
+  import('../components/three/BliBenefit').then((m) => ({ default: m.BliBenefit })),
+)
+const RdeAtlas = lazy(() =>
+  import('../components/three/RdeAtlas').then((m) => ({ default: m.RdeAtlas })),
 )
 
 const VIEWER_HEIGHT = 'h-[300px] md:h-[380px] lg:h-[420px]'
@@ -189,6 +205,42 @@ function ResearchViewer({
                     className={VIEWER_HEIGHT}
                   />
                 )
+              case 'nozzlemoc':
+                return (
+                  <NozzleMoc
+                    progress={scrollProgress}
+                    scrollProgress={staticProgress}
+                    active={active}
+                    className={VIEWER_HEIGHT}
+                  />
+                )
+              case 'eilj2':
+                return (
+                  <FormationKeeping
+                    progress={scrollProgress}
+                    scrollProgress={staticProgress}
+                    active={active}
+                    className={VIEWER_HEIGHT}
+                  />
+                )
+              case 'bli':
+                return (
+                  <BliBenefit
+                    progress={scrollProgress}
+                    scrollProgress={staticProgress}
+                    active={active}
+                    className={VIEWER_HEIGHT}
+                  />
+                )
+              case 'rde':
+                return (
+                  <RdeAtlas
+                    progress={scrollProgress}
+                    scrollProgress={staticProgress}
+                    active={active}
+                    className={VIEWER_HEIGHT}
+                  />
+                )
             }
           })()}
         </Suspense>
@@ -270,7 +322,7 @@ function ResearchMetrics({ config }: { config: ResearchShowcaseConfig }) {
   )
 }
 
-/** Compact jump list so the six entries are reachable without linear scrolling. */
+/** Compact jump list so the ten entries are reachable without linear scrolling. */
 function ResearchIndex({ reduced }: { reduced: boolean }) {
   const jump = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     // Reduced motion falls through to the native hash jump (scroll-behavior: auto).
@@ -596,8 +648,8 @@ export function ResearchSection() {
           <RedactedHeading active={active}>Research</RedactedHeading>
           <p className="text-slate-400 mt-4 leading-relaxed">
             {isMobile
-              ? 'Research across orbital debris mitigation, morphing airfoil optimization, fluid-dynamics traffic modeling, hybrid quantum–classical inertial navigation, solar-sail non-Keplerian orbits, and boundary-layer transition prediction.'
-              : 'Scroll through each project to explore interactive 3D visualizations - from orbital debris capture and morphing airfoils to solar sails hovering above the ecliptic and the boundary layer letting go on a laminar-flow wing.'}
+              ? 'Research across orbital debris mitigation, morphing airfoils, traffic fluid dynamics, quantum–classical navigation, solar-sail orbits, laminar-flow transition, supersonic nozzle design, spacecraft formation-keeping, boundary-layer ingestion, and rotating detonation engines.'
+              : 'Scroll through each project to explore interactive 3D visualizations - from orbital debris capture and solar sails hovering above the ecliptic to a nozzle drawn by the Method of Characteristics and detonation waves racing around a ring.'}
           </p>
         </div>
 

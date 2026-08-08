@@ -68,7 +68,7 @@ export const portfolio = {
     name: 'Ansh Pathak',
     title: 'Aerospace research · US patent',
     tagline:
-      'US patent holder for SWEEP, a space-debris capture platform presented at AAS 248. Six papers and preprints, and a flight simulator validated to 1.5% against a Boeing 737-800.',
+      'US patent holder for SWEEP, a space-debris capture platform presented at AAS 248. Ten papers and preprints, and a flight simulator validated to 1.5% against a Boeing 737-800.',
     school: 'Heritage High School',
     location: 'Frisco, TX',
     email: 'pathakansh10@gmail.com',
@@ -194,10 +194,66 @@ export const portfolio = {
       abstractHtml:
         "Every prediction of a laminar-flow wing hinges on the transition point, and in XFOIL that point is set by a single environment parameter: N<sub>crit</sub>. This work sweeps the full general-aviation envelope of the NASA NLF(1)-0416 airfoil - 12 Reynolds numbers, 9 amplification thresholds, 65 angles of attack - and publishes the result as a queryable <strong>sensitivity atlas</strong>: 7,020 converged solutions (96.2%) with local derivatives (median ∂x<sub>tr</sub>/∂N<sub>crit</sub> ≈ 0.011c, ≈1.2 drag counts per unit), elasticities, Morris screening, and a 5,120-sample Sobol variance decomposition. A from-scratch Chebyshev-collocation <strong>Orr–Sommerfeld solver</strong>, verified against the classical results of Orszag and Jordinson, integrates forty fixed-frequency amplification curves over XFOIL's own boundary layers and isolates the systematic bias of the Drela–Giles envelope approximation: <strong>+0.010–0.035c aft</strong> in attached flow, ≈2.2 N<sub>crit</sub> units of equivalent offset. Validation against a fully re-digitized set of 108 transition measurements from the original 1981 Langley report (Somers, NASA TP-1861) closes the loop at <strong>0.023c RMS</strong> - the measurement resolution - with 82% of predictions inside their microphone-orifice bracket. Code MIT, data CC-BY, solvers checksummed.",
     },
+    {
+      id: 'paper-nozzlemoc',
+      slug: 'nozzlemoc',
+      title:
+        'Rao Revisited: A Reproducible Pareto Atlas of Supersonic Nozzle Contours via the Method of Characteristics with Compressible Boundary-Layer Correction',
+      venue: 'Preprint · Open dataset',
+      year: 2026,
+      externalUrl: 'https://nozzlemoc-website.vercel.app',
+      githubUrl: 'https://github.com/abc000cool/nozzlemoc',
+      summary:
+        'nozzlemoc, an open, tested Method-of-Characteristics reference implementation for supersonic rocket-nozzle design with a DOI-archived paper and dataset. It matches the textbook benchmark to 0.011%, reproduces the 1952 NACA Mach-10 nozzle, and finds a near-universal 0.550 turning ratio.',
+      abstract:
+        'The Method of Characteristics has drawn every supersonic nozzle since the 1950s - it turns supersonic flow into geometry, where waves are lines - yet the field lacked an open, tested, DOI-archived reference implementation. nozzlemoc fills that gap: an open-source Method-of-Characteristics design code for supersonic rocket-nozzle contours with compressible boundary-layer correction, published together with a reproducible Pareto atlas of nozzle designs. The solver agrees with the classical textbook benchmark to 0.011% and reproduces the 1952 NACA Mach-10 nozzle contour. Across the atlas, the maximum wall angle settles at a near-universal 0.550 of the exit Prandtl-Meyer angle - a sharpening of the classical half-nu rule - and a sensitivity analysis built on 8,192 coupled simulations ranks which design inputs actually govern the contour. Code is MIT-licensed; the paper, dataset and figures are archived at DOI 10.5281/zenodo.21438122.',
+    },
+    {
+      id: 'paper-eilj2',
+      slug: 'estimation-in-the-loop-j2',
+      title:
+        'Estimation-in-the-Loop J2 Formation-Keeping: A Pareto Characterization of Relative-Navigation Accuracy Versus Delta-V Cost',
+      venue: 'Preprint',
+      year: 2026,
+      externalUrl: 'https://when-the-filter-lies.vercel.app',
+      githubUrl: 'https://github.com/abc000cool/resonance-j2-eil',
+      summary:
+        "Two satellites hold formation in low Earth orbit while J2 pulls them apart - and the controller only ever sees a navigation filter's estimate. Across 45,860 simulations, standard filter tuning inverts the sensor-fuel trade; fixing it restores the physics and shows what centimeter-class GPS is worth.",
+      abstract:
+        "Spacecraft formation-flying missions in low Earth orbit must actively suppress the differential drift induced by the J2 zonal harmonic, and the delta-V cost of doing so depends critically on the accuracy of the on-board relative-navigation filter: the controller never sees the true relative state, only the filter's estimate. This study couples three formation-keeping controllers (steady-state LQR, receding-horizon MPC on relative-orbital-element dynamics, and closed-form impulsive control) with three navigation architectures (carrier-phase differential GPS, inter-satellite RF ranging, and angles-only optical) through an error-state extended Kalman filter, driven against a J2-J4 truth propagator cross-validated with Orekit. Across 45,860 closed-loop simulations the campaign exposes a trap: the standard way of tuning the filter leaves it inconsistent enough to invert the results, so that better sensors appear to cost more fuel - physically backwards. Retuning the filter restores the real Pareto trade between navigation accuracy and delta-V, and prices what centimeter-class differential GPS is actually worth in formation-keeping fuel. Fully reproducible and MIT-licensed; paper and data archived at DOI 10.5281/zenodo.21762778.",
+    },
+    {
+      id: 'paper-bli',
+      slug: 'bli-power-balance',
+      title:
+        'How Robust Is the BLI Benefit? Global Sensitivity and Uncertainty Quantification of a Low-Order Power-Balance Model',
+      venue: 'Preprint · Open dataset',
+      year: 2026,
+      externalUrl: 'https://bli-benefit-site.vercel.app',
+      githubUrl: 'https://github.com/abc000cool/bli-power-balance',
+      summary:
+        'Boundary-layer ingestion promises anywhere from 2% to 12% fuel savings depending on who you ask. The first open-source implementation of the exact power-balance ledger, validated against the MIT D8 and NASA STARC-ABL, runs 147,456 evaluations to put real error bars on the claim: 0.3-3.7% fuel saved.',
+      abstract:
+        "Boundary-layer ingestion (BLI) mounts an aircraft's fan at the back of the fuselage so it swallows the slow boundary-layer air and wastes less energy - but published benefit claims disagree wildly, spanning 2-12%, because they measure different quantities under different bookkeeping rules and almost never report uncertainty. This work presents the first open-source, tested implementation of the exact Drela power-balance energy ledger, unifying the Smith wake-ingestion analysis and the Hall dissipation decomposition in one reproducible pipeline, validated against the MIT D8 wind-tunnel campaign (within 1.5 percentage points, with a mechanistic diagnosis of the difference) and bracketing the published NASA STARC-ABL assessments. A 147,456-evaluation Monte-Carlo and Sobol sensitivity campaign then puts the first real error bars on the number: 0.3-3.7% block fuel saved at 90% confidence, with an interior optimum near 55% ingestion - full ingestion is a net penalty at realistic distortion sensitivities. Past that optimum, the uncertainty is dominated by electric-drivetrain efficiency, not by how much air the fan ingests. Code, data and every figure regenerate from the archived repository at DOI 10.5281/zenodo.21762542.",
+    },
+    {
+      id: 'paper-rde',
+      slug: 'rde-wave-count-atlas',
+      title:
+        'A Wave-Count Stability Atlas for the Koch–Kurosaka–Knowlen–Kutz Rotating Detonation Engine Analog',
+      venue: 'Preprint · Open dataset',
+      year: 2026,
+      externalUrl: 'https://rde-wave-count-atlas.vercel.app',
+      githubUrl: 'https://github.com/abc000cool/rde-wave-atlas',
+      summary:
+        'A rotating detonation engine picks its own wave count - push more propellant in and it jumps from 1 to 2 to 3 to 4 waves. 5,856 GPU simulations build the first two-parameter regime map of the standard reduced-order model, checked against engine data from six laboratories.',
+      abstract:
+        'A rotating detonation engine (RDE) is an annular combustor in which detonation waves race around a ring instead of burning at constant pressure - and the number of co-rotating waves N is emergent, not designed. As propellant injection increases, the engine jumps abruptly from one wave to two, three, then four, yet nobody had mapped where those states live in parameter space for the standard Koch-Kurosaka-Knowlen-Kutz reduced-order model. This work runs 5,856 GPU simulations to build the first two-parameter regime map - injector plenum pressure versus injector stiffness - resolving the locked N = 1-4 bands, the narrow galloping (modulated) windows and small chaotic patches between them, and the uniform-combustion region at high pressure. Checked against experimental mode-transition data from six laboratories, 19 of 24 experimental points agree within one wave, and simulated wave speeds sit 8-10% below the theoretical Chapman-Jouguet speed, consistent with real engines. The atlas, code and data are open and DOI-archived at 10.5281/zenodo.21697129.',
+    },
   ] as Paper[],
   stats: [
     { label: 'US patent - SWEEP debris platform', display: '1' },
-    { label: 'Research papers & preprints', display: '6' },
+    { label: 'Research papers & preprints', display: '10' },
     { label: 'AMC 12 competitors - AIME qualifier', display: 'Top 0.5%' },
     { label: 'FIRST World Championship qualifier', display: '2x' },
     { label: 'BPA National Leadership Conference', display: 'Top 10' },

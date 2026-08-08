@@ -19,6 +19,10 @@ export type ResearchViewerId =
   | 'qcin'
   | 'sailnko'
   | 'transition'
+  | 'nozzlemoc'
+  | 'eilj2'
+  | 'bli'
+  | 'rde'
 
 export interface ResearchShowcaseConfig {
   id: string
@@ -136,6 +140,73 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
       { value: '0.011c', label: 'Median ∂xtr/∂Ncrit shift' },
       { value: '+0.010–0.035c', label: 'Envelope bias vs Orr–Sommerfeld' },
       { value: '0.023c RMS', label: 'Validation vs 1981 Langley data' },
+    ],
+  },
+  {
+    id: 'research-nozzlemoc',
+    paperSlug: 'nozzlemoc',
+    viewer: 'nozzlemoc',
+    scrollHeightVh: 340,
+    linkTo: '/research/nozzlemoc',
+    linkLabel: 'Read full abstract →',
+    viewerHint: 'Scroll: the bell draws itself in → characteristic mesh sweeps the interior',
+    externalUrl: 'https://nozzlemoc-website.vercel.app',
+    githubUrl: 'https://github.com/abc000cool/nozzlemoc',
+    metrics: [
+      { value: '0.011%', label: 'Agreement with the textbook benchmark' },
+      { value: '0.550', label: 'Universal turning ratio discovered' },
+      { value: '1952', label: 'NACA Mach-10 nozzle reproduced' },
+      { value: '8,192', label: 'Coupled simulations · sensitivity analysis' },
+    ],
+  },
+  {
+    id: 'research-eilj2',
+    paperSlug: 'estimation-in-the-loop-j2',
+    viewer: 'eilj2',
+    scrollHeightVh: 360,
+    linkTo: '/research/estimation-in-the-loop-j2',
+    linkLabel: 'Read full abstract →',
+    viewerHint: 'Scroll: J2 drift → the filter lies → the trade inverts → the fix',
+    externalUrl: 'https://when-the-filter-lies.vercel.app',
+    githubUrl: 'https://github.com/abc000cool/resonance-j2-eil',
+    metrics: [
+      { value: '45,860', label: 'Closed-loop Monte-Carlo simulations' },
+      { value: 'Inverted', label: 'Mistuned filter flips the sensor-fuel trade' },
+      { value: 'cm-class', label: 'GPS priced against delta-V once fixed' },
+    ],
+  },
+  {
+    id: 'research-bli',
+    paperSlug: 'bli-power-balance',
+    viewer: 'bli',
+    scrollHeightVh: 340,
+    linkTo: '/research/bli-power-balance',
+    linkLabel: 'Read full abstract →',
+    viewerHint: 'Scroll: the boundary layer feeds the fan → 147,456 runs → the error bars',
+    externalUrl: 'https://bli-benefit-site.vercel.app',
+    githubUrl: 'https://github.com/abc000cool/bli-power-balance',
+    metrics: [
+      { value: '147,456', label: 'Monte-Carlo + Sobol evaluations' },
+      { value: '0.3–3.7%', label: 'Fuel saved · 90% confidence' },
+      { value: '55%', label: 'Ingestion at the interior optimum' },
+      { value: '2–12%', label: 'Spread of published claims unified' },
+    ],
+  },
+  {
+    id: 'research-rde',
+    paperSlug: 'rde-wave-count-atlas',
+    viewer: 'rde',
+    scrollHeightVh: 380,
+    linkTo: '/research/rde-wave-count-atlas',
+    linkLabel: 'Read full abstract →',
+    viewerHint: 'Scroll: one wave splits into four → the ring unrolls → the atlas resolves',
+    externalUrl: 'https://rde-wave-count-atlas.vercel.app',
+    githubUrl: 'https://github.com/abc000cool/rde-wave-atlas',
+    metrics: [
+      { value: '5,856', label: 'GPU simulations · first regime map' },
+      { value: '6', label: 'Laboratories in the validation set' },
+      { value: '19 / 24', label: 'Experimental points within one wave' },
+      { value: '8–10%', label: 'Below Chapman–Jouguet wave speed' },
     ],
   },
 ]

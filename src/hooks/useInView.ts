@@ -49,4 +49,8 @@ export function prefetchResearchViewers(): void {
   void import('../components/three/HybridQuantumNav')
   void import('../components/three/SolarSailNKO')
   void import('../components/three/TransitionAtlas')
+  void import('../components/three/NozzleMoc')
+  void import('../components/three/FormationKeeping')
+  void import('../components/three/BliBenefit')
+  void import('../components/three/RdeAtlas')
 }
