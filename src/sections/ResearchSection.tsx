@@ -25,8 +25,10 @@ const DEFAULT_SCROLL_HEIGHT_VH = 180
 /**
  * Each scene's pacing comes from its own scrollHeightVh in researchShowcase.ts.
  * A viewer maps progress 0 to 1 across its zone, so shortening the zone makes
- * the same animation play proportionally faster. Shortening these was what made
- * the scenes feel rushed, so the data is authoritative and there is no cap.
+ * the same animation play proportionally faster. The data is authoritative and
+ * there is no cap; the current values are deliberately short (about 0.55x the
+ * originals) so every scene resolves within roughly two viewports of scroll -
+ * tune per entry there, not here.
  */
 
 /**
@@ -42,7 +44,9 @@ const DEFAULT_SCROLL_HEIGHT_VH = 180
  */
 const VIEWER_MOUNT_OBSERVER: IntersectionObserverInit = {
   threshold: 0,
-  rootMargin: '150% 0px 150% 0px',
+  // Three viewports of lead on both sides: chunks fetch and shaders compile
+  // long before arrival, so a scene is already drawing when it scrolls in.
+  rootMargin: '300% 0px 300% 0px',
 }
 /**
  * Drives the frameloop. Also symmetric: while a viewer is inactive its Canvas
@@ -619,14 +623,14 @@ export function ResearchSection() {
     }
 
     if (w.requestIdleCallback) {
-      const id = w.requestIdleCallback(run, { timeout: 4000 })
+      const id = w.requestIdleCallback(run, { timeout: 1500 })
       return () => {
         cancelled = true
         w.cancelIdleCallback?.(id)
       }
     }
     // Safari has no requestIdleCallback; a plain delay clears the intro.
-    const id = window.setTimeout(run, 2500)
+    const id = window.setTimeout(run, 1200)
     return () => {
       cancelled = true
       window.clearTimeout(id)

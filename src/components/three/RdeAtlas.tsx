@@ -55,7 +55,7 @@ function ProgressDriver({
 
 /** Continuous wave count: 1 front splits smoothly into 4 across beat one. */
 function waveCount(p: number): number {
-  return 1 + 3 * smoothstep(range01(p, 0.05, 0.26))
+  return 1 + 3 * smoothstep(range01(p, 0.03, 0.2))
 }
 
 function beats(p: number) {
@@ -146,7 +146,7 @@ function DetonationRing({ progressRef }: { progressRef: ProgressRef }) {
     angleRef.current += dt * (0.55 + 0.22 * (n - 1))
     const head = angleRef.current
 
-    const arrive = smoothstep(range01(p, 0.0, 0.08))
+    const arrive = smoothstep(range01(p, 0.0, 0.04))
     if (annulusMat.current) annulusMat.current.opacity = arrive * b.ring
 
     // Fronts ride the face of the tube nearest the camera; on the centerline

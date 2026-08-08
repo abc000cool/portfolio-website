@@ -60,7 +60,7 @@ function ProgressDriver({
 /** Beat windows shared by every element of the scene. */
 function beats(p: number) {
   return {
-    skin: smoothstep(range01(p, 0.06, 0.3)),
+    skin: smoothstep(range01(p, 0.02, 0.16)),
     fuselage: 1 - smoothstep(range01(p, 0.34, 0.46)),
     fleet: smoothstep(range01(p, 0.34, 0.44)) * (1 - smoothstep(range01(p, 0.56, 0.66))),
     surface: smoothstep(range01(p, 0.5, 0.62)) * (1 - smoothstep(range01(p, 0.72, 0.82))),
@@ -154,7 +154,7 @@ function Fuselage({ progressRef }: { progressRef: ProgressRef }) {
     clockRef.current += Math.min(frameDelta, MAX_DELTA)
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
     const b = beats(p)
-    const arrive = smoothstep(range01(p, 0.0, 0.1))
+    const arrive = smoothstep(range01(p, 0.0, 0.04))
     const pulse = 0.75 + Math.sin(clockRef.current * 3.6) * 0.25
 
     // The airframe lingers as a faint ghost through the fleet and surface
@@ -622,7 +622,7 @@ function getTelemetry(progress: number) {
     phase = 'Monte-Carlo'
     phaseDetail = '147,456 evaluations light up'
     index = 3
-  } else if (p >= 0.08) {
+  } else if (p >= 0.03) {
     phase = 'Boundary layer'
     phaseDetail = 'Slow air swallowed at the tail'
     index = 2

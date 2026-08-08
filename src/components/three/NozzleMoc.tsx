@@ -202,8 +202,8 @@ function CameraRig({ progressRef, reduced }: { progressRef: ProgressRef; reduced
     const dt = Math.min(frameDelta, MAX_DELTA)
     clockRef.current += dt
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
-    const push = smoothstep(range01(p, 0.3, 0.55))
-    const settle = smoothstep(range01(p, 0.78, 0.94))
+    const push = smoothstep(range01(p, 0.16, 0.4))
+    const settle = smoothstep(range01(p, 0.72, 0.9))
     const position = positionRef.current
     const target = targetRef.current
 
@@ -257,7 +257,7 @@ function BellShell({ progressRef, reduced }: { progressRef: ProgressRef; reduced
   useFrame((_, frameDelta) => {
     const dt = Math.min(frameDelta, MAX_DELTA)
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
-    const reveal = smoothstep(range01(p, 0.04, 0.34))
+    const reveal = smoothstep(range01(p, 0.01, 0.12))
 
     // Draw ranges must land on segment (2-vertex) boundaries or lines tear.
     meridians.geometry.setDrawRange(0, Math.floor((meridians.total * reveal) / 2) * 2)
@@ -309,7 +309,7 @@ function SonicLine({ progressRef }: { progressRef: ProgressRef }) {
     if (!mesh) return
     clockRef.current += Math.min(frameDelta, MAX_DELTA)
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
-    const reveal = smoothstep(range01(p, 0.0, 0.08))
+    const reveal = smoothstep(range01(p, 0.0, 0.04))
     const pulse = 0.7 + Math.sin(clockRef.current * 4.4) * 0.3
     mesh.visible = reveal > 0.02
     const material = mesh.material as THREE.MeshStandardMaterial
@@ -352,11 +352,11 @@ function CharacteristicMesh({ progressRef }: { progressRef: ProgressRef }) {
   useFrame((_, frameDelta) => {
     clockRef.current += Math.min(frameDelta, MAX_DELTA)
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
-    const plusReveal = smoothstep(range01(p, 0.34, 0.6))
-    const minusReveal = smoothstep(range01(p, 0.4, 0.66))
+    const plusReveal = smoothstep(range01(p, 0.14, 0.34))
+    const minusReveal = smoothstep(range01(p, 0.18, 0.38))
     // The mesh stays as the reference frame the rest of the story sits on;
     // it only dims slightly once the benchmark beat takes over.
-    const recede = 1 - 0.35 * smoothstep(range01(p, 0.82, 0.94))
+    const recede = 1 - 0.35 * smoothstep(range01(p, 0.76, 0.88))
     const shimmer = 1 + Math.sin(clockRef.current * 2.1) * 0.08
 
     plus.geometry.setDrawRange(0, Math.floor((plus.total * plusReveal) / 2) * 2)
@@ -426,7 +426,7 @@ function FlowStream({ progressRef }: { progressRef: ProgressRef }) {
     clockRef.current += dt
     const time = clockRef.current
     const p = THREE.MathUtils.clamp(progressRef.current ?? 0, 0, 1)
-    const reveal = smoothstep(range01(p, 0.5, 0.68))
+    const reveal = smoothstep(range01(p, 0.36, 0.5))
 
     for (let i = 0; i < FLOW_COUNT; i++) {
       const seed = seeds[i]
@@ -499,28 +499,28 @@ function getTelemetry(progress: number) {
   let phase = 'Sonic line'
   let phaseDetail = 'Flow chokes at the throat'
   let index = 1
-  if (p >= 0.82) {
+  if (p >= 0.74) {
     phase = 'Pareto atlas'
     phaseDetail = '8,192 coupled sims · θmax/ν → 0.550'
     index = 5
-  } else if (p >= 0.6) {
+  } else if (p >= 0.48) {
     phase = 'Benchmarks'
     phaseDetail = '0.011% vs textbook · 1952 NACA Mach-10'
     index = 4
-  } else if (p >= 0.34) {
+  } else if (p >= 0.14) {
     phase = 'Characteristics'
     phaseDetail = 'Two wave families sweep the interior'
     index = 3
-  } else if (p >= 0.08) {
+  } else if (p >= 0.03) {
     phase = 'Bell contour'
     phaseDetail = 'The nozzle draws itself in'
     index = 2
   }
 
-  const benchT = smoothstep(range01(p, 0.6, 0.78))
-  const yearT = smoothstep(range01(p, 0.64, 0.82))
-  const ratioT = smoothstep(range01(p, 0.82, 0.94))
-  const simsT = smoothstep(range01(p, 0.84, 0.97))
+  const benchT = smoothstep(range01(p, 0.48, 0.64))
+  const yearT = smoothstep(range01(p, 0.52, 0.68))
+  const ratioT = smoothstep(range01(p, 0.74, 0.86))
+  const simsT = smoothstep(range01(p, 0.76, 0.9))
   return {
     phase,
     phaseDetail,
