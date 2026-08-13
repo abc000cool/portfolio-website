@@ -121,7 +121,7 @@ export const portfolio = {
       slug: 'space-debris-mitigation',
       title: 'Space Debris Mitigation',
       venue: 'AAS 248 - Pasadena, CA',
-      year: 2026,
+      year: 2025,
       summary:
         'SWEEP, a US-patented spacecraft that captures orbital debris, compacts it into dense pellets, and fires them out of orbit from electromagnetic railguns - using the recoil to maneuver. Presented at AAS 248.',
       abstract:
@@ -144,7 +144,7 @@ export const portfolio = {
       title:
         'Probabilistic Optimization of Continuous-Morphing Airfoil Geometries via Gaussian Process Surrogates and QAOA-Based Discrete Sampling',
       venue: 'Pending',
-      year: 2026,
+      year: 2025,
       summary:
         'Pairs Gaussian-process surrogate models with a quantum sampler (QAOA) to search morphing-airfoil shapes. The best design, checked in XFOIL, cut drag 9.3% and raised lift 37% over a NACA 2412 baseline.',
       abstract:
