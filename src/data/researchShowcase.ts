@@ -42,7 +42,8 @@ export interface ResearchShowcaseConfig {
   githubUrl?: string
 }
 
-export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
+/** Every showcase config ever built - hidden papers keep theirs here so re-enabling is one flag flip. */
+const ALL_RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
   {
     id: 'research-debris',
     paperSlug: 'space-debris-mitigation',
@@ -210,6 +211,10 @@ export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = [
     ],
   },
 ]
+
+export const RESEARCH_SHOWCASE: ResearchShowcaseConfig[] = ALL_RESEARCH_SHOWCASE.filter(
+  (config) => !portfolio.papers.find((p) => p.slug === config.paperSlug)?.hidden,
+)
 
 export function getResearchShowcasePaper(slug: string): Paper | undefined {
   return portfolio.papers.find((p) => p.slug === slug)

@@ -35,6 +35,12 @@ export interface Paper {
   abstractHtml?: string
   externalUrl?: string
   githubUrl?: string
+  /**
+   * Kept in the data but surfaced nowhere: excluded from every list, nav,
+   * count, sitemap and generated AI content. prerender-meta.mjs reads this
+   * flag textually, so it must sit AFTER the slug line inside the paper object.
+   */
+  hidden?: boolean
 }
 
 export interface Stat {
@@ -68,7 +74,7 @@ export const portfolio = {
     name: 'Ansh Pathak',
     title: 'Aerospace research · US patent',
     tagline:
-      'US patent holder for SWEEP, a space-debris capture platform presented at AAS 248. Ten papers and preprints, and a flight simulator validated to 1.5% against a Boeing 737-800.',
+      'US patent holder for SWEEP, a space-debris capture platform presented at AAS 248. Seven papers and preprints, and a flight simulator validated to 1.5% against a Boeing 737-800.',
     school: 'Heritage High School',
     location: 'Frisco, TX',
     email: 'pathakansh10@gmail.com',
@@ -181,6 +187,7 @@ export const portfolio = {
     {
       id: 'paper-transition-atlas',
       slug: 'nlf-transition-atlas',
+      hidden: true,
       title:
         'An Open Sensitivity Atlas of Envelope-eN Transition Prediction for Natural-Laminar-Flow Airfoils, with an Orr–Sommerfeld Cross-Check',
       venue: 'Preprint · Open dataset',
@@ -211,6 +218,7 @@ export const portfolio = {
     {
       id: 'paper-eilj2',
       slug: 'estimation-in-the-loop-j2',
+      hidden: true,
       title:
         'Estimation-in-the-Loop J2 Formation-Keeping: A Pareto Characterization of Relative-Navigation Accuracy Versus Delta-V Cost',
       venue: 'Preprint',
@@ -225,6 +233,7 @@ export const portfolio = {
     {
       id: 'paper-bli',
       slug: 'bli-power-balance',
+      hidden: true,
       title:
         'How Robust Is the BLI Benefit? Global Sensitivity and Uncertainty Quantification of a Low-Order Power-Balance Model',
       venue: 'Preprint · Open dataset',
@@ -253,7 +262,7 @@ export const portfolio = {
   ] as Paper[],
   stats: [
     { label: 'US patent - SWEEP debris platform', display: '1' },
-    { label: 'Research papers & preprints', display: '10' },
+    { label: 'Research papers & preprints', display: '7' },
     { label: 'AMC 12 competitors - AIME qualifier', display: 'Top 1%' },
     { label: 'FIRST World Championship qualifier', display: '2x' },
     { label: 'BPA National Leadership Conference', display: 'Top 10' },
@@ -409,6 +418,15 @@ export type SectionId = (typeof SECTION_IDS)[number]
 
 export function getPaperBySlug(slug: string): Paper | undefined {
   return portfolio.papers.find((p) => p.slug === slug)
+}
+
+/**
+ * The papers surfaced on the site, with hidden entries filtered out.
+ * (Do not write the flag's name-colon-value literally in comments below the
+ * papers array - prerender-meta.mjs matches it textually per slug block.)
+ */
+export function getVisiblePapers(): Paper[] {
+  return portfolio.papers.filter((p) => !p.hidden)
 }
 
 /** Slug for the featured research paper (shown outside the binder with 3D airfoil). */

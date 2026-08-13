@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { getPaperBySlug, portfolio } from '../data/portfolio'
+import { getPaperBySlug, getVisiblePapers, portfolio } from '../data/portfolio'
 import { SubpageShell } from '../components/layout/SubpageShell'
 import { clampText, useDocumentHead } from '../hooks/useDocumentHead'
 
@@ -20,9 +20,11 @@ export function ResearchPaperPage() {
     return <Navigate to="/" replace />
   }
 
-  const index = portfolio.papers.findIndex((p) => p.slug === slug)
-  const prev = index > 0 ? portfolio.papers[index - 1] : null
-  const next = index < portfolio.papers.length - 1 ? portfolio.papers[index + 1] : null
+  // Prev/next only walk visible papers; on a hidden paper (index -1) both stay null.
+  const visiblePapers = getVisiblePapers()
+  const index = visiblePapers.findIndex((p) => p.slug === slug)
+  const prev = index > 0 ? visiblePapers[index - 1] : null
+  const next = index >= 0 && index < visiblePapers.length - 1 ? visiblePapers[index + 1] : null
 
   return (
     <SubpageShell backLabel="Back to research" backTo="/#research">

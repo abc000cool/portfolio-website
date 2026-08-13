@@ -131,6 +131,8 @@ if (papers.length === 0) {
   throw new Error('prerender-meta: no paper slugs parsed from src/data/portfolio.ts')
 }
 for (const { slug, block } of papers) {
+  // Hidden papers stay in the data but get no prerendered page or sitemap entry.
+  if (/\bhidden:\s*true\b/.test(block)) continue
   const title = field(block, 'title')
   const abstract = field(block, 'abstract')
   if (!title || !abstract) {

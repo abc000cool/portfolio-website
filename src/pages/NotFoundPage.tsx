@@ -13,7 +13,7 @@ const DESTINATIONS = [
     to: '/#research',
     label: 'Research',
     description:
-      'Ten papers and preprints, from orbital debris mitigation and morphing airfoils to supersonic nozzles and rotating detonation engines.',
+      'Seven papers and preprints, from orbital debris mitigation and morphing airfoils to supersonic nozzles and rotating detonation engines.',
   },
   {
     to: '/ism',

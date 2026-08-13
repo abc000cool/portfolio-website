@@ -41,16 +41,18 @@ export function useInView(
   return inView
 }
 
-/** Prefetch research 3D chunks before the user scrolls into viewers. */
+/**
+ * Prefetch research 3D chunks before the user scrolls into viewers.
+ * Only viewers whose paper is visible (see `hidden` in portfolio.ts) belong
+ * here - prefetching a scene that never mounts spends the visitor's bandwidth
+ * on nothing.
+ */
 export function prefetchResearchViewers(): void {
   void import('../components/three/SpaceDebrisOrbit')
   void import('../components/three/MorphingAirfoil')
   void import('../components/three/FlowStateTraffic')
   void import('../components/three/HybridQuantumNav')
   void import('../components/three/SolarSailNKO')
-  void import('../components/three/TransitionAtlas')
   void import('../components/three/NozzleMoc')
-  void import('../components/three/FormationKeeping')
-  void import('../components/three/BliBenefit')
   void import('../components/three/RdeAtlas')
 }

@@ -326,7 +326,7 @@ function ResearchMetrics({ config }: { config: ResearchShowcaseConfig }) {
   )
 }
 
-/** Compact jump list so the ten entries are reachable without linear scrolling. */
+/** Compact jump list so every entry is reachable without linear scrolling. */
 function ResearchIndex({ reduced }: { reduced: boolean }) {
   const jump = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     // Reduced motion falls through to the native hash jump (scroll-behavior: auto).
@@ -652,7 +652,7 @@ export function ResearchSection() {
           <RedactedHeading active={active}>Research</RedactedHeading>
           <p className="text-slate-400 mt-4 leading-relaxed">
             {isMobile
-              ? 'Research across orbital debris mitigation, morphing airfoils, traffic fluid dynamics, quantum–classical navigation, solar-sail orbits, laminar-flow transition, supersonic nozzle design, spacecraft formation-keeping, boundary-layer ingestion, and rotating detonation engines.'
+              ? 'Research across orbital debris mitigation, morphing airfoils, traffic fluid dynamics, quantum–classical navigation, solar-sail orbits, supersonic nozzle design, and rotating detonation engines.'
               : 'Scroll through each project to explore interactive 3D visualizations - from orbital debris capture and solar sails hovering above the ecliptic to a nozzle drawn by the Method of Characteristics and detonation waves racing around a ring.'}
           </p>
         </div>

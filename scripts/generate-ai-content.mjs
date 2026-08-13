@@ -52,6 +52,9 @@ function doiOf(paper) {
 
 const showcaseByPaper = new Map(RESEARCH_SHOWCASE.map((c) => [c.paperSlug, c]))
 
+/** Only papers surfaced on the site - hidden entries appear in no generated content. */
+const visiblePapers = portfolio.papers.filter((p) => !p.hidden)
+
 function paperLinks(paper) {
   const links = []
   const config = showcaseByPaper.get(paper.slug)
@@ -90,9 +93,9 @@ function buildLlmsTxt() {
   lines.push('')
   lines.push(`Complete site content in one file: ${ORIGIN}/llms-full.txt`)
   lines.push('')
-  lines.push(`## Research (${portfolio.papers.length} papers and preprints)`)
+  lines.push(`## Research (${visiblePapers.length} papers and preprints)`)
   lines.push('')
-  for (const paper of portfolio.papers) {
+  for (const paper of visiblePapers) {
     const blurb = paper.summary ?? paper.abstract
     lines.push(`- [${paper.title}](${ORIGIN}/research/${paper.slug}) (${paper.year}, ${paper.venue}): ${blurb}`)
   }
@@ -153,8 +156,8 @@ function buildLlmsFullTxt() {
   }
 
   rule()
-  lines.push(`## Research (${portfolio.papers.length} papers and preprints)`)
-  for (const paper of portfolio.papers) {
+  lines.push(`## Research (${visiblePapers.length} papers and preprints)`)
+  for (const paper of visiblePapers) {
     lines.push('')
     lines.push(`### ${paper.title}`)
     lines.push('')
@@ -292,8 +295,8 @@ function homeHtml() {
   parts.push(
     `<p>${escapeHtml(identity.school)}, ${escapeHtml(identity.location)}. Email: ${escapeHtml(identity.email)}</p>`,
   )
-  parts.push(`<h2>Research (${portfolio.papers.length} papers and preprints)</h2><ul>`)
-  for (const paper of portfolio.papers) {
+  parts.push(`<h2>Research (${visiblePapers.length} papers and preprints)</h2><ul>`)
+  for (const paper of visiblePapers) {
     parts.push(
       `<li><a href="/research/${paper.slug}">${escapeHtml(paper.title)}</a> (${paper.year}, ${escapeHtml(paper.venue)}): ${escapeHtml(paper.summary ?? paper.abstract)}</li>`,
     )
@@ -462,7 +465,7 @@ const llmsFullTxt = buildLlmsFullTxt()
 writeFileSync(join(DIST, 'llms.txt'), llmsTxt, 'utf8')
 writeFileSync(join(DIST, 'llms-full.txt'), llmsFullTxt, 'utf8')
 
-const papersBySlug = new Map(portfolio.papers.map((p) => [p.slug, p]))
+const papersBySlug = new Map(visiblePapers.map((p) => [p.slug, p]))
 const projectsBySlug = new Map(projectPages.map((p) => [p.slug, p]))
 
 let injected = 0
